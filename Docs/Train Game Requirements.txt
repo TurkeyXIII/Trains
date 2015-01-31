@@ -1,0 +1,30 @@
+A game that emulates building and running a complex model railway system.
+
+The playfield will consist of what you might find on a table in a model railway enthusiast's basement: Fixed size terrain with tracks running through it, and decorated with roads, houses, cows in fields, etc.
+Size of the playfield will be scenario/level dependent. If the camera reaches the edge of the playfield, the fact that it is mounted on a table should be visible.
+
+Aesthetic will be toy-like, possibly cartoonish, without looking cheap.  If the models look like cheap plastic toys it's good, if they look like cheap 3d models it's bad. Locomotives will sound like they have electric motors inside them, and track noise will be similarly light. Crashes and disasters and explosions should be as spectacular as possible.  Still toy-like scaling, but... let's assume our model railway enthusiast put tiny amounts of TNT in the boiler for authentic disaster effects.
+
+Locomotives will be modeled as an electric motor controlled by a closed-loop tachometer controller. Engine power / track friction will be modelled as slightly weaker and slower than you would expect in a model railway, as actual model railways accelerate almost instantly whereas starting and stopping times should be a consideration when playing this game. We do not want players waiting minutes for a train to slow down, however.
+
+Camera will always be birds-eye / top-down view of the playfield.  Most of the time, the camera will be locked to the playfield, but some special events might allow it to be unlocked so that the player can look around the basement that the table is set up in.
+UI elements will be present in the foreground; exactly what controls the UI has will be dependent on game mode.  Some controls will be common to multiple modes.
+
+
+There will be three gameplay modes:
+
+FREE PLAY:
+Terrain can be molded, track can be placed, and locomotives are controlled manually in the UI. Switches are also set manually.
+Objective: None.
+
+SCHEDULE:
+Trains are controlled by a strict schedule, displayed on a timeline. Points switching and coupling/decoupling also must be scheduled.  After simulating / playing through a schedule, the simulation can be restarted and the schedule modified and improved.
+Objective: Varied. Objectives will be stated at the beginning of the scenario and require completion upon the conclusion of the simulation.  Objectives will be things like 'Get train A from here to there' or 'Follow this timetable'.
+This will be the largest section of the game and involve the most work. Scenarios and objectives should be set up to encourage creative solutions to problems, and have players set up elaborate systems that they can be proud of.
+
+PANIC/SIGNAL:
+No control over the trains. Track signals are used instead to instruct locomotives to slow down or stop, but mostly collisions can only be averted by manipulating railroad switches.
+Objective: Get the most Deliveries/Runtime/whatever before it all goes to shit. More trains will enter the system as the level progresses in order to progressively increase difficulty. Think air traffic controller type games.
+
+
+There will be a level editor, possibly a seperate program or part of Free Play mode, for allowing users to design levels for Schedule and Signal modes.

@@ -1,0 +1,114 @@
+fileFormatVersion: 2
+guid: b8de8d0866d8a0949a4aa58a28090c86
+ModelImporter:
+  serializedVersion: 16
+  fileIDToRecycleName:
+    100000: Wheels09
+    100002: Freight_Body2
+    100006: Wheels08
+    100008: Struts_01
+    100010: Struts_02
+    100012: Wheels07
+    100014: Wheels011
+    100016: Wheels05
+    100018: Wheels010
+    100022: //RootNode
+    400000: Wheels09
+    400002: Freight_Body2
+    400006: Wheels08
+    400008: Struts_01
+    400010: Struts_02
+    400012: Wheels07
+    400014: Wheels011
+    400016: Wheels05
+    400018: Wheels010
+    400022: //RootNode
+    2300000: Wheels09
+    2300002: Freight_Body2
+    2300004: Wheels08
+    2300006: Struts_01
+    2300008: Struts_02
+    2300010: Wheels07
+    2300012: Wheels011
+    2300014: Wheels05
+    2300016: Wheels010
+    3300000: Wheels09
+    3300002: Freight_Body2
+    3300004: Wheels08
+    3300006: Struts_01
+    3300008: Struts_02
+    3300010: Wheels07
+    3300012: Wheels011
+    3300014: Wheels05
+    3300016: Wheels010
+    4300000: ftrain_lo
+    4300002: Freight_Body2
+    4300004: Wheels06
+    4300006: Wheels05
+    4300008: Wheels04
+    4300010: Wheels03
+    4300012: Wheels02
+    4300014: Wheels01
+    4300016: Struts_02
+    4300018: Struts_01
+    4300020: Wheels07
+    4300022: Wheels08
+    4300024: Wheels09
+    4300026: Wheels010
+    4300028: Wheels011
+    4300030: Freight_Train_LOD_02
+    11100000: //RootNode
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    optimizeGameObjects: 0
+    motionNodeName: 
+    animationCompression: 1
+    animationRotationError: .5
+    animationPositionError: .5
+    animationScaleError: .5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    importBlendShapes: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+  tangentSpace:
+    normalSmoothAngle: 60
+    splitTangentsAcrossUV: 1
+    normalImportMode: 0
+    tangentImportMode: 1
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    human: []
+    skeleton: []
+    armTwist: .5
+    foreArmTwist: .5
+    upperLegTwist: .5
+    legTwist: .5
+    armStretch: .0500000007
+    legStretch: .0500000007
+    feetSpacing: 0
+    rootMotionBoneName: 
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 1
+  additionalBone: 0
+  userData: 

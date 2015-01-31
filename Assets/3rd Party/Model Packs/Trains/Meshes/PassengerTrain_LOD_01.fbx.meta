@@ -1,0 +1,103 @@
+fileFormatVersion: 2
+guid: 491ab83b8517c6e41bcc4a1702bf378a
+ModelImporter:
+  serializedVersion: 16
+  fileIDToRecycleName:
+    100000: Struts_03
+    100002: Struts_02
+    100004: passenger_train_split_Wheels07
+    100006: passenger_train_split_Wheels06
+    100008: passenger_train_split_Wheels05
+    100010: passenger_train_split_Wheels04
+    100012: PassengerTrain_Body
+    100014: //RootNode
+    400000: Struts_03
+    400002: Struts_02
+    400004: passenger_train_split_Wheels07
+    400006: passenger_train_split_Wheels06
+    400008: passenger_train_split_Wheels05
+    400010: passenger_train_split_Wheels04
+    400012: PassengerTrain_Body
+    400014: //RootNode
+    2300000: Struts_03
+    2300002: Struts_02
+    2300004: passenger_train_split_Wheels07
+    2300006: passenger_train_split_Wheels06
+    2300008: passenger_train_split_Wheels05
+    2300010: passenger_train_split_Wheels04
+    2300012: PassengerTrain_Body
+    3300000: Struts_03
+    3300002: Struts_02
+    3300004: passenger_train_split_Wheels07
+    3300006: passenger_train_split_Wheels06
+    3300008: passenger_train_split_Wheels05
+    3300010: passenger_train_split_Wheels04
+    3300012: PassengerTrain_Body
+    4300000: Wheels01
+    4300002: Wheels02
+    4300004: Wheels03
+    4300006: Wheels04
+    4300008: SupportRods_01
+    4300010: SupportRods_02
+    4300012: PassengerTrain_Body
+    4300014: passenger_train_split_Wheels04
+    4300016: Struts_02
+    4300018: passenger_train_split_Wheels05
+    4300020: passenger_train_split_Wheels06
+    4300022: Struts_03
+    4300024: passenger_train_split_Wheels07
+    11100000: //RootNode
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    optimizeGameObjects: 0
+    motionNodeName: 
+    animationCompression: 1
+    animationRotationError: .5
+    animationPositionError: .5
+    animationScaleError: .5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 1
+    meshCompression: 0
+    addColliders: 0
+    importBlendShapes: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+  tangentSpace:
+    normalSmoothAngle: 60
+    splitTangentsAcrossUV: 1
+    normalImportMode: 0
+    tangentImportMode: 1
+  importAnimation: 1
+  copyAvatar: 0
+  humanDescription:
+    human: []
+    skeleton: []
+    armTwist: .5
+    foreArmTwist: .5
+    upperLegTwist: .5
+    legTwist: .5
+    armStretch: .0500000007
+    legStretch: .0500000007
+    feetSpacing: 0
+    rootMotionBoneName: 
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 1
+  additionalBone: 0
+  userData: 
