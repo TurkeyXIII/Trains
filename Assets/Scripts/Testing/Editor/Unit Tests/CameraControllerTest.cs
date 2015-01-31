@@ -93,7 +93,7 @@ namespace UnitTest
             cameraView.angleFromVertical = 10;
             cameraView.lookingAtWorldPoint = new Vector3(0, 0, 0);
 
-            Clamper c = new Clamper(new Vector3(-10, 0, -10), new Vector3(10, 0, 10));
+            Clamper c = new Clamper(new Vector3(-10, 0, -10), new Vector3(10, 0, 10), 0);
             c.cameraView = cameraView;
 
             Vector3 pos = new Vector3(0, 9, 0);
@@ -110,7 +110,7 @@ namespace UnitTest
             cameraView.angleFromVertical = 10;
             cameraView.lookingAtWorldPoint = new Vector3(-10, 0, 0);
 
-            Clamper c = new Clamper(new Vector3(-10, 0, -10), new Vector3(10, 0, 10));
+            Clamper c = new Clamper(new Vector3(-10, 0, -10), new Vector3(10, 0, 10), 0);
             c.cameraView = cameraView;
 
             Vector3 pos = new Vector3(0, 5, 0);
@@ -126,7 +126,7 @@ namespace UnitTest
             cameraView.angleFromVertical = 10;
             cameraView.lookingAtWorldPoint = new Vector3(-10, 0, -10);
 
-            Clamper c = new Clamper(new Vector3(-10, 0, -10), new Vector3(10, 0, 10));
+            Clamper c = new Clamper(new Vector3(-10, 0, -10), new Vector3(10, 0, 10), 0);
             c.cameraView = cameraView;
 
             Vector3 pos = new Vector3(0, 5, 0);
@@ -142,7 +142,7 @@ namespace UnitTest
             cameraView.angleFromVertical = 10;
             cameraView.lookingAtWorldPoint = new Vector3(-10, 0, -10);
 
-            Clamper c = new Clamper(new Vector3(-10, 0, -10), new Vector3(10, 0, 10));
+            Clamper c = new Clamper(new Vector3(-10, 0, -10), new Vector3(10, 0, 10), 0);
             c.cameraView = cameraView;
 
             Vector3 pos = new Vector3(0, 15, 0);
@@ -157,7 +157,7 @@ namespace UnitTest
             cameraView.angleFromVertical = 45;
             cameraView.lookingAtWorldPoint = new Vector3(0, 0, 0);
 
-            Clamper c = new Clamper(new Vector3(-10, 0, -10), new Vector3(10, 0, 10));
+            Clamper c = new Clamper(new Vector3(-10, 0, -10), new Vector3(10, 0, 10), 0);
             c.cameraView = cameraView;
 
             Vector3 pos = new Vector3(5, 5, 0);
@@ -186,6 +186,11 @@ namespace UnitTest
         public float FieldOfView()
         {
             return 90f;
+        }
+
+        public float GetTerrainHeight(Vector3 position)
+        {
+            return 0;
         }
     }
 }

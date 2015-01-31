@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using System.Collections;
 
 public enum EffectSize
@@ -37,7 +38,7 @@ public class ToolSelector : MonoBehaviour {
 
     void LateUpdate()
     {
-        if (currentToolBehaviour != null)
+        if (currentToolBehaviour != null && !EventSystem.current.IsPointerOverGameObject())
         {
             currentToolBehaviour.UpdateWhenSelected();
         }

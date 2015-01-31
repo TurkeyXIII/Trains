@@ -46,7 +46,7 @@ public class CameraController : MonoBehaviour , ICameraView
 
         m_targetPosition = transform.position;
 
-        c_clamper = new Clamper(m_terrainMin, m_terrainMax);
+        c_clamper = new Clamper(m_terrainMin, m_terrainMax, minHeightAboveTerrain);
         c_clamper.cameraView = this;
     }
 
@@ -84,7 +84,18 @@ public class CameraController : MonoBehaviour , ICameraView
             Tilt();
         }
 
-        transform.position = Vector3.Lerp(transform.position, m_targetPosition, Time.deltaTime * zoomSmoothing);
+        MoveCamera(Vector3.Lerp(transform.position, m_targetPosition, Time.deltaTime * zoomSmoothing));
+    }
+
+    // this function checks whether we'd be inside something before moving
+    private void MoveCamera(Vector3 targetPosition)
+    {
+        Vector3 direction = targetPosition - transform.position;
+        Ray ray = new Ray(transform.position, direction);
+        if (!Physics.Raycast(ray, direction.magnitude))
+        {
+            transform.position = targetPosition;
+        }
     }
 
     private void StartPanning()
@@ -123,8 +134,9 @@ public class CameraController : MonoBehaviour , ICameraView
             Vector3 newPosition = transform.position + movement;
             c_clamper.ClampPosition(ref newPosition);
 
-            m_targetPosition += newPosition - transform.position;
-            transform.position = newPosition;
+            Vector3 oldPosition = transform.position;
+            MoveCamera(newPosition);
+            m_targetPosition += transform.position - oldPosition;
         }
         else
         {
@@ -199,9 +211,6 @@ public class CameraController : MonoBehaviour , ICameraView
                 mouseDirection = (mouseLocation - transform.position).normalized;
             }
 
-            if (Input.mouseScrollDelta.y > 0f && Physics.Raycast(m_targetPosition, mouseDirection, (Input.mouseScrollDelta.y * zoomSensitivity + minHeightAboveTerrain)))
-                return;//don't go inside anything
-
             m_targetPosition += mouseDirection * Input.mouseScrollDelta.y * zoomSensitivity;
             c_clamper.ClampPosition(ref m_targetPosition);
         }
@@ -242,8 +251,9 @@ public class CameraController : MonoBehaviour , ICameraView
 
         //convert back to cartesian and move camera
         Vector3 newPosition = PolarPosRel.ToVector3() + m_tiltAnchor;
-        m_targetPosition += newPosition - transform.position;
-        transform.position = newPosition;
+        Vector3 oldPosition = transform.position;
+        MoveCamera(newPosition);
+        m_targetPosition += transform.position - oldPosition;
 
         //make sure the camera is looking at the tilt anchor
         transform.LookAt(m_tiltAnchor);
@@ -259,9 +269,10 @@ public class CameraController : MonoBehaviour , ICameraView
         */
     }
 
-
-
-
+    public float GetTerrainHeight(Vector3 position)
+    {
+        return m_sTerrain.SampleHeight(position);
+    }
 
     public Vector3 ViewportToWorldPoint(Vector3 position, Vector3 viewPort)
     {
@@ -326,13 +337,15 @@ public struct Polar
 public class Clamper
 {
     private Vector3 m_terrainMin, m_terrainMax;
+    private float m_yMin;
 
     public ICameraView cameraView { set; private get; }
 
-    public Clamper(Vector3 min, Vector3 max)
+    public Clamper(Vector3 min, Vector3 max, float yMin)
     {
         m_terrainMin = min;
         m_terrainMax = max;
+        m_yMin = yMin;
     }
 
     public bool ClampPosition(ref Vector3 cameraPosition)
@@ -344,6 +357,7 @@ public class Clamper
         //Vector3 bottomLeft = cameraView.ViewportToWorldPoint(cameraPosition, new Vector3(0, 0f, distToBottomPlane));
         //Vector3 bottomRight = cameraView.ViewportToWorldPoint(cameraPosition, new Vector3(1, 0f, distToBottomPlane));
         Vector3 middle = cameraView.ViewportToWorldPoint(cameraPosition, new Vector3(0.5f, 0.5f, distToMid));
+        //Vector3 middle = cameraView.RaycastHit(cameraPosition);
 
         Debug.Log(middle.ToString());
 
@@ -367,6 +381,12 @@ public class Clamper
         if (newCameraPos.y > maxY)
         {
             newCameraPos.y = maxY;
+            clamped = true;
+        }
+        float terrainHeight = cameraView.GetTerrainHeight(newCameraPos);
+        if (newCameraPos.y - terrainHeight < m_yMin)
+        {
+            newCameraPos.y = terrainHeight + m_yMin;
             clamped = true;
         }
 
@@ -403,6 +423,7 @@ public class Clamper
 public interface ICameraView
 {
     Vector3 ViewportToWorldPoint(Vector3 position, Vector3 viewPort);
+    float GetTerrainHeight(Vector3 position);
     float AngleFromVertical();
     float FieldOfView();
 }
