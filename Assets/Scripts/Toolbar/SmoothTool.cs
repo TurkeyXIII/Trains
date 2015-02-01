@@ -18,4 +18,9 @@ public class SmoothTool : MonoBehaviour, ITool {
     public void OnDeselect()
     {
     }
+
+
+    public void OnSelect()
+    {
+    }
 }

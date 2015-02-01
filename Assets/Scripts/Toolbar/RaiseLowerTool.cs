@@ -19,4 +19,9 @@ public class RaiseLowerTool : MonoBehaviour, ITool {
     public void OnDeselect()
     {
     }
+
+
+    public void OnSelect()
+    {
+    }
 }

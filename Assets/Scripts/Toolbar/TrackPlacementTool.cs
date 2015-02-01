@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using System.Collections;
+using System.Collections.Generic;
 
 public class TrackPlacementTool : MonoBehaviour, ITool
 {
@@ -10,9 +10,12 @@ public class TrackPlacementTool : MonoBehaviour, ITool
     private TrackSectionLengthController m_lengthController;
     private TerrainController m_terrainController;
 
+    private List<GameObject> m_trackSections;
+
     void Awake()
     {
         m_currentTrackSection = null;
+        m_trackSections = new List<GameObject>();
     }
 
     void Start()
@@ -32,6 +35,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                 {
                     location += verticalOffset * Vector3.up;
                     m_currentTrackSection = (GameObject)Instantiate(Control.GetControl().prefabTrackSection, location, Quaternion.identity);
+                    m_trackSections.Add(m_currentTrackSection);
                     m_lengthController = m_currentTrackSection.GetComponent<TrackSectionLengthController>();
                 }
             }
@@ -61,39 +65,58 @@ public class TrackPlacementTool : MonoBehaviour, ITool
             }
 
         }
-        else if (m_currentTrackSection == null && Input.GetMouseButtonDown(1))
+        else if (m_currentTrackSection == null)
         {
             // we're not currently editing any track piece, check if we're mousing over an existing one.
             Vector3 location;
             Collider hit = CameraController.GetMouseHit(out location);
+
             if (hit != null)
             {
-                m_lengthController = hit.GetComponent<TrackSectionLengthController>();
-                if (m_lengthController != null)
+                TrackSectionBaubleController baubleController = hit.GetComponent<TrackSectionBaubleController>();
+                if (baubleController != null)
                 {
-                    //we're over a track section
-                    m_currentTrackSection = m_lengthController.gameObject;
+                    baubleController.OnMouseover();
 
-                    float distToStart = (location - m_lengthController.transform.position).magnitude;
-                    float distToEnd = (location - m_lengthController.GetEndPoint()).magnitude;
-
-                    if (distToStart <= distToEnd) //need to turn it around so the endpoint is where the ouse pointer is
+                    if (Input.GetMouseButtonDown(1))
                     {
-                        m_currentTrackSection.transform.position = m_lengthController.GetEndPoint();
+                        // select this end of the track for editing
+                        m_currentTrackSection = baubleController.transform.parent.gameObject; //baubles must be immediate child of length section
+                        m_lengthController = m_currentTrackSection.GetComponent<TrackSectionLengthController>();
+
+                        m_lengthController.SelectBaubleForEditing(hit.gameObject);
                     }
                 }
             }
-
         }
+    }
+
+    public void OnSelect()
+    {
+        SetTrackSectionBaubleVisibility(true);
     }
 
     public void OnDeselect()
     {
         if (m_currentTrackSection != null)
         {
+            m_trackSections.Remove(m_currentTrackSection);
             Destroy(m_currentTrackSection);
             m_currentTrackSection = null;
             m_lengthController = null;
+        }
+
+        SetTrackSectionBaubleVisibility(false);
+    }
+
+    private void SetTrackSectionBaubleVisibility(bool visible)
+    {
+        Debug.Log("Setting vis to " + visible);
+        foreach (GameObject trackSection in m_trackSections)
+        {
+            TrackSectionLengthController tslc = trackSection.GetComponent<TrackSectionLengthController>();
+            tslc.SetBaubleVisibility(visible);
+            
         }
     }
 }

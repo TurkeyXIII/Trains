@@ -18,4 +18,9 @@ public class LevelTool : MonoBehaviour, ITool {
     public void OnDeselect()
     {
     }
+
+
+    public void OnSelect()
+    {
+    }
 }

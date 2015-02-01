@@ -38,6 +38,7 @@ public class ToolSelector : MonoBehaviour {
 
     void LateUpdate()
     {
+        // this is called in lateUpdate to make sure it is always after updates on the items it is called on.
         if (currentToolBehaviour != null && !EventSystem.current.IsPointerOverGameObject())
         {
             currentToolBehaviour.UpdateWhenSelected();
@@ -99,6 +100,8 @@ public class ToolSelector : MonoBehaviour {
         {
             Deselect();
 
+            tool.OnSelect();
+
             currentToolButton = button;
             currentToolBehaviour = tool;
 
@@ -106,6 +109,7 @@ public class ToolSelector : MonoBehaviour {
 
             button.GetComponent<CursorChanger>().Set();
 
+            //Toggle the sub-toolbar for this tool if there is one
             SubToolbarToggle toggle;
             foreach (Transform t in button.transform)
             {
@@ -196,5 +200,6 @@ public class ToolSelector : MonoBehaviour {
 public interface ITool
 {
     void UpdateWhenSelected();
+    void OnSelect();
     void OnDeselect();
 }

@@ -12,6 +12,10 @@ public class UtilitiesTool : MonoBehaviour, ITool
 
     public void OnDeselect()
     {
-        
+    }
+
+
+    public void OnSelect()
+    {
     }
 }

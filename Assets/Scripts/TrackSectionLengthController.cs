@@ -13,6 +13,8 @@ public class TrackSectionLengthController : MonoBehaviour {
 
     private Stack<GameObject> m_currentModels;
 
+    private GameObject c_startBauble, c_endBauble;
+
     void Awake()
     {
         Initialize();
@@ -20,6 +22,9 @@ public class TrackSectionLengthController : MonoBehaviour {
 
     public void Initialize()
     {
+        c_startBauble = transform.FindChild("StartBauble").gameObject;
+        c_endBauble = transform.FindChild("EndBauble").gameObject;
+
         m_currentModels = new Stack<GameObject>();
         m_collider = GetComponent<BoxCollider>();
         m_collider.center = new Vector3(0, 0.1f, 0);
@@ -78,6 +83,8 @@ public class TrackSectionLengthController : MonoBehaviour {
 
         m_currentLength = length;
 
+        c_endBauble.transform.localPosition = new Vector3(localLength, 0, 0);
+
         Vector3 dummy = m_collider.center;
         dummy.x = localLength/2;
         m_collider.center = dummy;
@@ -102,5 +109,28 @@ public class TrackSectionLengthController : MonoBehaviour {
     public Vector3 GetEndPoint()
     {
         return m_endPoint;
+    }
+
+    public void SelectBaubleForEditing(GameObject bauble)
+    {
+        if (bauble == c_endBauble)
+        {
+
+        }
+        else if (bauble == c_startBauble)
+        {
+            transform.position = m_endPoint;
+        }
+        else
+        {
+            Debug.Log("Error: bauble not found for editing");
+        }
+
+    }
+
+    public void SetBaubleVisibility(bool visible)
+    {
+        c_endBauble.SetActive(visible);
+        c_startBauble.SetActive(visible);
     }
 }
