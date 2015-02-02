@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Collections;
 
-public class TrackSectionLengthController : MonoBehaviour {
+public class TrackSectionShapeController : MonoBehaviour {
 
     public GameObject trackModel;
 
@@ -14,6 +14,14 @@ public class TrackSectionLengthController : MonoBehaviour {
     private Stack<GameObject> m_currentModels;
 
     private GameObject c_startBauble, c_endBauble;
+
+    private enum Mode
+    {
+        Straight,
+        Curved
+    }
+
+    private Mode m_mode;
 
     void Awake()
     {
@@ -31,6 +39,17 @@ public class TrackSectionLengthController : MonoBehaviour {
         m_collider.size = new Vector3(10, 0.24f, 2.5f);
         SetLength(0);
         m_endPoint = transform.position;
+        m_mode = Mode.Straight;
+    }
+
+    public void SetStraight()
+    {
+        m_mode = Mode.Straight;
+    }
+
+    public void SetCurved()
+    {
+        m_mode = Mode.Curved;
     }
 
     public void SetLength(float length)

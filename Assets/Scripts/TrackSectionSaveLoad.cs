@@ -26,7 +26,7 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
         data.startPointY = transform.position.y;
         data.startPointZ = transform.position.z;
 
-        Vector3 endPoint = GetComponent<TrackSectionLengthController>().GetEndPoint();
+        Vector3 endPoint = GetComponent<TrackSectionShapeController>().GetEndPoint();
 
         data.endPointX = endPoint.x;
         data.endPointY = endPoint.y;
@@ -39,7 +39,7 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
     {
         TrackSectionData tsData = (TrackSectionData)data;
         transform.position = new Vector3(tsData.startPointX, tsData.startPointY, tsData.startPointZ);
-        TrackSectionLengthController tslc = GetComponent<TrackSectionLengthController>();
+        TrackSectionShapeController tslc = GetComponent<TrackSectionShapeController>();
         tslc.Initialize();
         tslc.SetEndPoint(new Vector3(tsData.endPointX, tsData.endPointY, tsData.endPointZ));
     }

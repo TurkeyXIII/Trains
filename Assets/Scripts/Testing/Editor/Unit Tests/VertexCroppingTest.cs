@@ -13,7 +13,7 @@ namespace UnitTest
         public void NoVertsBeyondBounds()
         {
             VertexCropperLogic cropper = new VertexCropperLogic();
-            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
 
             Bounds bounds = new Bounds(new Vector3(0, 0, 0), new Vector3(20, 4, 4));
 
@@ -53,7 +53,7 @@ namespace UnitTest
         public void TriangleMatchUp()
         {
             VertexCropperLogic cropper = new VertexCropperLogic();
-            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
 
             //store the vectors that make up the triangles
@@ -102,7 +102,7 @@ namespace UnitTest
         public void UVremoved()
         {
             VertexCropperLogic cropper = new VertexCropperLogic();
-            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
 
             Bounds smallbounds = new Bounds(new Vector3(0, 0, 0), new Vector3(12, 4, 4));
@@ -117,7 +117,7 @@ namespace UnitTest
         public void NoVertsBeyondBoundsHalfTriangle()
         {
             VertexCropperLogic cropper = new VertexCropperLogic();
-            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
 
             cropper.meshOwner = meshOwner;
 
@@ -136,7 +136,7 @@ namespace UnitTest
         public void ArraysCorrectLengthHalfTriangle()
         {
             VertexCropperLogic cropper = new VertexCropperLogic();
-            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
 
             cropper.meshOwner = meshOwner;
 
@@ -156,7 +156,7 @@ namespace UnitTest
         public void TriangleMatchUpHalfTriangle()
         {
             VertexCropperLogic cropper = new VertexCropperLogic();
-            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
 
             int nTriangles = meshOwner.m_triangles.Length / 3;
@@ -198,7 +198,7 @@ namespace UnitTest
         public void TestSingleVertInsideBounds()
         {
             VertexCropperLogic cropper = new VertexCropperLogic();
-            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
 
             meshOwner.m_verts = new Vector3[3];
@@ -227,7 +227,7 @@ namespace UnitTest
         public void TestDoubleVertInsideBounds()
         {
             VertexCropperLogic cropper = new VertexCropperLogic();
-            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
 
             meshOwner.m_verts = new Vector3[3];
@@ -262,7 +262,7 @@ namespace UnitTest
         public void EverythingIsZero()
         {
             VertexCropperLogic cropper = new VertexCropperLogic();
-            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
 
             Bounds b = new Bounds(new Vector3(0, 0, 0), new Vector3(0.1f, 0.1f, 0.1f));
@@ -278,7 +278,7 @@ namespace UnitTest
         public void ShortenQuad()
         {
             VertexCropperLogic cropper = new VertexCropperLogic();
-            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
 
             meshOwner.m_verts = new Vector3[4];
@@ -320,7 +320,7 @@ namespace UnitTest
         public void CornerTriangle()
         {
             VertexCropperLogic cropper = new VertexCropperLogic();
-            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
 
             meshOwner.m_verts = new Vector3[3];
@@ -379,7 +379,7 @@ namespace UnitTest
         public void UVmappedunmovedVerts()
         {
             VertexCropperLogic cropper = new VertexCropperLogic();
-            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
             
             Bounds b = new Bounds(new Vector3(0, 0, 0), new Vector3(12, 4, 4));
@@ -404,7 +404,7 @@ namespace UnitTest
         public void UVmappedmovedVerts()
         {
             VertexCropperLogic cropper = new VertexCropperLogic();
-            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
 
             Bounds b = new Bounds(new Vector3(0, 0, 0), new Vector3(16, 4, 4));
@@ -435,7 +435,7 @@ namespace UnitTest
         public void UVDiagonalTriangleAcross()
         {
             VertexCropperLogic cropper = new VertexCropperLogic();
-            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
 
             Bounds b = new Bounds(Vector3.zero, Vector3.one);
@@ -530,13 +530,13 @@ namespace UnitTest
 
 
 
-    internal class MeshOwnerStub : IMeshOwner
+    internal class MeshOwnerCropStub : IMeshOwner
     {
         public Vector3[] m_verts;
         public Vector2[] m_uv;
         public int[] m_triangles;
         
-        public MeshOwnerStub()
+        public MeshOwnerCropStub()
         {
             m_verts = new Vector3[8 * 5];
             m_uv = new Vector2[8 * 5];

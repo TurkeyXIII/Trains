@@ -7,7 +7,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
     public float verticalOffset = 0.01f;
 
     private GameObject m_currentTrackSection;
-    private TrackSectionLengthController m_lengthController;
+    private TrackSectionShapeController m_shapeController;
     private TerrainController m_terrainController;
 
     private List<GameObject> m_trackSections;
@@ -36,17 +36,17 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                     location += verticalOffset * Vector3.up;
                     m_currentTrackSection = (GameObject)Instantiate(Control.GetControl().prefabTrackSection, location, Quaternion.identity);
                     m_trackSections.Add(m_currentTrackSection);
-                    m_lengthController = m_currentTrackSection.GetComponent<TrackSectionLengthController>();
+                    m_shapeController = m_currentTrackSection.GetComponent<TrackSectionShapeController>();
                 }
             }
             else
             {
                 //need to move the terrain such that it sits directly under the track
-                m_terrainController.SetLineHeight(m_currentTrackSection.transform.position + verticalOffset * Vector3.down, m_lengthController.GetEndPoint() + verticalOffset * Vector3.down, ballastWidth);
+                m_terrainController.SetLineHeight(m_currentTrackSection.transform.position + verticalOffset * Vector3.down, m_shapeController.GetEndPoint() + verticalOffset * Vector3.down, ballastWidth);
 
                 //leave the current section where it is
                 m_currentTrackSection = null;
-                m_lengthController = null;
+                m_shapeController = null;
             }
         }
         else if (m_currentTrackSection != null)
@@ -57,7 +57,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
             if (CameraController.GetMouseHitTerrainLocation(out location))
             {
                 location += verticalOffset * Vector3.up;
-                m_lengthController.SetEndPoint(location);
+                m_shapeController.SetEndPoint(location);
             }
             else
             {
@@ -82,9 +82,9 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                     {
                         // select this end of the track for editing
                         m_currentTrackSection = baubleController.transform.parent.gameObject; //baubles must be immediate child of length section
-                        m_lengthController = m_currentTrackSection.GetComponent<TrackSectionLengthController>();
+                        m_shapeController = m_currentTrackSection.GetComponent<TrackSectionShapeController>();
 
-                        m_lengthController.SelectBaubleForEditing(hit.gameObject);
+                        m_shapeController.SelectBaubleForEditing(hit.gameObject);
                     }
                 }
             }
@@ -103,7 +103,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
             m_trackSections.Remove(m_currentTrackSection);
             Destroy(m_currentTrackSection);
             m_currentTrackSection = null;
-            m_lengthController = null;
+            m_shapeController = null;
         }
 
         SetTrackSectionBaubleVisibility(false);
@@ -114,8 +114,8 @@ public class TrackPlacementTool : MonoBehaviour, ITool
         Debug.Log("Setting vis to " + visible);
         foreach (GameObject trackSection in m_trackSections)
         {
-            TrackSectionLengthController tslc = trackSection.GetComponent<TrackSectionLengthController>();
-            tslc.SetBaubleVisibility(visible);
+            TrackSectionShapeController tssc = trackSection.GetComponent<TrackSectionShapeController>();
+            tssc.SetBaubleVisibility(visible);
             
         }
     }
