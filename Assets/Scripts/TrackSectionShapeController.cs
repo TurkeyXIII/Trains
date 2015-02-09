@@ -9,6 +9,8 @@ public class TrackSectionShapeController : MonoBehaviour {
 	private float m_currentLength;
     private Vector3 m_endPoint;
 
+    private Quaternion m_startRotation;
+
     private BoxCollider m_collider;
 
     private Stack<GameObject> m_currentModels;
@@ -40,6 +42,7 @@ public class TrackSectionShapeController : MonoBehaviour {
         SetLength(0);
         m_endPoint = transform.position;
         m_mode = Mode.Straight;
+        m_startRotation = Quaternion.identity;
     }
 
     public void SetStraight()
@@ -50,6 +53,14 @@ public class TrackSectionShapeController : MonoBehaviour {
     public void SetCurved()
     {
         m_mode = Mode.Curved;
+    }
+
+    private void RestoreTrackSections()
+    {
+        foreach (GameObject trackModel in m_currentModels)
+        {
+            trackModel.GetComponent<VertexCropper>().Restore();
+        }
     }
 
     public void SetLength(float length)
@@ -74,8 +85,8 @@ public class TrackSectionShapeController : MonoBehaviour {
                 
                 newSection.transform.localPosition = new Vector3(xPosition, 0, 0);
                 newSection.transform.localRotation = Quaternion.Euler(new Vector3(-90, 0, 0));
+                newSection.transform.localScale = Vector3.one;
                 
-
                 m_currentModels.Push(newSection);
             }
         }
@@ -102,8 +113,9 @@ public class TrackSectionShapeController : MonoBehaviour {
 
         m_currentLength = length;
 
-        c_endBauble.transform.localPosition = new Vector3(localLength, 0, 0);
+        c_endBauble.transform.position = m_endPoint;
 
+        // set the collider dimensions
         Vector3 dummy = m_collider.center;
         dummy.x = localLength/2;
         m_collider.center = dummy;
@@ -112,17 +124,73 @@ public class TrackSectionShapeController : MonoBehaviour {
         m_collider.size = dummy;
     }
 
+    public void SetCurve()
+    {
+        foreach (GameObject trackModel in m_currentModels)
+        {
+            Vector3 relativeMovablePosition = new Vector3(m_currentLength/transform.localScale.x - trackModel.transform.localPosition.x, 0, 0) * trackModel.transform.localScale.x;
+            Vector3 relativeFixedPosition = (-trackModel.transform.localPosition * trackModel.transform.localScale.x);
+            Vector3 relativeTargetPosition = trackModel.transform.InverseTransformPoint(m_endPoint);
+            /*
+            Debug.Log("RelativeFixedPosition: " + relativeFixedPosition);
+            Debug.Log("RelativeMovablePosition: " + relativeMovablePosition);
+            
+            Debug.Log("real target position: " + m_endPoint);
+            Debug.Log("RelativeTargetPosition: " + relativeTargetPosition);
+            */
+            trackModel.GetComponent<VertexBender>().Bend(relativeFixedPosition, relativeMovablePosition, relativeTargetPosition);
+        }
+
+
+    }
+
     public void SetEndPoint(Vector3 point)
     {
         if (point != m_endPoint)
         {
-            m_endPoint = point;
-            Vector3 track = m_endPoint - transform.position;
+            switch (m_mode)
+            {
+                case (Mode.Straight):
+                    {
+                        m_endPoint = point;
+                        Vector3 track = m_endPoint - transform.position;
 
-            transform.rotation = Quaternion.LookRotation(track) * Quaternion.Euler(0, -90, 0);
+                        transform.rotation = Quaternion.LookRotation(track) * Quaternion.Euler(0, -90, 0);
 
-            SetLength(track.magnitude);
+                        SetLength(track.magnitude);
+                        break;
+                    }
+                case (Mode.Curved):
+                    {
+                        m_endPoint = point;
+                        transform.rotation = m_startRotation;
+
+                        float length, angle;
+                        Vector3 rotationAxis;
+                        VertexBender.GetBentLengthAndRotation(Vector3.Cross(transform.up, transform.forward), point - transform.position, out length, out rotationAxis, out angle);
+                        if (length > 0)
+                        {
+                            RestoreTrackSections();
+
+                            SetLength(length);
+
+                            SetCurve();
+
+                            Debug.Log("end bauble rotation axis: " + rotationAxis + " angle: " + angle);
+
+                            c_endBauble.transform.localRotation = Quaternion.AngleAxis(angle, rotationAxis);
+
+                            
+                        }
+                        break;
+                    }
+            }
         }
+    }
+
+    public void SetStartRotation(Quaternion rotation)
+    {
+        m_startRotation = rotation;
     }
 
     public Vector3 GetEndPoint()

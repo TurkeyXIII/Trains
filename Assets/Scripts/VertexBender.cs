@@ -7,11 +7,6 @@ public class VertexBender : MonoBehaviour, IMeshOwner
     private VertexBenderLogic c_bender;
     private Mesh m_mesh;
 
-    private Vector3[] c_originalVerts;
-    private Vector2[] c_originalUV;
-    private int[] c_originalTriangles;
-
-
     void Awake()
     {
         c_bender = new VertexBenderLogic();
@@ -19,28 +14,23 @@ public class VertexBender : MonoBehaviour, IMeshOwner
 
         MeshFilter meshFilter = GetComponent<MeshFilter>();
         m_mesh = meshFilter.mesh;
+    }
 
+    public void Bend(Vector3 movableEndPosition, Vector3 targetPostion)
+    {
+        c_bender.Bend(movableEndPosition, targetPostion);
+    }
 
-        c_originalVerts = new Vector3[m_mesh.vertices.Length];
-        c_originalUV = new Vector2[m_mesh.uv.Length];
-        for (int i = 0; i < c_originalVerts.Length; i++)
-        {
-            c_originalVerts[i] = m_mesh.vertices[i];
-            c_originalUV[i] = m_mesh.uv[i];
-        }
-
-        c_originalTriangles = new int[m_mesh.triangles.Length];
-        for (int i = 0; i < c_originalTriangles.Length; i++)
-        {
-            c_originalTriangles[i] = m_mesh.triangles[i];
-        }
+    public void Bend(Vector3 fixedPosition, Vector3 movableEndPosition, Vector3 targetPostion)
+    {
+        c_bender.Bend(fixedPosition, movableEndPosition, targetPostion);
     }
 
     public void GetMeshInfo(out Vector3[] verts, out Vector2[] uv, out int[] triangles)
     {
-        verts = c_originalVerts;
-        uv = c_originalUV;
-        triangles = c_originalTriangles;
+        verts = m_mesh.vertices;
+        uv = m_mesh.uv;
+        triangles = m_mesh.triangles;
     }
 
     public void SetMeshInfo(Vector3[] verts, Vector2[] uv, int[] triangles)
@@ -54,9 +44,11 @@ public class VertexBender : MonoBehaviour, IMeshOwner
         m_mesh.RecalculateNormals();
     }
 
-    public float GetBentLength(Vector3 movableEndPosition, Vector3 targetPostion)
+    public static void GetBentLengthAndRotation(Vector3 movableEndPosition, Vector3 targetPostion, out float length, out Vector3 rotationAxis, out float angle)
     {
-        return c_bender.GetBentLength(movableEndPosition, targetPostion);
+        length = VertexBenderLogic.GetBentLength(movableEndPosition, targetPostion);
+        angle = Mathf.Acos(Vector3.Dot(movableEndPosition, targetPostion) / (movableEndPosition.magnitude * targetPostion.magnitude)) * 2 * Mathf.Rad2Deg;
+        rotationAxis = Vector3.Cross(movableEndPosition, targetPostion).normalized;
     }
 }
 
@@ -66,7 +58,7 @@ public class VertexBenderLogic
 
     public IMeshOwner meshOwner { set; private get; }
 
-    public float GetBentLength(Vector3 movableEndPosition, Vector3 targetPostion)
+    public static float GetBentLength(Vector3 movableEndPosition, Vector3 targetPostion)
     {
         float scale, normalizedLength, thetaRadius;
         GetBendProperties(movableEndPosition, targetPostion, out scale, out normalizedLength, out thetaRadius);
@@ -74,36 +66,57 @@ public class VertexBenderLogic
         return normalizedLength * scale * 2;
     }
 
-    public void GetBendProperties(Vector3 movableEndPosition, Vector3 targetPostion, out float scale, out float normalizedLength, out float thetaRadians)
+    private static void GetBendProperties(Vector3 movableEndPosition, Vector3 targetPostion, out float scale, out float normalizedLength, out float thetaRadians)
     {
         thetaRadians = Mathf.Acos(Vector3.Dot(movableEndPosition, targetPostion) / (movableEndPosition.magnitude * targetPostion.magnitude));
         normalizedLength = Mathf.Sqrt(thetaRadians);
 
-        Debug.Log("Normalized length: " + normalizedLength);
+        if (normalizedLength == 0)
+        {
+            normalizedLength = 0.5f;
+            scale = targetPostion.magnitude;
+            return;
+        }
 
         float xL = FresnelC(normalizedLength);
         float yL = FresnelS(normalizedLength);
 
         float xA = xL * (1 + Mathf.Cos(thetaRadians * 2)) + yL * Mathf.Sin(thetaRadians * 2);
 
-        Debug.Log("xL: " + xL + " yL: " + yL + " xA: " + xA);
-
         scale = (targetPostion.magnitude * Mathf.Cos(thetaRadians)) / xA;
 
-        Debug.Log("Scale: " + scale);
+        if (xA == 0)
+        {
+            scale = targetPostion.magnitude / (2 * yL);
+        }
+
     }
 
-    public float Bend(Vector3 movableEndPosition, Vector3 targetPostion) //assumes the fixed point is the origin
+    public float Bend(Vector3 fixedPosition, Vector3 movableEndPosition, Vector3 targetPosition)
     {
         float thetaRadians;
         float normalizedLength;
         float scale;
 
-        GetBendProperties(movableEndPosition, targetPostion, out scale, out normalizedLength, out thetaRadians);
+        movableEndPosition -= fixedPosition;
+        targetPosition -= fixedPosition;
 
+        GetBendProperties(movableEndPosition, targetPosition, out scale, out normalizedLength, out thetaRadians);
+        
+        if (thetaRadians == 0)
+        {
+            return scale * normalizedLength * 2;
+        }
+        /*
+        Debug.Log("NormalizedLength: " + normalizedLength);
+        Debug.Log("Fixed end:" + fixedPosition);
+        Debug.Log("movableEnd" + movableEndPosition);
+        Debug.Log("Target" + targetPosition);
+        Debug.Log("Scale: " + scale);
+        */
         // orthogonal unit vectors describing the x and y directions of a co-ordinate system where x is the original direction and y is the lateral movement
         Vector3 unitXdash = movableEndPosition / movableEndPosition.magnitude;
-        Vector3 unitYdash = targetPostion - (targetPostion.magnitude * Mathf.Cos(thetaRadians) * unitXdash);
+        Vector3 unitYdash = targetPosition - (targetPosition.magnitude * Mathf.Cos(thetaRadians) * unitXdash);
         unitYdash /= unitYdash.magnitude;
 
         // orthogonal unit vectors describing x and y directions of co-ordinate system where x is direction away from target point along straigh line and y is lateral movement to origin
@@ -122,30 +135,46 @@ public class VertexBenderLogic
 
         meshOwner.GetMeshInfo(out verts, out uvs, out tris);
 
+        Vector3[] newVerts = new Vector3[verts.Length];
+
         for (int i = 0; i < verts.Length; i++)
         {
-            float L = Vector3.Dot(verts[i], unitXdash) * normalizedLength * 2 / movableEndPosition.magnitude;
+            Vector3 vert = verts[i] - fixedPosition;
 
+            float L = Vector3.Dot(vert, unitXdash) * normalizedLength * 2 / movableEndPosition.magnitude;
+
+            Vector3 vy = vert - Vector3.Dot(vert, unitXdash) * unitXdash;
             if (L <= normalizedLength) // the first half, 'transition in' part of the curve
             {
                 float xvdash = FresnelC(L) * scale;
                 float yvdash = FresnelS(L) * scale;
 
-                verts[i] = xvdash * unitXdash + yvdash * unitYdash;
+                float thetaRadiansAtVert = Mathf.Pow(L, 2);
+                Vector3 lineOffset = Mathf.Cos(thetaRadiansAtVert) * vy + Mathf.Sin(thetaRadiansAtVert) * Vector3.Cross(rotationAxis, vy) + (1 - Mathf.Cos(thetaRadiansAtVert)) * Vector3.Dot(rotationAxis, vy) * rotationAxis;
+                newVerts[i] = xvdash * unitXdash + yvdash * unitYdash + lineOffset + fixedPosition;
             }
             else // the second half, 'transition out' part of the curve
             {
                 float xvdoubledash = FresnelC((2 * normalizedLength) - L) * scale;
                 float yvdoubledash = FresnelS((2 * normalizedLength) - L) * scale;
 
-                verts[i] = targetPostion + xvdoubledash * unitXdoubledash + yvdoubledash * unitYdoubledash;
+                float thetaRadiansAtVert = thetaRadians * 2 - Mathf.Pow(2 * normalizedLength - L, 2);
+                Vector3 lineOffset = Mathf.Cos(thetaRadiansAtVert) * vy + Mathf.Sin(thetaRadiansAtVert) * Vector3.Cross(rotationAxis, vy) + (1 - Mathf.Cos(thetaRadiansAtVert)) * Vector3.Dot(rotationAxis, vy) * rotationAxis;
+
+                newVerts[i] = targetPosition + xvdoubledash * unitXdoubledash + yvdoubledash * unitYdoubledash + lineOffset + fixedPosition;
+
             }
 
         }
 
-        meshOwner.SetMeshInfo(verts, uvs, tris);
+        meshOwner.SetMeshInfo(newVerts, uvs, tris);
 
         return normalizedLength * scale * 2;
+    }
+
+    public float Bend(Vector3 movableEndPosition, Vector3 targetPosition) //assumes the fixed point is the origin
+    {
+        return Bend(Vector3.zero, movableEndPosition, targetPosition);
     }
 
     public static float FresnelS(float x)
@@ -162,6 +191,11 @@ public class VertexBenderLogic
 
             FresnelS += lastTerm;
             n++;
+
+            if (n > 20)
+            {
+                return -1;
+            }
         }
 
         return FresnelS;
@@ -181,6 +215,11 @@ public class VertexBenderLogic
 
             FresnelC += lastTerm;
             n++;
+
+            if (n > 20)
+            {
+                return -1;
+            }
         }
         return FresnelC;
     }
