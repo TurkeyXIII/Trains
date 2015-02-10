@@ -377,9 +377,59 @@ namespace UnitTest
         }
 
         [Test]
-        public void Test()
+        public void TestNewTrianglesMidpoint()
         {
+            VertexBenderLogic logic = new VertexBenderLogic();
+            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            logic.meshOwner = meshOwner;
 
+            //use a subtle bend theta = 30 degrees
+            //the midpoint should always be split
+
+            meshOwner.vertices = new Vector3[3];
+            meshOwner.vertices[0] = new Vector3(0, -1, 0);
+            meshOwner.vertices[1] = new Vector3(0, 1, 0);
+            meshOwner.vertices[2] = new Vector3(1, 0, 0);
+
+            meshOwner.tris = new int[3];
+            for (int i = 0; i < 3; i++) meshOwner.tris[i] = i;
+
+            float z = Mathf.Tan(Mathf.PI / 6f); //for a 30 degree bend
+            logic.Bend(new Vector3(1, 0, 0), new Vector3(1, 0, z));
+
+            Assert.AreEqual(9, meshOwner.tris.Length);
+            Assert.AreEqual(5, meshOwner.vertices.Length);
+            Assert.That(meshOwner.vertices[3].x, Is.EqualTo(0.704012 / 1.1633).Within(0.1).Percent);
+            Assert.That(meshOwner.vertices[3].z, Is.EqualTo(0.123840 / 1.1633).Within(0.1).Percent);
+            Assert.That(meshOwner.vertices[4].x, Is.EqualTo(0.704012 / 1.1633).Within(0.1).Percent);
+            Assert.That(meshOwner.vertices[4].z, Is.EqualTo(0.123840 / 1.1633).Within(0.1).Percent);
+        }
+
+        [Test]
+        public void TestNewTrianglesSharedVerts()
+        {
+            VertexBenderLogic logic = new VertexBenderLogic();
+            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            logic.meshOwner = meshOwner;
+
+            meshOwner.vertices = new Vector3[4];
+            meshOwner.vertices[0] = new Vector3(0, -1, 0);
+            meshOwner.vertices[1] = new Vector3(0, 1, 0);
+            meshOwner.vertices[2] = new Vector3(1, -1, 0);
+            meshOwner.vertices[3] = new Vector3(1, 1, 0);
+
+            meshOwner.tris = new int[6];
+            for (int i = 0; i < 3; i++)
+            {
+                meshOwner.tris[i] = i;
+                meshOwner.tris[i+3] = 3-i;
+            }
+
+            // when bent, this quad should have 7 verts total
+            float z = Mathf.Tan(Mathf.PI / 6f); //for a 30 degree bend
+            logic.Bend(new Vector3(1, 0, 0), new Vector3(1, 0, z));
+
+            Assert.AreEqual(7, meshOwner.vertices.Length);
         }
 
         [Test]

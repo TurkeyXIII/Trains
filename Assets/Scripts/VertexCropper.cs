@@ -511,11 +511,15 @@ public class VertexCropperLogic
         }
     }
 
-
     public static bool AreApproximatelyEqual(float a, float b)
     {
+        return AreApproximatelyEqual(a, b, c_fudgeFactor*10);
+    }
+
+    public static bool AreApproximatelyEqual(float a, float b, float margin)
+    {
         float diff = a - b;
-        if (diff < 10*c_fudgeFactor && diff > -10*c_fudgeFactor) return true;
+        if (diff < margin && diff > -margin) return true;
 
         return false;
     }
