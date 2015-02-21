@@ -80,6 +80,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11ccbc293a8d36e46b0f53a6be84c0a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  maxCornerAngleDegrees: 2
 --- !u!1001 &100100000
 Prefab:
   m_ObjectHideFlags: 1

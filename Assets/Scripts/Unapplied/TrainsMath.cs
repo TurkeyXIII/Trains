@@ -17,4 +17,14 @@ public class TrainsMath {
 
         return false;
     }
+
+    public static bool AreApproximatelyEqual(Vector3 a, Vector3 b, float margin)
+    {
+        if (AreApproximatelyEqual(a.x, b.x, margin) &&
+            AreApproximatelyEqual(a.y, b.y, margin) &&
+            AreApproximatelyEqual(a.z, b.z, margin))
+            return true;
+
+        return false;
+    }
 }
