@@ -1,23 +1,22 @@
-﻿using UnityEngine;
+﻿// Author: Phillip Boyack 2015
+
+using UnityEngine;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-
 
 public class VertexCropper : MonoBehaviour , IMeshOwner
 {
-    private VertexCropperLogic c_truncator;
+    private VertexCropperLogic c_cropper;
     private Mesh m_mesh;
-
     private Vector3[] c_originalVerts;
     private Vector2[] c_originalUV;
     private int[] c_originalTriangles;
 
     void Awake()
     {
-        c_truncator = new VertexCropperLogic();
-        c_truncator.meshOwner = this;
+        c_cropper = new VertexCropperLogic();
+        c_cropper.meshOwner = this;
 
         MeshFilter meshFilter = GetComponent<MeshFilter>();
         m_mesh = meshFilter.mesh;
@@ -42,15 +41,13 @@ public class VertexCropper : MonoBehaviour , IMeshOwner
     {
         try
         {
-            c_truncator.CropVerts(bounds);
+            c_cropper.CropVerts(bounds);
         }
         catch (Exception e)
         {
             Debug.Log("Exception caught: " + e.Message);
         }
     }
-
-
 
     public void GetMeshInfo(out Vector3[] verts, out Vector2[] uv, out int[] triangles)
     {
@@ -61,25 +58,16 @@ public class VertexCropper : MonoBehaviour , IMeshOwner
 
     public void SetMeshInfo(Vector3[] verts, Vector2[] uv, int[] triangles)
     {
-
         m_mesh.Clear();
-
         m_mesh.vertices = verts;
         m_mesh.uv = uv;
         m_mesh.triangles = triangles;
-
         m_mesh.RecalculateNormals();
     }
 
     public void Restore()
     {
-        m_mesh.Clear();
-
-        m_mesh.vertices = c_originalVerts;
-        m_mesh.uv = c_originalUV;
-        m_mesh.triangles = c_originalTriangles;
-
-        m_mesh.RecalculateNormals();
+        SetMeshInfo(c_originalVerts, c_originalUV, c_originalTriangles);
     }
 }
 
@@ -99,8 +87,7 @@ public class VertexCropperLogic
         meshOwner.GetMeshInfo(out verts, out uv, out triangles);
 
         if (verts.Length == 0) return;
-
-        
+                
         if (Mathf.Min(bounds.size.x, bounds.size.y, bounds.size.z) <= 0.01f)
         {
             verts = new Vector3[0];
@@ -150,8 +137,6 @@ public class VertexCropperLogic
                             Vector2 testUV;
                             testVert = GetMovedVert(bounds, verts[triangles[i + (j + 1) % 3]], verts[triangles[i + j]], uv[triangles[i+ (j + 1) % 3]], uv[triangles[i+j]], out testUV);
 
-                            //Debug.Log("Vert from: " + verts[triangles[i + j]].ToString() + " vert to: " + verts[triangles[i + (j + 1) % 3]].ToString() + " vert result: " + testVert.ToString());
-
                             if (bounds.Contains(testVert))
                             {
                                 if (firstVertIndex == -1)
@@ -196,13 +181,11 @@ public class VertexCropperLogic
                                     unmovedVert = verts[unmovedVertIndex];
                                     break;
                                 }
-
                                 if (j == 2) throw new Exception("Error: no unmoved verts found");
                             }
                             float a = 0, b = 0;
                             Vector3 A = unmovedVert - firstVert;
                             Vector3 B = secondVert - firstVert;
-
                             Vector2 uvA = unmovedUV - firstUV;
                             Vector2 uvB = secondUV - firstUV;
 
@@ -210,13 +193,13 @@ public class VertexCropperLogic
                             float equation1Total = 0;
                             float A1, A2, B1, B2;
                             {
-                                if (AreApproximatelyEqual(firstVert.x, bounds.max.x) || AreApproximatelyEqual(firstVert.x, bounds.min.x))
+                                if (TrainsMath.AreApproximatelyEqual(firstVert.x, bounds.max.x) || TrainsMath.AreApproximatelyEqual(firstVert.x, bounds.min.x))
                                 {
                                     cornerVert.x = firstVert.x;
                                     A2 = A.x;
                                     B2 = B.x;
                                 }
-                                else if (AreApproximatelyEqual(firstVert.y, bounds.max.y) || AreApproximatelyEqual(firstVert.y, bounds.min.y))
+                                else if (TrainsMath.AreApproximatelyEqual(firstVert.y, bounds.max.y) || TrainsMath.AreApproximatelyEqual(firstVert.y, bounds.min.y))
                                 {
                                     cornerVert.y = firstVert.y;
                                     A2 = A.y;
@@ -224,7 +207,7 @@ public class VertexCropperLogic
                                 }
                                 else
                                 {
-                                    if (AreApproximatelyEqual(firstVert.z, bounds.max.z) || AreApproximatelyEqual(firstVert.z, bounds.min.z))
+                                    if (TrainsMath.AreApproximatelyEqual(firstVert.z, bounds.max.z) || TrainsMath.AreApproximatelyEqual(firstVert.z, bounds.min.z))
                                     {
                                         cornerVert.z = firstVert.z;
                                         A2 = A.y;
@@ -236,14 +219,14 @@ public class VertexCropperLogic
                                     }
                                 }
 
-                                if (AreApproximatelyEqual(secondVert.x, bounds.max.x) || AreApproximatelyEqual(secondVert.x, bounds.min.x))
+                                if (TrainsMath.AreApproximatelyEqual(secondVert.x, bounds.max.x) || TrainsMath.AreApproximatelyEqual(secondVert.x, bounds.min.x))
                                 {
                                     cornerVert.x = secondVert.x;
                                     equation1Total = secondVert.x - firstVert.x;
                                     A1 = A.x;
                                     B1 = B.x;
                                 }
-                                else if (AreApproximatelyEqual(secondVert.y, bounds.max.y) || AreApproximatelyEqual(secondVert.y, bounds.min.y))
+                                else if (TrainsMath.AreApproximatelyEqual(secondVert.y, bounds.max.y) || TrainsMath.AreApproximatelyEqual(secondVert.y, bounds.min.y))
                                 {
                                     cornerVert.y = secondVert.y;
                                     equation1Total = secondVert.y - firstVert.y;
@@ -252,7 +235,7 @@ public class VertexCropperLogic
                                 }
                                 else
                                 {
-                                    if (AreApproximatelyEqual(secondVert.z, bounds.max.z) || AreApproximatelyEqual(secondVert.z, bounds.min.z))
+                                    if (TrainsMath.AreApproximatelyEqual(secondVert.z, bounds.max.z) || TrainsMath.AreApproximatelyEqual(secondVert.z, bounds.min.z))
                                     {
                                         cornerVert.z = secondVert.z;
                                         equation1Total = secondVert.z - firstVert.z;
@@ -275,9 +258,6 @@ public class VertexCropperLogic
                             
                             AddVertToNewVerts(newVerts, ref newVertsCount, newTriangles, cornerVert, movedVertIndices[unmovedVertIndex], newUVs, cornerUV);
                         }
-
-                        
-                        
                         break;
                     }
                 case 1:
@@ -317,8 +297,6 @@ public class VertexCropperLogic
                                 AddVertToNewVerts(newVerts, ref newVertsCount, newTriangles, vertInBounds, movedVertsInds, newUVs, uvInBounds);
                             }
                         }
-
-
                         break;
                     }
                 case 2:
@@ -362,8 +340,6 @@ public class VertexCropperLogic
                             newVert = GetMovedVert(bounds, vert, vertOutsideBounds, uv1, uv[triangles[i + vertOutsideBoundsIndex]], out uv2);
                             AddVertToNewVerts(newVerts, ref newVertsCount, newTriangles, newVert, movedVertInds, newUVs, uv2);
                         }
-
-
                         break;
                     }
                 case 3:
@@ -375,13 +351,9 @@ public class VertexCropperLogic
                             List<int> movedVertsInds = movedVertIndices[triangles[i+j]];
                             AddVertToNewVerts(newVerts, ref newVertsCount, newTriangles, vert, movedVertsInds, newUVs, uv[triangles[i+j]]);
                         }
-
                         break;
                     }
-
-
             }
-
         }
 
         verts = new Vector3[newVertsCount];
@@ -398,9 +370,6 @@ public class VertexCropperLogic
             triangles[i] = index;
             i++;
         }
-
-        
-
         meshOwner.SetMeshInfo(verts, uv, triangles);
     }
 
@@ -476,15 +445,6 @@ public class VertexCropperLogic
                 newVert += (towards - newVert) * c_fudgeFactor;
             }
         }
-
-        /*
-        
-
-        Debug.Log("Old UV: " + oldUV.ToString() + " new UV: " + newUV.ToString() + " towardsUV: " + towardsUV.ToString());
-        Debug.Log("Old Vert: " + oldVert.ToString() + " new Vert: " + newVert.ToString());
-        Debug.Log("minAoverB: " + minAoverB.ToString());
-        
-        */
         return newVert;
     }
 
@@ -497,7 +457,6 @@ public class VertexCropperLogic
             {
                 exists = true;
                 newTriangles.Add(element);
- //               Debug.Log(vert.ToString() + " already exists, adding to triangleList");
             }
         }
         if (exists == false)
@@ -505,26 +464,12 @@ public class VertexCropperLogic
             movedVertsInds.Add(newVertsCount);
             newVerts[newVertsCount] = vert;
             newUVs[newVertsCount] = newUV;
- //           Debug.Log("Adding " + vert.ToString());
             newTriangles.Add(newVertsCount);
             newVertsCount++;
         }
     }
 
-    public static bool AreApproximatelyEqual(float a, float b)
-    {
-        return AreApproximatelyEqual(a, b, c_fudgeFactor*10);
-    }
-
-    public static bool AreApproximatelyEqual(float a, float b, float margin)
-    {
-        float diff = a - b;
-        if (diff < margin && diff > -margin) return true;
-
-        return false;
-    }
 }
-
 
 public interface IMeshOwner
 {

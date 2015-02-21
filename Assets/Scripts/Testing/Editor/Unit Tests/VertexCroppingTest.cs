@@ -14,6 +14,8 @@ namespace UnitTest
         {
             VertexCropperLogic cropper = new VertexCropperLogic();
             MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
+            cropper.meshOwner = meshOwner;
+            meshOwner.InitialiseFivePanels();
 
             Bounds bounds = new Bounds(new Vector3(0, 0, 0), new Vector3(20, 4, 4));
 
@@ -27,8 +29,6 @@ namespace UnitTest
             {
                 Assert.True(bounds.Contains(v));
             }
-
-            cropper.meshOwner = meshOwner;
 
             Bounds smallbounds = new Bounds(new Vector3(0, 0, 0), new Vector3(12, 4, 4));
 
@@ -55,6 +55,7 @@ namespace UnitTest
             VertexCropperLogic cropper = new VertexCropperLogic();
             MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
+            meshOwner.InitialiseFivePanels();
 
             //store the vectors that make up the triangles
             Vector3[] triangles = new Vector3[meshOwner.m_triangles.Length];
@@ -104,6 +105,7 @@ namespace UnitTest
             VertexCropperLogic cropper = new VertexCropperLogic();
             MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
+            meshOwner.InitialiseFivePanels();
 
             Bounds smallbounds = new Bounds(new Vector3(0, 0, 0), new Vector3(12, 4, 4));
 
@@ -120,6 +122,7 @@ namespace UnitTest
             MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
 
             cropper.meshOwner = meshOwner;
+            meshOwner.InitialiseFivePanels();
 
             Bounds smallbounds = new Bounds(new Vector3(0, 0, 0), new Vector3(16, 4, 4));
 
@@ -139,6 +142,7 @@ namespace UnitTest
             MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
 
             cropper.meshOwner = meshOwner;
+            meshOwner.InitialiseFivePanels();
 
             Bounds smallbounds = new Bounds(new Vector3(0, 0, 0), new Vector3(16, 4, 4));
 
@@ -158,6 +162,7 @@ namespace UnitTest
             VertexCropperLogic cropper = new VertexCropperLogic();
             MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
+            meshOwner.InitialiseFivePanels();
 
             int nTriangles = meshOwner.m_triangles.Length / 3;
 
@@ -264,6 +269,7 @@ namespace UnitTest
             VertexCropperLogic cropper = new VertexCropperLogic();
             MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
+            meshOwner.InitialiseFivePanels();
 
             Bounds b = new Bounds(new Vector3(0, 0, 0), new Vector3(0.1f, 0.1f, 0.1f));
 
@@ -381,6 +387,7 @@ namespace UnitTest
             VertexCropperLogic cropper = new VertexCropperLogic();
             MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
+            meshOwner.InitialiseFivePanels();
             
             Bounds b = new Bounds(new Vector3(0, 0, 0), new Vector3(12, 4, 4));
 
@@ -406,6 +413,7 @@ namespace UnitTest
             VertexCropperLogic cropper = new VertexCropperLogic();
             MeshOwnerCropStub meshOwner = new MeshOwnerCropStub();
             cropper.meshOwner = meshOwner;
+            meshOwner.InitialiseFivePanels();
 
             Bounds b = new Bounds(new Vector3(0, 0, 0), new Vector3(16, 4, 4));
 
@@ -416,7 +424,7 @@ namespace UnitTest
             int uvsChecked = 0;
             for (int i = 0; i < meshOwner.m_verts.Length; i++)
             {
-                if (VertexCropperLogic.AreApproximatelyEqual(meshOwner.m_verts[i].y, 0))
+                if (TrainsMath.AreApproximatelyEqual(meshOwner.m_verts[i].y, 0))
                 {
                     Assert.That(meshOwner.m_uv[i].y, Is.EqualTo(0.5f).Within(0.001f));
                     
@@ -465,25 +473,25 @@ namespace UnitTest
             int assertionCounter = 0;
             for (int i = 0; i < 4; i++)
             {
-                if (VertexCropperLogic.AreApproximatelyEqual(0.3333333f, meshOwner.m_verts[i].y))
+                if (TrainsMath.AreApproximatelyEqual(0.3333333f, meshOwner.m_verts[i].y))
                 {
                     Assert.That(meshOwner.m_uv[i].x, Is.EqualTo(0.33333f).Within(0.001f));
                     Assert.That(meshOwner.m_uv[i].y, Is.EqualTo(0.83333f).Within(0.001f));
                     assertionCounter++;
                 }
-                else if (VertexCropperLogic.AreApproximatelyEqual(0.1666667f, meshOwner.m_verts[i].y))
+                else if (TrainsMath.AreApproximatelyEqual(0.1666667f, meshOwner.m_verts[i].y))
                 {
                     Assert.That(meshOwner.m_uv[i].x, Is.EqualTo(0.66667f).Within(0.001f));
                     Assert.That(meshOwner.m_uv[i].y, Is.EqualTo(0.66667f).Within(0.001f));
                     assertionCounter++;
                 }
-                else if (VertexCropperLogic.AreApproximatelyEqual(-0.3333333f, meshOwner.m_verts[i].y))
+                else if (TrainsMath.AreApproximatelyEqual(-0.3333333f, meshOwner.m_verts[i].y))
                 {
                     Assert.That(meshOwner.m_uv[i].x, Is.EqualTo(0.33333f).Within(0.001f));
                     Assert.That(meshOwner.m_uv[i].y, Is.EqualTo(0.16667f).Within(0.001f));
                     assertionCounter++;
                 }
-                else if (VertexCropperLogic.AreApproximatelyEqual(-0.1666667f, meshOwner.m_verts[i].y))
+                else if (TrainsMath.AreApproximatelyEqual(-0.1666667f, meshOwner.m_verts[i].y))
                 {
                     Assert.That(meshOwner.m_uv[i].x, Is.EqualTo(0.66667f).Within(0.001f));
                     Assert.That(meshOwner.m_uv[i].y, Is.EqualTo(0.33333f).Within(0.001f));
@@ -535,8 +543,8 @@ namespace UnitTest
         public Vector3[] m_verts;
         public Vector2[] m_uv;
         public int[] m_triangles;
-        
-        public MeshOwnerCropStub()
+
+        public void InitialiseFivePanels()
         {
             m_verts = new Vector3[8 * 5];
             m_uv = new Vector2[8 * 5];

@@ -176,7 +176,7 @@ public class TrackSectionShapeController : MonoBehaviour {
 
                             SetCurve();
 
-                            Debug.Log("end bauble rotation axis: " + rotationAxis + " angle: " + angle);
+//                            Debug.Log("end bauble rotation axis: " + rotationAxis + " angle: " + angle);
 
                             c_endBauble.transform.localRotation = Quaternion.AngleAxis(angle, rotationAxis);
 

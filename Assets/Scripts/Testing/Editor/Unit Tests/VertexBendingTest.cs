@@ -31,6 +31,7 @@ namespace UnitTest
             VertexBenderLogic logic = new VertexBenderLogic();
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
+            meshOwner.uvs = new Vector2[3];
 
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = Vector3.zero;
@@ -55,6 +56,7 @@ namespace UnitTest
             VertexBenderLogic logic = new VertexBenderLogic();
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
+            meshOwner.uvs = new Vector2[3];
 
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = Vector3.zero;
@@ -76,6 +78,7 @@ namespace UnitTest
             VertexBenderLogic logic = new VertexBenderLogic();
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
+            meshOwner.uvs = new Vector2[3];
 
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = Vector3.zero;
@@ -97,6 +100,7 @@ namespace UnitTest
             VertexBenderLogic logic = new VertexBenderLogic();
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
+            meshOwner.uvs = new Vector2[3];
 
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = new Vector3(0, 0, 0.5f);
@@ -120,6 +124,7 @@ namespace UnitTest
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
 
+            meshOwner.uvs = new Vector2[3];
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = new Vector3(0, 0, -0.5f);
             meshOwner.vertices[1] = Vector3.zero;
@@ -141,6 +146,7 @@ namespace UnitTest
             VertexBenderLogic logic = new VertexBenderLogic();
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
+            meshOwner.uvs = new Vector2[3];
 
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = new Vector3(1, 0, 0.5f);
@@ -163,6 +169,7 @@ namespace UnitTest
             VertexBenderLogic logic = new VertexBenderLogic();
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
+            meshOwner.uvs = new Vector2[3];
 
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = new Vector3(1, 0, -0.5f);
@@ -185,6 +192,7 @@ namespace UnitTest
             VertexBenderLogic logic = new VertexBenderLogic();
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
+            meshOwner.uvs = new Vector2[3];
 
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = new Vector3(0.5f, 0, 0.5f);
@@ -207,6 +215,7 @@ namespace UnitTest
             VertexBenderLogic logic = new VertexBenderLogic();
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
+            meshOwner.uvs = new Vector2[3];
 
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = new Vector3(0.5f, 0, -0.5f);
@@ -229,6 +238,7 @@ namespace UnitTest
             VertexBenderLogic logic = new VertexBenderLogic();
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
+            meshOwner.uvs = new Vector2[3];
 
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = Vector3.zero;
@@ -250,6 +260,7 @@ namespace UnitTest
             VertexBenderLogic logic = new VertexBenderLogic();
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
+            meshOwner.uvs = new Vector2[3];
 
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = Vector3.zero;
@@ -271,6 +282,7 @@ namespace UnitTest
             VertexBenderLogic logic = new VertexBenderLogic();
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
+            meshOwner.uvs = new Vector2[3];
 
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = Vector3.zero;
@@ -292,6 +304,7 @@ namespace UnitTest
             VertexBenderLogic logic = new VertexBenderLogic();
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
+            meshOwner.uvs = new Vector2[3];
 
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = Vector3.zero;
@@ -316,6 +329,7 @@ namespace UnitTest
             VertexBenderLogic logic = new VertexBenderLogic();
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
+            meshOwner.uvs = new Vector2[3];
 
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = Vector3.zero;
@@ -338,6 +352,8 @@ namespace UnitTest
             VertexBenderLogic logic = new VertexBenderLogic();
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
+
+            meshOwner.uvs = new Vector2[3];
 
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = Vector3.zero;
@@ -362,6 +378,8 @@ namespace UnitTest
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
 
+            meshOwner.uvs = new Vector2[3];
+
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = Vector3.zero;
             meshOwner.vertices[1] = Vector3.zero;
@@ -385,6 +403,7 @@ namespace UnitTest
 
             //use a subtle bend theta = 30 degrees
             //the midpoint should always be split
+            meshOwner.uvs = new Vector2[3];
 
             meshOwner.vertices = new Vector3[3];
             meshOwner.vertices[0] = new Vector3(0, -1, 0);
@@ -412,6 +431,47 @@ namespace UnitTest
             MeshOwnerStub meshOwner = new MeshOwnerStub();
             logic.meshOwner = meshOwner;
 
+            meshOwner.uvs = new Vector2[5];
+
+            meshOwner.vertices = new Vector3[5];
+            meshOwner.vertices[0] = new Vector3(0, -1, 0);
+            meshOwner.vertices[1] = new Vector3(0, 1, 0);
+            meshOwner.vertices[2] = new Vector3(1, -1, 0);
+            meshOwner.vertices[3] = new Vector3(1, 1, 0);
+            meshOwner.vertices[4] = new Vector3(1, 1, 1);
+
+            meshOwner.tris = new int[9];
+            for (int i = 0; i < 3; i++)
+            {
+                meshOwner.tris[i] = i;
+                meshOwner.tris[i + 3] = 3 - i;
+            }
+            meshOwner.tris[6] = 1;
+            meshOwner.tris[7] = 3;
+            meshOwner.tris[8] = 4;
+
+            // when bent, this quad should have 7 verts total
+            float z = Mathf.Tan(Mathf.PI / 6f); //for a 30 degree bend
+            logic.Bend(new Vector3(1, 0, 0), new Vector3(1, 0, z));
+
+            Assert.AreEqual(9, meshOwner.vertices.Length);
+            Assert.AreEqual(27, meshOwner.tris.Length);
+
+            for (int i = 0; i > 27; i++)
+            {
+                Assert.Less(meshOwner.tris[i], 9, "Tris referencing vert " + meshOwner.tris[i]);
+            }
+        }
+
+        [Test]
+        public void TestNewTrianglesTrisCreaseInPlane()
+        {
+            VertexBenderLogic logic = new VertexBenderLogic();
+            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            logic.meshOwner = meshOwner;
+
+            meshOwner.uvs = new Vector2[4];
+
             meshOwner.vertices = new Vector3[4];
             meshOwner.vertices[0] = new Vector3(0, -1, 0);
             meshOwner.vertices[1] = new Vector3(0, 1, 0);
@@ -422,14 +482,121 @@ namespace UnitTest
             for (int i = 0; i < 3; i++)
             {
                 meshOwner.tris[i] = i;
-                meshOwner.tris[i+3] = 3-i;
+                meshOwner.tris[i + 3] = 3 - i;
             }
 
             // when bent, this quad should have 7 verts total
             float z = Mathf.Tan(Mathf.PI / 6f); //for a 30 degree bend
             logic.Bend(new Vector3(1, 0, 0), new Vector3(1, 0, z));
 
-            Assert.AreEqual(7, meshOwner.vertices.Length);
+            float creaseXpos = 0.704012f / 1.1633f;
+            float fudgeMargin = 0.001f;
+            for (int i = 0; i < 18; i+=3)
+            {
+                bool anyLessThan = false;
+                bool anyGreaterThan = false;
+                for (int j = 0; j < 3; j++)
+                {
+                    if (meshOwner.vertices[meshOwner.tris[i + j]].x < creaseXpos - fudgeMargin)
+                    {
+                        anyLessThan = true;
+                    }
+                    else if (meshOwner.vertices[meshOwner.tris[i + j]].x > creaseXpos + fudgeMargin)
+                    {
+                        anyGreaterThan = true;
+                    }
+                }
+
+
+                Assert.False(anyGreaterThan && anyLessThan, "Triangle over crease " + creaseXpos + " bent incorrectly: " +
+                    meshOwner.vertices[meshOwner.tris[i]] + ", " + meshOwner.vertices[meshOwner.tris[i + 1]] + ", " + meshOwner.vertices[meshOwner.tris[i + 2]]);
+                
+            }
+            
+        }
+
+        [Test]
+        public void TestNewTrianglesTrisCreaseOrthogonal()
+        {
+            VertexBenderLogic logic = new VertexBenderLogic();
+            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            logic.meshOwner = meshOwner;
+            meshOwner.uvs = new Vector2[3];
+
+            meshOwner.vertices = new Vector3[3];
+            meshOwner.vertices[0] = new Vector3(0, 0, 1);
+            meshOwner.vertices[1] = new Vector3(0, 0, -1);
+            meshOwner.vertices[2] = new Vector3(1, 0, 0);
+
+            meshOwner.tris = new int[3];
+            for (int i = 0; i < 3; i++) meshOwner.tris[i] = i;
+
+            logic.Bend(new Vector3(1, 0, 0), new Vector3(1, 0, 1));
+
+            Assert.That(meshOwner.vertices[3].x, Is.EqualTo(0.833099 / 1.055089 - 0.5 * 0.7071).Within(0.1).Percent);
+            Assert.That(meshOwner.vertices[3].z, Is.EqualTo(0.22199 / 1.055089 + 0.5 * 0.7071).Within(0.1).Percent);
+
+            Assert.That(meshOwner.vertices[4].x, Is.EqualTo(0.833099 / 1.055089 + 0.5 * 0.7071).Within(0.1).Percent);
+            Assert.That(meshOwner.vertices[4].z, Is.EqualTo(0.22199 / 1.055089 - 0.5 * 0.7071).Within(0.1).Percent);
+
+            Assert.AreEqual(9, meshOwner.tris.Length);
+
+            for (int i = 0; i < 9; i+=3)
+            {
+                bool anyXzero = false;
+                bool anyXone = false;
+                for (int j = 0; j < 3; j++)
+                {
+                    if (meshOwner.tris[i+j] == 2)
+                        anyXone = true;
+                    else if (meshOwner.tris[i+j] < 2)
+                        anyXzero = true;
+                }
+
+                Assert.False(anyXzero && anyXone, "triangle not creased: " + meshOwner.vertices[meshOwner.tris[i]] + ", " + meshOwner.vertices[meshOwner.tris[i+1]] + ", " + meshOwner.vertices[meshOwner.tris[i+2]]);
+            }
+
+        }
+
+        [Test]
+        public void TestNewTrianglesUVs()
+        {
+            VertexBenderLogic logic = new VertexBenderLogic();
+            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            logic.meshOwner = meshOwner;
+
+            //use a subtle bend theta = 30 degrees
+            //the midpoint should always be split
+
+            meshOwner.vertices = new Vector3[3];
+            meshOwner.vertices[0] = new Vector3(0, 0, 0);
+            meshOwner.vertices[1] = new Vector3(0, 1, 0);
+            meshOwner.vertices[2] = new Vector3(1, 0, 0);
+
+            meshOwner.tris = new int[3];
+            for (int i = 0; i < 3; i++) meshOwner.tris[i] = i;
+
+            meshOwner.uvs = new Vector2[3];
+            meshOwner.uvs[0] = new Vector2(0, 0);
+            meshOwner.uvs[1] = new Vector2(0, 1);
+            meshOwner.uvs[2] = new Vector2(1, 0);
+
+            float z = Mathf.Tan(Mathf.PI / 6f); //for a 30 degree bend
+            logic.Bend(new Vector3(1, 0, 0), new Vector3(1, 0, z));
+
+            Assert.AreEqual(5, meshOwner.uvs.Length);
+            if (meshOwner.vertices[3].y == 0)
+            {
+                Assert.That(meshOwner.uvs[3].y, Is.EqualTo(0).Within(0.1).Percent);
+                Assert.That(meshOwner.uvs[4].y, Is.EqualTo(0.5).Within(0.1).Percent);
+            }
+            else
+            {
+                Assert.That(meshOwner.uvs[3].y, Is.EqualTo(0.5).Within(0.1).Percent);
+                Assert.That(meshOwner.uvs[4].y, Is.EqualTo(0).Within(0.1).Percent);
+            }
+            Assert.That(meshOwner.uvs[3].x, Is.EqualTo(0.5).Within(0.1).Percent);
+            Assert.That(meshOwner.uvs[4].x, Is.EqualTo(0.5).Within(0.1).Percent);
         }
 
         [Test]
