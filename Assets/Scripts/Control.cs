@@ -8,6 +8,7 @@ public class Control : MonoBehaviour {
     public GameObject prefabTrackSection;
 
     private FileHandler fileHandler;
+    private TerrainController terrainController;
 
     void Awake()
     {
@@ -24,6 +25,21 @@ public class Control : MonoBehaviour {
         }
     }
 
+    void Start()
+    {
+        OnLevelWasLoaded(Application.loadedLevel);
+    }
+
+    void OnLevelWasLoaded(int level)
+    {
+        if (terrainController == null)
+        {
+            GameObject terrain =  GameObject.FindGameObjectWithTag("Terrain");
+            if (terrain != null)
+                terrainController = terrain.GetComponent<TerrainController>();
+        }
+    }
+
     public static Control GetControl()
     {
         return control;
@@ -32,5 +48,10 @@ public class Control : MonoBehaviour {
     public FileHandler GetFileHandler()
     {
         return fileHandler;
+    }
+
+    public TerrainController GetTerrainController()
+    {
+        return terrainController;
     }
 }

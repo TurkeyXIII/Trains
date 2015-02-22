@@ -1422,8 +1422,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26bb63278549d4e4c8f94646ac64d850, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ballastWidth: .100000001
-  verticalOffset: .00999999978
 --- !u!1 &569194645
 GameObject:
   m_ObjectHideFlags: 0
@@ -2085,7 +2083,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: bc09823b4a881ae48a3b1f5243401f03, type: 2}
       propertyPath: m_RootOrder
-      value: 9
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 100000, guid: bc09823b4a881ae48a3b1f5243401f03, type: 2}
       propertyPath: m_StaticEditorFlags

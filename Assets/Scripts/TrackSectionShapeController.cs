@@ -5,13 +5,16 @@ using System.Collections;
 public class TrackSectionShapeController : MonoBehaviour {
 
     public GameObject trackModel;
+    public GameObject colliderObjectReference;
 
 	private float m_currentLength;
     private Vector3 m_endPoint;
 
-    private Quaternion m_startRotation;
+    private const float c_verticalOffset = 0.01f;
+    
+    public float ballastWidth = 0.1f;
 
-    private BoxCollider m_collider;
+    private Quaternion m_startRotation;
 
     private Stack<GameObject> m_currentModels;
 
@@ -36,10 +39,11 @@ public class TrackSectionShapeController : MonoBehaviour {
         c_endBauble = transform.FindChild("EndBauble").gameObject;
 
         m_currentModels = new Stack<GameObject>();
-        m_collider = GetComponent<BoxCollider>();
-        m_collider.center = new Vector3(0, 0.1f, 0);
-        m_collider.size = new Vector3(10, 0.24f, 2.5f);
+//        m_collider = GetComponent<BoxCollider>();
+//        m_collider.center = new Vector3(0, 0.1f, 0);
+//        m_collider.size = new Vector3(10, 0.24f, 2.5f);
         SetLength(0);
+        transform.position = transform.position + Vector3.up * c_verticalOffset;
         m_endPoint = transform.position;
         m_mode = Mode.Straight;
         m_startRotation = Quaternion.identity;
@@ -116,12 +120,14 @@ public class TrackSectionShapeController : MonoBehaviour {
         c_endBauble.transform.position = m_endPoint;
 
         // set the collider dimensions
+        /*
         Vector3 dummy = m_collider.center;
         dummy.x = localLength/2;
         m_collider.center = dummy;
         dummy = m_collider.size;
         dummy.x = localLength;
         m_collider.size = dummy;
+        */
     }
 
     public void SetCurve()
@@ -146,6 +152,7 @@ public class TrackSectionShapeController : MonoBehaviour {
 
     public void SetEndPoint(Vector3 point)
     {
+        point += c_verticalOffset * Vector3.up;
         if (point != m_endPoint)
         {
             switch (m_mode)
@@ -188,6 +195,36 @@ public class TrackSectionShapeController : MonoBehaviour {
         }
     }
 
+    public void FinalizeShape()
+    {
+        BoxCollider[] existingColliders = GetComponentsInChildren<BoxCollider>();
+        foreach (BoxCollider boxCollider in existingColliders)
+        {
+            Destroy(boxCollider.gameObject);
+        }
+
+        if (m_mode == Mode.Straight)
+        {
+            float averageTrackHeight = (transform.position.y + m_endPoint.y) / 2f;
+
+            GameObject boxColliderChild = (GameObject)GameObject.Instantiate(colliderObjectReference);
+            boxColliderChild.transform.parent = transform;
+            boxColliderChild.transform.localPosition = new Vector3(m_currentLength / 2f / transform.localScale.x, -averageTrackHeight / 2f / transform.localScale.y, 0);
+            boxColliderChild.transform.localRotation = Quaternion.identity;
+            boxColliderChild.transform.localScale = Vector3.one;
+            
+            BoxCollider box = boxColliderChild.GetComponent<BoxCollider>();
+            box.size = new Vector3(m_currentLength / transform.localScale.x, 0.34f - averageTrackHeight / transform.localScale.y, 2.5f);
+            box.center = Vector3.zero;
+
+            Control.GetControl().GetTerrainController().SetLineHeight(transform.position + Vector3.down * c_verticalOffset, m_endPoint + Vector3.down * c_verticalOffset, ballastWidth);
+        }
+        else if (m_mode == Mode.Curved)
+        {
+
+        }
+    }
+
     public void SetStartRotation(Quaternion rotation)
     {
         m_startRotation = rotation;
@@ -212,7 +249,6 @@ public class TrackSectionShapeController : MonoBehaviour {
         {
             Debug.Log("Error: bauble not found for editing");
         }
-
     }
 
     public void SetBaubleVisibility(bool visible)

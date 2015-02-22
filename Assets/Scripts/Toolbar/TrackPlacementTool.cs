@@ -3,12 +3,8 @@ using System.Collections.Generic;
 
 public class TrackPlacementTool : MonoBehaviour, ITool
 {
-    public float ballastWidth;
-    public float verticalOffset = 0.01f;
-
     private GameObject m_currentTrackSection;
     private TrackSectionShapeController m_shapeController;
-    private TerrainController m_terrainController;
 
     private List<GameObject> m_trackSections;
 
@@ -16,11 +12,6 @@ public class TrackPlacementTool : MonoBehaviour, ITool
     {
         m_currentTrackSection = null;
         m_trackSections = new List<GameObject>();
-    }
-
-    void Start()
-    {
-        m_terrainController = GameObject.FindGameObjectWithTag("Terrain").GetComponent<TerrainController>();
     }
 
     public void UpdateWhenSelected()
@@ -45,7 +36,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                 {
                     if (CameraController.GetMouseHitTerrainLocation(out location))
                     {
-                        InstantiateTrackSection(location + Vector3.up * verticalOffset);
+                        InstantiateTrackSection(location);
                     }
                 }
                 else // the section should start at the bauble's location and curve if necessary
@@ -57,8 +48,10 @@ public class TrackPlacementTool : MonoBehaviour, ITool
             }
             else
             {
+                m_shapeController.FinalizeShape();
+
                 //need to move the terrain such that it sits directly under the track
-                m_terrainController.SetLineHeight(m_currentTrackSection.transform.position + verticalOffset * Vector3.down, m_shapeController.GetEndPoint() + verticalOffset * Vector3.down, ballastWidth);
+                //m_terrainController.SetLineHeight(m_currentTrackSection.transform.position + verticalOffset * Vector3.down, m_shapeController.GetEndPoint() + verticalOffset * Vector3.down, ballastWidth);
 
                 //leave the current section where it is
                 m_currentTrackSection = null;
@@ -97,7 +90,6 @@ public class TrackPlacementTool : MonoBehaviour, ITool
 
                 if (CameraController.GetMouseHitTerrainLocation(out location))
                 {
-                    location += verticalOffset * Vector3.up;
                     m_shapeController.SetEndPoint(location);
                 }
                 else
