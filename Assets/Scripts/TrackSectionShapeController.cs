@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
+using System;
 
 public class TrackSectionShapeController : MonoBehaviour {
 
@@ -19,6 +20,8 @@ public class TrackSectionShapeController : MonoBehaviour {
     private Stack<GameObject> m_currentModels;
 
     private GameObject c_startBauble, c_endBauble;
+
+    private Vector3[] m_rail;
 
     private enum Mode
     {
@@ -205,6 +208,7 @@ public class TrackSectionShapeController : MonoBehaviour {
 
         if (m_mode == Mode.Straight)
         {
+            /*
             float averageTrackHeight = (transform.position.y + m_endPoint.y) / 2f;
 
             GameObject boxColliderChild = (GameObject)GameObject.Instantiate(colliderObjectReference);
@@ -216,13 +220,52 @@ public class TrackSectionShapeController : MonoBehaviour {
             BoxCollider box = boxColliderChild.GetComponent<BoxCollider>();
             box.size = new Vector3(m_currentLength / transform.localScale.x, 0.34f - averageTrackHeight / transform.localScale.y, 2.5f);
             box.center = Vector3.zero;
+            */
 
-            Control.GetControl().GetTerrainController().SetLineHeight(transform.position + Vector3.down * c_verticalOffset, m_endPoint + Vector3.down * c_verticalOffset, ballastWidth);
+            m_rail = new Vector3[2];
+            m_rail[0] = transform.position;
+            m_rail[1] = m_endPoint;
         }
         else if (m_mode == Mode.Curved)
         {
+            Vector3[] temp = new Vector3[Mathf.CeilToInt(Quaternion.Angle(c_endBauble.transform.localRotation, Quaternion.identity) / 10f * m_currentLength)]; // approximate to be fairly large?
+            for (int i = 0; i < temp.Length; i++)
+            {
+                temp[i] = new Vector3((float)(i*m_currentLength)/(float)(temp.Length - 1), 0, 0);
+            }
+
+            VertexBenderLogic.BendVectors(temp, out m_rail, new Vector3(m_currentLength, 0, 0), transform.InverseTransformPoint(m_endPoint));
+
+            for (int i = 0; i < m_rail.Length; i++)
+            {
+                m_rail[i] = transform.TransformPoint(m_rail[i]);
+            }
 
         }
+
+
+        TerrainController terrrainController = Control.GetControl().GetTerrainController();
+        for (int i = 1; i < m_rail.Length; i++)
+        {
+            terrrainController.SetLineHeight(m_rail[i-1] + Vector3.down * c_verticalOffset, m_rail[i] + Vector3.down * c_verticalOffset, ballastWidth);
+
+            float averageTrackHeight = (m_rail[i-1].y + m_rail[i].y) / 2f;
+
+            GameObject boxColliderChild = (GameObject)GameObject.Instantiate(colliderObjectReference);
+            boxColliderChild.transform.parent = transform;
+            boxColliderChild.transform.position = (m_rail[i-1] + m_rail[i]) / 2f + Vector3.down * averageTrackHeight / 2f;
+            boxColliderChild.transform.rotation = Quaternion.LookRotation(m_rail[i] - m_rail[i-1]);
+            boxColliderChild.transform.localScale = Vector3.one;
+
+            BoxCollider box = boxColliderChild.GetComponent<BoxCollider>();
+            box.size = new Vector3(2.5f, 0.34f - averageTrackHeight / transform.localScale.y, (m_rail[i] - m_rail[i-1]).magnitude / transform.localScale.z);
+            box.center = Vector3.zero;
+        }
+    }
+
+    public Vector3 GetPositionFromTravelDistance(float distance)
+    {
+        throw new NotImplementedException();
     }
 
     public void SetStartRotation(Quaternion rotation)

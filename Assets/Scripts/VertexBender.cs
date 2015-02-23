@@ -398,6 +398,62 @@ public class VertexBenderLogic
         return Bend(Vector3.zero, movableEndPosition, targetPosition);
     }
 
+    public static void BendVectors(Vector3[] originals, out Vector3[] bent, Vector3 movableEndPosition, Vector3 targetPosition)
+    {
+        bent = new Vector3[originals.Length];
+
+        float scale, normalizedLength, thetaRadians;
+
+        GetBendProperties(movableEndPosition, targetPosition, out scale, out normalizedLength, out thetaRadians);
+
+        Vector3 unitXdash = movableEndPosition / movableEndPosition.magnitude;
+        Vector3 unitYdash = targetPosition - (targetPosition.magnitude * Mathf.Cos(thetaRadians) * unitXdash);
+        unitYdash /= unitYdash.magnitude;
+
+        // orthogonal unit vectors describing x and y directions of co-ordinate system where x is direction away from target point along straigh line and y is lateral movement to origin
+        Vector3 rotationAxis = Vector3.Cross(unitXdash, unitYdash);
+        // Rodrigues' rotation forumla
+        Vector3 unitXdoubledash = -(Mathf.Cos(2 * thetaRadians) * unitXdash +
+                                Mathf.Sin(2 * thetaRadians) * Vector3.Cross(rotationAxis, unitXdash) +
+                                (1 - Mathf.Cos(2 * thetaRadians)) * Vector3.Dot(rotationAxis, unitXdash) * rotationAxis); //rotate 2 * theta;
+        Vector3 unitYdoubledash = Mathf.Cos(2 * thetaRadians) * unitYdash +
+                                Mathf.Sin(2 * thetaRadians) * Vector3.Cross(rotationAxis, unitYdash) +
+                                (1 - Mathf.Cos(2 * thetaRadians)) * Vector3.Dot(rotationAxis, unitYdash) * rotationAxis; //rotate 2 * theta
+
+
+
+        for (int i = 0; i < originals.Length; i++)
+        {
+            Vector3 vy = originals[i] - Vector3.Dot(originals[i], unitXdash) * unitXdash;
+
+            float L = Vector3.Dot(originals[i], unitXdash) * normalizedLength * 2 / movableEndPosition.magnitude;
+
+            if (L <= normalizedLength) // the first half, 'transition in' part of the curve
+            {
+                float xvdash = FresnelC(L) * scale;
+                float yvdash = FresnelS(L) * scale;
+
+                float thetaRadiansAtVert = Mathf.Pow(L, 2);
+                Vector3 lineOffset = Mathf.Cos(thetaRadiansAtVert) * vy + Mathf.Sin(thetaRadiansAtVert) * Vector3.Cross(rotationAxis, vy) + (1 - Mathf.Cos(thetaRadiansAtVert)) * Vector3.Dot(rotationAxis, vy) * rotationAxis;
+                bent[i] = xvdash * unitXdash + yvdash * unitYdash + lineOffset;
+            }
+            else // the second half, 'transition out' part of the curve
+            {
+                float xvdoubledash = FresnelC((2 * normalizedLength) - L) * scale;
+                float yvdoubledash = FresnelS((2 * normalizedLength) - L) * scale;
+
+                float thetaRadiansAtVert = thetaRadians * 2 - Mathf.Pow(2 * normalizedLength - L, 2);
+                Vector3 lineOffset = Mathf.Cos(thetaRadiansAtVert) * vy + Mathf.Sin(thetaRadiansAtVert) * Vector3.Cross(rotationAxis, vy) + (1 - Mathf.Cos(thetaRadiansAtVert)) * Vector3.Dot(rotationAxis, vy) * rotationAxis;
+
+                bent[i] = targetPosition + xvdoubledash * unitXdoubledash + yvdoubledash * unitYdoubledash + lineOffset;
+
+            }
+
+            //            Debug.Log("Moving vert " + i + " from " + newVerts[i] + " to " + verts[i]);
+        }
+
+    }
+
     private static int FindVertInArray(Vector3 vert, Vector3 normal, Vector3[] vertArray, Vector3[] normalArray, int arraySize)
     {
         for (int i = 0; i < arraySize; i++)
