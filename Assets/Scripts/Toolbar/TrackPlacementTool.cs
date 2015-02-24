@@ -3,15 +3,24 @@ using System.Collections.Generic;
 
 public class TrackPlacementTool : MonoBehaviour, ITool
 {
+    public GameObject trackSectionPrefab;
+
     private GameObject m_currentTrackSection;
     private TrackSectionShapeController m_shapeController;
 
     private List<GameObject> m_trackSections;
 
+    private Vector3 m_anchor;
+
     void Awake()
     {
         m_currentTrackSection = null;
         m_trackSections = new List<GameObject>();
+    }
+
+    void Start()
+    {
+        Control.GetControl().trackPlacer = this;
     }
 
     public void UpdateWhenSelected()
@@ -42,16 +51,13 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                 else // the section should start at the bauble's location and curve if necessary
                 {
                     InstantiateTrackSection(baubleController.transform.position);
-                    m_shapeController.SetCurved();
-                    m_shapeController.SetStartRotation(baubleController.transform.rotation);
+                    m_shapeController.LinkStart(baubleController.gameObject);
                 }
+                m_anchor = m_currentTrackSection.transform.position;
             }
-            else
+            else // currentTrackSection != null
             {
                 m_shapeController.FinalizeShape();
-
-                //need to move the terrain such that it sits directly under the track
-                //m_terrainController.SetLineHeight(m_currentTrackSection.transform.position + verticalOffset * Vector3.down, m_shapeController.GetEndPoint() + verticalOffset * Vector3.down, ballastWidth);
 
                 //leave the current section where it is
                 m_currentTrackSection = null;
@@ -69,6 +75,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                     m_shapeController = m_currentTrackSection.GetComponent<TrackSectionShapeController>();
 
                     m_shapeController.SelectBaubleForEditing(baubleController.gameObject);
+                    m_anchor = m_currentTrackSection.transform.position;
                 }
             }
             else //(m_currentTrackSection != null)
@@ -85,16 +92,34 @@ public class TrackPlacementTool : MonoBehaviour, ITool
             }
             else //(m_currentTrackSection != null)
             {
-                //stretch it to the mouse pointer
-                Vector3 location;
-
-                if (CameraController.GetMouseHitTerrainLocation(out location))
+                if (baubleController != null)
                 {
-                    m_shapeController.SetEndPoint(location);
+                    if (m_shapeController.IsStraight())
+                    {
+                        m_shapeController.LinkStart(baubleController.gameObject);
+                        m_shapeController.SetEndPoint(m_anchor);
+                    }
                 }
-                else
+                else // baubleController == null
                 {
-                    OnDeselect();
+                    if (m_currentTrackSection.transform.position != m_anchor)
+                    {
+                        Debug.Log("track section pos: " + m_currentTrackSection.transform.position + " anchor: " + m_anchor);
+                        m_currentTrackSection.transform.position = m_anchor;
+                        m_shapeController.UnlinkStart();
+                    }
+
+                    //stretch it to the mouse pointer
+                    Vector3 location;
+
+                    if (CameraController.GetMouseHitTerrainLocation(out location))
+                    {
+                        m_shapeController.SetEndPoint(location);
+                    }
+                    else
+                    {
+                        OnDeselect();
+                    }
                 }
 
             }
@@ -116,9 +141,16 @@ public class TrackPlacementTool : MonoBehaviour, ITool
         SetTrackSectionBaubleVisibility(false);
     }
 
+    public void InstantiateTrackSection(IDataObject tsData)
+    {
+        GameObject trackSection = (GameObject)Instantiate(trackSectionPrefab);
+        trackSection.GetComponent<TrackSectionSaveLoad>().LoadFromDataObject(tsData);
+        m_trackSections.Add(trackSection);
+    }
+
     private void InstantiateTrackSection(Vector3 location)
     {
-        m_currentTrackSection = (GameObject)Instantiate(Control.GetControl().prefabTrackSection, location, Quaternion.identity);
+        m_currentTrackSection = (GameObject)Instantiate(trackSectionPrefab, location, Quaternion.identity);
         m_trackSections.Add(m_currentTrackSection);
         m_shapeController = m_currentTrackSection.GetComponent<TrackSectionShapeController>();
     }

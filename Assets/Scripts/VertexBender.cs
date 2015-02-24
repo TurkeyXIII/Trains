@@ -80,6 +80,14 @@ public class VertexBenderLogic
     private static void GetBendProperties(Vector3 movableEndPosition, Vector3 targetPostion, out float scale, out float normalizedLength, out float thetaRadians)
     {
         thetaRadians = Mathf.Acos(Vector3.Dot(movableEndPosition, targetPostion) / (movableEndPosition.magnitude * targetPostion.magnitude));
+
+        if (thetaRadians > Mathf.PI / 2)
+        {
+            scale = -1;
+            normalizedLength = -1;
+            return;
+        }
+
         normalizedLength = Mathf.Sqrt(thetaRadians);
 
         if (normalizedLength == 0)

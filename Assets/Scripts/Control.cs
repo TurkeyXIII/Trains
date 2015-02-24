@@ -5,10 +5,11 @@ public class Control : MonoBehaviour {
     private static Control control;
 
     public GameObject gameController;
-    public GameObject prefabTrackSection;
 
     private FileHandler fileHandler;
     private TerrainController terrainController;
+
+    public TrackPlacementTool trackPlacer;
 
     void Awake()
     {

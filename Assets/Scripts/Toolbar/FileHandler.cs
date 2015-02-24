@@ -133,9 +133,7 @@ public class FileHandler : MonoBehaviour {
                     }
                     else if (type == typeof(TrackSectionSaveLoad))
                     {
-                        GameObject go = (GameObject)Instantiate(Control.GetControl().prefabTrackSection);
-                        TrackSectionSaveLoad saveLoad = go.GetComponent<TrackSectionSaveLoad>();
-                        saveLoad.LoadFromDataObject(dataObject);
+                        Control.GetControl().trackPlacer.InstantiateTrackSection(dataObject);
                     }
                 }
 

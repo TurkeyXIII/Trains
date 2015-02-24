@@ -15,11 +15,10 @@ public class TrackSectionShapeController : MonoBehaviour {
     
     public float ballastWidth = 0.1f;
 
-    private Quaternion m_startRotation;
-
     private Stack<GameObject> m_currentModels;
 
     private GameObject c_startBauble, c_endBauble;
+    private GameObject m_startTrackLink, m_endTrackLink;
 
     private Vector3[] m_rail;
 
@@ -41,25 +40,103 @@ public class TrackSectionShapeController : MonoBehaviour {
         c_startBauble = transform.FindChild("StartBauble").gameObject;
         c_endBauble = transform.FindChild("EndBauble").gameObject;
 
+        SetBaubleVisibility(false);
+
         m_currentModels = new Stack<GameObject>();
 //        m_collider = GetComponent<BoxCollider>();
 //        m_collider.center = new Vector3(0, 0.1f, 0);
 //        m_collider.size = new Vector3(10, 0.24f, 2.5f);
         SetLength(0);
-        transform.position = transform.position + Vector3.up * c_verticalOffset;
-        m_endPoint = transform.position;
+        transform.position = transform.position;
+        m_endPoint = transform.position + Vector3.left;
         m_mode = Mode.Straight;
-        m_startRotation = Quaternion.identity;
     }
 
     public void SetStraight()
     {
+        Debug.Log("Setting mode to straight");
         m_mode = Mode.Straight;
+        RestoreTrackSections();
+        c_endBauble.transform.localRotation = Quaternion.identity;
+    }
+
+    public bool IsStraight()
+    {
+        return m_mode == Mode.Straight;
     }
 
     public void SetCurved()
     {
         m_mode = Mode.Curved;
+    }
+
+    public void LinkStart(GameObject bauble)
+    {
+        if (bauble == c_startBauble || bauble == c_endBauble) return;
+
+        if (m_startTrackLink != bauble)
+        {
+            Debug.Log("Linking start");
+            transform.position = bauble.transform.position;
+            transform.rotation = bauble.transform.rotation;
+
+            m_startTrackLink = bauble;
+
+            bauble.transform.parent.GetComponent<TrackSectionShapeController>().Link(bauble, c_startBauble);
+
+            m_mode = Mode.Curved;
+        }
+    }
+
+    public void LinkEnd(GameObject bauble)
+    {
+        if (bauble == c_startBauble || bauble == c_endBauble) return;
+        
+        if (m_startTrackLink != bauble)
+        {
+            Debug.Log("Linking end");
+            m_endPoint = bauble.transform.position;
+
+            m_endTrackLink = bauble;
+
+            bauble.transform.parent.GetComponent<TrackSectionShapeController>().Link(bauble, c_endBauble);
+
+            m_mode = Mode.Curved;
+        }
+    }
+
+    public void UnlinkStart()
+    {
+        Debug.Log("Unlinking start");
+        m_startTrackLink = null;
+
+        if (m_endTrackLink == null)
+        {
+            SetStraight();
+        }
+    }
+
+    public void UnlinkEnd()
+    {
+        Debug.Log("Unlinking end");
+        m_endTrackLink = null;
+
+        if (m_startTrackLink == null)
+        {
+            SetStraight();
+        }
+    }
+
+    public void Link(GameObject myBauble, GameObject linkBauble)
+    {
+        if (myBauble == c_endBauble)
+            LinkEnd(linkBauble);
+
+        else if (myBauble == c_startBauble)
+            LinkStart(linkBauble);
+
+        else
+            Debug.Log("Error: Link called with unknown myBauble");
     }
 
     private void RestoreTrackSections()
@@ -90,7 +167,7 @@ public class TrackSectionShapeController : MonoBehaviour {
 
                 newSection.transform.parent = transform;
                 
-                newSection.transform.localPosition = new Vector3(xPosition, 0, 0);
+                newSection.transform.localPosition = new Vector3(xPosition, 0, 0) + (c_verticalOffset * Vector3.up / transform.localScale.y);
                 newSection.transform.localRotation = Quaternion.Euler(new Vector3(-90, 0, 0));
                 newSection.transform.localScale = Vector3.one;
                 
@@ -121,16 +198,6 @@ public class TrackSectionShapeController : MonoBehaviour {
         m_currentLength = length;
 
         c_endBauble.transform.position = m_endPoint;
-
-        // set the collider dimensions
-        /*
-        Vector3 dummy = m_collider.center;
-        dummy.x = localLength/2;
-        m_collider.center = dummy;
-        dummy = m_collider.size;
-        dummy.x = localLength;
-        m_collider.size = dummy;
-        */
     }
 
     public void SetCurve()
@@ -139,7 +206,7 @@ public class TrackSectionShapeController : MonoBehaviour {
         {
             Vector3 relativeMovablePosition = new Vector3(m_currentLength/transform.localScale.x - trackModel.transform.localPosition.x, 0, 0) * trackModel.transform.localScale.x;
             Vector3 relativeFixedPosition = (-trackModel.transform.localPosition * trackModel.transform.localScale.x);
-            Vector3 relativeTargetPosition = trackModel.transform.InverseTransformPoint(m_endPoint);
+            Vector3 relativeTargetPosition = trackModel.transform.InverseTransformPoint(m_endPoint + c_verticalOffset * Vector3.up);
             /*
             Debug.Log("RelativeFixedPosition: " + relativeFixedPosition);
             Debug.Log("RelativeMovablePosition: " + relativeMovablePosition);
@@ -155,7 +222,6 @@ public class TrackSectionShapeController : MonoBehaviour {
 
     public void SetEndPoint(Vector3 point)
     {
-        point += c_verticalOffset * Vector3.up;
         if (point != m_endPoint)
         {
             switch (m_mode)
@@ -173,7 +239,6 @@ public class TrackSectionShapeController : MonoBehaviour {
                 case (Mode.Curved):
                     {
                         m_endPoint = point;
-                        transform.rotation = m_startRotation;
 
                         float length, angle;
                         Vector3 rotationAxis;
@@ -208,19 +273,7 @@ public class TrackSectionShapeController : MonoBehaviour {
 
         if (m_mode == Mode.Straight)
         {
-            /*
-            float averageTrackHeight = (transform.position.y + m_endPoint.y) / 2f;
-
-            GameObject boxColliderChild = (GameObject)GameObject.Instantiate(colliderObjectReference);
-            boxColliderChild.transform.parent = transform;
-            boxColliderChild.transform.localPosition = new Vector3(m_currentLength / 2f / transform.localScale.x, -averageTrackHeight / 2f / transform.localScale.y, 0);
-            boxColliderChild.transform.localRotation = Quaternion.identity;
-            boxColliderChild.transform.localScale = Vector3.one;
-            
-            BoxCollider box = boxColliderChild.GetComponent<BoxCollider>();
-            box.size = new Vector3(m_currentLength / transform.localScale.x, 0.34f - averageTrackHeight / transform.localScale.y, 2.5f);
-            box.center = Vector3.zero;
-            */
+            Debug.Log("Finalising straight section");
 
             m_rail = new Vector3[2];
             m_rail[0] = transform.position;
@@ -228,7 +281,9 @@ public class TrackSectionShapeController : MonoBehaviour {
         }
         else if (m_mode == Mode.Curved)
         {
-            Vector3[] temp = new Vector3[Mathf.CeilToInt(Quaternion.Angle(c_endBauble.transform.localRotation, Quaternion.identity) / 10f * m_currentLength)]; // approximate to be fairly large?
+            Debug.Log("Finalising curved section");
+
+            Vector3[] temp = new Vector3[Mathf.CeilToInt(Quaternion.Angle(c_endBauble.transform.localRotation, Quaternion.identity) / 10f * m_currentLength)+1]; // approximate to be fairly large?
             for (int i = 0; i < temp.Length; i++)
             {
                 temp[i] = new Vector3((float)(i*m_currentLength)/(float)(temp.Length - 1), 0, 0);
@@ -243,11 +298,10 @@ public class TrackSectionShapeController : MonoBehaviour {
 
         }
 
-
         TerrainController terrrainController = Control.GetControl().GetTerrainController();
         for (int i = 1; i < m_rail.Length; i++)
         {
-            terrrainController.SetLineHeight(m_rail[i-1] + Vector3.down * c_verticalOffset, m_rail[i] + Vector3.down * c_verticalOffset, ballastWidth);
+            terrrainController.SetLineHeight(m_rail[i-1], m_rail[i], ballastWidth);
 
             float averageTrackHeight = (m_rail[i-1].y + m_rail[i].y) / 2f;
 
@@ -261,6 +315,8 @@ public class TrackSectionShapeController : MonoBehaviour {
             box.size = new Vector3(2.5f, 0.34f - averageTrackHeight / transform.localScale.y, (m_rail[i] - m_rail[i-1]).magnitude / transform.localScale.z);
             box.center = Vector3.zero;
         }
+
+        SetBaubleVisibility(true);
     }
 
     public Vector3 GetPositionFromTravelDistance(float distance)
@@ -270,7 +326,7 @@ public class TrackSectionShapeController : MonoBehaviour {
 
     public void SetStartRotation(Quaternion rotation)
     {
-        m_startRotation = rotation;
+        transform.rotation = rotation;
     }
 
     public Vector3 GetEndPoint()
@@ -280,18 +336,24 @@ public class TrackSectionShapeController : MonoBehaviour {
 
     public void SelectBaubleForEditing(GameObject bauble)
     {
-        if (bauble == c_endBauble)
-        {
+        SetBaubleVisibility(false);
 
-        }
-        else if (bauble == c_startBauble)
+        if (bauble == c_startBauble)
         {
-            transform.position = m_endPoint;
+            UnlinkStart();
+
+            if (m_endTrackLink != null)
+            {
+                LinkStart(m_endTrackLink);
+            }
+            else
+            {
+                Debug.Log("Setting start position to " + m_endPoint);
+                transform.position = m_endPoint;
+            }
         }
-        else
-        {
-            Debug.Log("Error: bauble not found for editing");
-        }
+        
+        UnlinkEnd();
     }
 
     public void SetBaubleVisibility(bool visible)

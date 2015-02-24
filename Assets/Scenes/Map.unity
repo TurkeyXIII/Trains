@@ -1422,6 +1422,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26bb63278549d4e4c8f94646ac64d850, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  trackSectionPrefab: {fileID: 100000, guid: 8bbb7cbbacb44b64b8ff156b17ea5ab9, type: 2}
 --- !u!1 &569194645
 GameObject:
   m_ObjectHideFlags: 0
@@ -2515,6 +2516,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gameController: {fileID: 1152607532}
   prefabTrackSection: {fileID: 100000, guid: 8bbb7cbbacb44b64b8ff156b17ea5ab9, type: 2}
+  trackPlacer: {fileID: 0}
 --- !u!114 &1152607536
 MonoBehaviour:
   m_ObjectHideFlags: 0

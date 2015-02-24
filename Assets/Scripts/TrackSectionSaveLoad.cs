@@ -26,11 +26,28 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
         data.startPointY = transform.position.y;
         data.startPointZ = transform.position.z;
 
-        Vector3 endPoint = GetComponent<TrackSectionShapeController>().GetEndPoint();
+        var tssc = GetComponent<TrackSectionShapeController>();
+
+        Vector3 endPoint = tssc.GetEndPoint();
 
         data.endPointX = endPoint.x;
         data.endPointY = endPoint.y;
         data.endPointZ = endPoint.z;
+
+        if (tssc.IsStraight())
+        {
+            data.startOrientationX = 0;
+            data.startOrientationY = 0;
+            data.startOrientationZ = 0;
+            data.startOrientationW = 0;
+        }
+        else
+        {
+            data.startOrientationX = transform.rotation.x;
+            data.startOrientationY = transform.rotation.y;
+            data.startOrientationZ = transform.rotation.z;
+            data.startOrientationW = transform.rotation.w;
+        }
 
         return data;
     }
@@ -39,9 +56,16 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
     {
         TrackSectionData tsData = (TrackSectionData)data;
         transform.position = new Vector3(tsData.startPointX, tsData.startPointY, tsData.startPointZ);
-        TrackSectionShapeController tslc = GetComponent<TrackSectionShapeController>();
-        tslc.Initialize();
-        tslc.SetEndPoint(new Vector3(tsData.endPointX, tsData.endPointY, tsData.endPointZ));
+        TrackSectionShapeController tssc = GetComponent<TrackSectionShapeController>();
+        tssc.Initialize();
+        if (tsData.startOrientationW != 0 || tsData.startOrientationX != 0 ||
+            tsData.startOrientationY != 0 || tsData.startOrientationZ != 0)
+        {
+            transform.rotation = new Quaternion(tsData.startOrientationX, tsData.startOrientationY, tsData.startOrientationZ, tsData.startOrientationW);
+            tssc.SetCurved();
+        }
+
+        tssc.SetEndPoint(new Vector3(tsData.endPointX, tsData.endPointY, tsData.endPointZ));
     }
 
     public GameObject GetGameObject()
@@ -59,6 +83,11 @@ public class TrackSectionData : IDataObject
     public float endPointX;
     public float endPointY;
     public float endPointZ;
+
+    public float startOrientationX;
+    public float startOrientationY;
+    public float startOrientationZ;
+    public float startOrientationW;
 
     public Type GetLoaderType()
     {
