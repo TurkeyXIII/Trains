@@ -1422,7 +1422,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26bb63278549d4e4c8f94646ac64d850, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  trackSectionPrefab: {fileID: 100000, guid: 8bbb7cbbacb44b64b8ff156b17ea5ab9, type: 2}
+  trackSectionPrefab: {fileID: 100000, guid: 79cbad5af96af234f9711ce78698904f, type: 2}
+  baublePrefab: {fileID: 100000, guid: 841d3fe9ac05b2b4da0bb4504c1c5266, type: 2}
 --- !u!1 &569194645
 GameObject:
   m_ObjectHideFlags: 0
@@ -2515,7 +2516,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gameController: {fileID: 1152607532}
-  prefabTrackSection: {fileID: 100000, guid: 8bbb7cbbacb44b64b8ff156b17ea5ab9, type: 2}
   trackPlacer: {fileID: 0}
 --- !u!114 &1152607536
 MonoBehaviour:
