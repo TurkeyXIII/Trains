@@ -62,7 +62,7 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
             tsData.startOrientationY != 0 || tsData.startOrientationZ != 0)
         {
             transform.rotation = new Quaternion(tsData.startOrientationX, tsData.startOrientationY, tsData.startOrientationZ, tsData.startOrientationW);
-            tssc.SetCurved();
+            //TODO: something about linking to baubles.
         }
 
         tssc.SetEndPoint(new Vector3(tsData.endPointX, tsData.endPointY, tsData.endPointZ));

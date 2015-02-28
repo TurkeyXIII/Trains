@@ -53,12 +53,17 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                         InstantiateTrackSection(location);
                         m_baubleAnchor = (GameObject)Instantiate(baublePrefab, location, m_currentTrackSection.transform.rotation);
                         m_baubles.Add(m_baubleAnchor);
+                        m_shapeController.LinkStart(m_baubleAnchor);
                     }
                 }
                 else // the section should start at the bauble's location and curve if necessary
                 {
                     InstantiateTrackSection(baubleController.transform.position);
+
+                    Debug.Log("section instantiated at " + m_currentTrackSection.transform.position + " from bauble at " + baubleController.transform.position);
+
                     m_baubleAnchor = baubleController.gameObject;
+                    m_baubleAnchor.collider.enabled = false;
                     m_shapeController.LinkStart(m_baubleAnchor);
                 }
             }
@@ -67,15 +72,9 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                 m_shapeController.FinalizeShape();
 
                 m_baubleAnchor.collider.enabled = true;
+                m_baubleCursor.collider.enabled = true;
 
-                if (m_shapeController.IsStraight())
-                {
-                    m_shapeController.LinkEnd(m_baubleCursor);
-                    m_baubleCursor.collider.enabled = true;
-                    m_shapeController.LinkStart(m_baubleAnchor);
-                    m_baubleAnchor.collider.enabled = true;
-                }
-                else
+                if (m_baubleCursor.GetComponent<BaubleController>().GetLinkCount() == 0)
                 {
                     m_baubles.Remove(m_baubleCursor);
                     Destroy(m_baubleCursor);
@@ -95,7 +94,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                 {
                     // select this end of the track for editing
                     m_currentTrackSection = baubleController.GetLastTrackSection();
-                    Debug.Log("Current track section: " + m_currentTrackSection);
+                    Debug.Log("Current track section: #" + m_currentTrackSection.GetComponent<TrackUID>().UID);
                     m_shapeController = m_currentTrackSection.GetComponent<TrackSectionShapeController>();
 
                     if (baubleController.GetLinkCount() == 1)
@@ -103,6 +102,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                         Debug.Log("Found only 1 link; selecting this bauble");
                         m_baubleCursor = baubleController.gameObject;
                         m_baubleCursor.collider.enabled = false;
+                        
                     }
                     else
                     {
@@ -131,22 +131,14 @@ public class TrackPlacementTool : MonoBehaviour, ITool
             {
                 if (baubleController != null)
                 {
-                    if (m_shapeController.IsStraight())
-                    {
-                        m_shapeController.Link(baubleController.gameObject);
-                    }
+
+                    m_shapeController.LinkEnd(baubleController);
+                    m_baubleCursor.SetActive(false);
                 }
                 else // baubleController == null
                 {
-                    /*
-                    if (m_currentTrackSection.transform.position != m_baubleAnchor.transform.position)
-                    {
-                        Debug.Log("track section pos: " + m_currentTrackSection.transform.position + " anchor: " + m_baubleAnchor);
-                        m_currentTrackSection.transform.position = m_baubleAnchor.transform.position;
-                        m_shapeController.UnlinkStart();
-                    }
-                    */
-                    m_shapeController.UnlinkEnd();
+                    m_shapeController.LinkEnd(m_baubleCursor);
+                    m_baubleCursor.SetActive(true);
 
                     //stretch it to the mouse pointer
                     Vector3 location;
@@ -154,7 +146,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                     if (CameraController.GetMouseHitTerrainLocation(out location))
                     {
                         m_shapeController.SetEndPoint(location);
-                        m_baubleCursor.transform.position = location;
+                        //m_baubleCursor.transform.position = location;
                     }
                     else
                     {
@@ -196,6 +188,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
 
         m_baubleCursor = (GameObject)Instantiate(baublePrefab, location, m_currentTrackSection.transform.rotation);
         m_baubles.Add(m_baubleCursor);
+        m_shapeController.LinkEnd(m_baubleCursor);
     }
 
     private void DeleteCurrentTrackSection() //m_currentTrackSection != null
@@ -204,6 +197,10 @@ public class TrackPlacementTool : MonoBehaviour, ITool
         {
             m_baubles.Remove(m_baubleAnchor);
             Destroy(m_baubleAnchor);
+        }
+        else
+        {
+            m_baubleAnchor.collider.enabled = true;
         }
         m_baubles.Remove(m_baubleCursor);
         Destroy(m_baubleCursor);

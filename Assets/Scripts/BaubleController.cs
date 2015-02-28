@@ -62,16 +62,21 @@ public class BaubleController : MonoBehaviour {
 
     public void RemoveLink(GameObject go)
     {
+        //Debug.Log("RemoveLink searching for #" + go.GetComponent<TrackUID>().UID + " in " + GetLinkCount() + " links");
         LinkedListNode<TrackLink> node = m_tracks.First;
         while (node != null)
         {
+            //Debug.Log("Found #" + node.Value.track.GetComponent<TrackUID>().UID);
             if (node.Value.track == go)
             {
                 m_tracks.Remove(node);
+                //Debug.Log("Link removed; count = " + m_tracks.Count);
                 return;
             }
             node = node.Next;
         }
+
+        //Debug.Log("Remove link failed - not found");
     }
 
     public void AddLink(GameObject go)
@@ -107,10 +112,18 @@ public class BaubleController : MonoBehaviour {
         }
 
         m_tracks.AddLast(tl);
+
+        //Debug.Log("Link added; count = " + m_tracks.Count);
     }
 
     public int GetLinkCount()
     {
+        /*
+        foreach (TrackLink tl in m_tracks)
+        {
+            Debug.Log("Link found: #" + tl.track.GetComponent<TrackUID>().UID);
+        }
+        */
         return m_tracks.Count;
     }
 }
