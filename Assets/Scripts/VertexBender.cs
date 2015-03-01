@@ -158,11 +158,11 @@ public class VertexBenderLogic
         //create new triangles where it's necessary to fit them onto the curve
 
         //these array sizes are an arbitrary guess at how big they might need to be
-        Vector3[] newVerts = new Vector3[verts.Length * 100 / 3];
-        Vector3[] normals = new Vector3[verts.Length * 100 / 3];
-        Vector2[] newUVs = new Vector2[verts.Length * 100 / 3];
-        int[] newTris = new int[tris.Length * 90];
-        float[] Ls = new float[verts.Length * 100 / 3];
+        Vector3[] newVerts = new Vector3[verts.Length * 100];
+        Vector3[] normals = new Vector3[verts.Length * 100];
+        Vector2[] newUVs = new Vector2[verts.Length * 100];
+        int[] newTris = new int[tris.Length * 270];
+        float[] Ls = new float[verts.Length * 100];
         int nNewTris = tris.Length;
         int nNewVerts = verts.Length;
 

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 public class BaubleController : MonoBehaviour {
 
+
 	private bool m_mouseIsOver;
     private bool m_isHightlighted;
 
@@ -84,36 +85,51 @@ public class BaubleController : MonoBehaviour {
         TrackLink tl = new TrackLink();
         tl.track = go;
 
-        Vector3 otherEnd;
-        if (go.transform.position == transform.position)
-        {
-            otherEnd = go.GetComponent<TrackSectionShapeController>().GetEndPoint();
-        }
-        else if (go.GetComponent<TrackSectionShapeController>().GetEndPoint() == transform.position)
-        {
-            otherEnd = go.transform.position;
-        }
-        else
-        {
-            Debug.Log("We shouldn't be here!");
-            Debug.Log("pos: " + transform.position + " track start: " + go.transform.position + " track end: " + go.GetComponent<TrackSectionShapeController>().GetEndPoint());
-            return;
-        }
-
-        float angle = Quaternion.Angle(Quaternion.LookRotation(otherEnd), transform.rotation);
-
-        if (angle > 180)
-        {
-            tl.localRotation = Quaternion.AngleAxis(180, Vector3.up);
-        }
-        else
-        {
-            tl.localRotation = Quaternion.identity;
-        }
-
+        RecalculateDirections(ref tl);
+        
         m_tracks.AddLast(tl);
 
-        //Debug.Log("Link added; count = " + m_tracks.Count);
+        Debug.Log("Link added; count = " + m_tracks.Count);
+    }
+
+    public void RecalculateDirections(GameObject trackSection)
+    {
+        LinkedListNode<TrackLink> node = m_tracks.First;
+        while (node != null)
+        {
+            if (node.Value.track == trackSection)
+            {
+                TrackLink tl = node.Value;
+                RecalculateDirections(ref tl);
+                node.Value = tl;
+                return;
+            }
+            node = node.Next;
+        }
+    }
+
+    private void RecalculateDirections(ref TrackLink trackLink)
+    {
+        GameObject otherBauble = trackLink.track.GetComponent<TrackSectionShapeController>().GetOtherBauble(gameObject);
+        if (otherBauble == null)
+        {
+            trackLink.localRotation = Quaternion.identity;
+        }
+        else
+        {
+            Vector3 otherEnd = otherBauble.transform.position;
+
+            float angle = Quaternion.Angle(Quaternion.LookRotation(otherEnd), transform.rotation);
+
+            if (angle > 180)
+            {
+                trackLink.localRotation = Quaternion.AngleAxis(180, Vector3.up);
+            }
+            else
+            {
+                trackLink.localRotation = Quaternion.identity;
+            }
+        }
     }
 
     public int GetLinkCount()

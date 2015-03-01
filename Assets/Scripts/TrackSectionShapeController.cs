@@ -53,12 +53,38 @@ public class TrackSectionShapeController : MonoBehaviour {
         m_mode = Mode.Straight;
     }
 
-    private void SetStraight()
+    private void SetCurvature()
     {
-        Debug.Log("Setting mode to straight");
-        m_mode = Mode.Straight;
-        RestoreTrackSections();
-        m_endRotation = transform.rotation;
+        if (m_endTrackLink == null || m_startTrackLink == null) return;
+
+        if (m_endTrackLink.GetLinkCount() == 1)
+        {
+            if (transform.position != m_startTrackLink.transform.position)
+            {
+                transform.position = m_startTrackLink.transform.position;
+                transform.rotation = m_startTrackLink.transform.rotation;
+            }
+
+            if (m_startTrackLink.GetLinkCount() == 1)
+            {
+                Debug.Log("Setting mode to straight");
+                m_mode = Mode.Straight;
+                RestoreTrackSections();
+            }
+            else
+            {
+                m_mode = Mode.Curved;
+            }
+        }
+        else // end link count > 1
+        {
+            m_mode = Mode.Curved;
+
+            transform.position = m_endTrackLink.transform.position;
+            transform.rotation = m_endTrackLink.transform.rotation;
+
+            SetEndPoint(m_startTrackLink.transform.position);
+        }
     }
 
     public bool IsStraight()
@@ -86,13 +112,15 @@ public class TrackSectionShapeController : MonoBehaviour {
         if (bc == null) return;
 
         Debug.Log("Linking start");
-       
+
         transform.position = bc.transform.position;
         transform.rotation = bc.transform.rotation;
         
         m_startTrackLink = bc;
 
         bc.AddLink(gameObject);
+
+        SetCurvature();
     }
 
     public void LinkEnd(GameObject bauble)
@@ -115,7 +143,10 @@ public class TrackSectionShapeController : MonoBehaviour {
         if (bc == null) return;
         
         Debug.Log("Linking end");
-        if (m_endPoint != bc.transform.position)
+        m_endTrackLink = bc;
+        bc.AddLink(gameObject);
+
+        if (bc.GetLinkCount() > 1)
         {
             m_endPoint = bc.transform.position;
         }
@@ -123,9 +154,8 @@ public class TrackSectionShapeController : MonoBehaviour {
         {
             bc.transform.rotation = m_endRotation;
         }
-        m_endTrackLink = bc;
-
-        bc.AddLink(gameObject);
+        
+        SetCurvature();
     }
 
     public void UnlinkStart()
@@ -135,11 +165,6 @@ public class TrackSectionShapeController : MonoBehaviour {
 
         m_startTrackLink.RemoveLink(gameObject);
         m_startTrackLink = null;
-
-        if (m_endTrackLink == null)
-        {
-            SetStraight();
-        }
     }
 
     public void UnlinkEnd()
@@ -149,11 +174,6 @@ public class TrackSectionShapeController : MonoBehaviour {
 
         m_endTrackLink.RemoveLink(gameObject);
         m_endTrackLink = null;
-
-        if (m_startTrackLink == null)
-        {
-            SetStraight();
-        }
     }
 
     public void Link(GameObject bauble)
@@ -250,7 +270,7 @@ public class TrackSectionShapeController : MonoBehaviour {
         m_currentLength = length;
     }
 
-    public void SetCurve()
+    public void Curve()
     {
         foreach (GameObject trackModel in m_currentModels)
         {
@@ -274,11 +294,12 @@ public class TrackSectionShapeController : MonoBehaviour {
     {
         if (point != m_endPoint)
         {
+            /*
             if (m_startTrackLink.GetLinkCount() == 1 && m_endTrackLink.GetLinkCount() == 1)
                 m_mode = Mode.Straight;
             else
                 m_mode = Mode.Curved;
-
+            */
             switch (m_mode)
             {
                 case (Mode.Straight):
@@ -299,20 +320,24 @@ public class TrackSectionShapeController : MonoBehaviour {
                         float length, angle;
                         Vector3 rotationAxis;
                         VertexBender.GetBentLengthAndRotation(Vector3.Cross(transform.up, transform.forward), point - transform.position, out length, out rotationAxis, out angle);
-                        if (length > 0)
+
+                        if (angle > 180) //We're asking to bend behind us; just turn the section around
                         {
-                            RestoreTrackSections();
-
-                            SetLength(length);
-
-                            SetCurve();
-
-//                            Debug.Log("end bauble rotation axis: " + rotationAxis + " angle: " + angle);
-
-                            m_endRotation = transform.rotation * Quaternion.AngleAxis(angle, rotationAxis);
-
-                            
+                            transform.rotation = transform.rotation * Quaternion.AngleAxis(180, transform.up);
+                            Debug.Log("I'm spinning around, get out of my way");
+                            VertexBender.GetBentLengthAndRotation(Vector3.Cross(transform.up, transform.forward), point - transform.position, out length, out rotationAxis, out angle);
                         }
+
+                        RestoreTrackSections();
+
+                        SetLength(length);
+
+                        Curve();
+
+                        //                            Debug.Log("end bauble rotation axis: " + rotationAxis + " angle: " + angle);
+
+                        m_endRotation = transform.rotation * Quaternion.AngleAxis(angle, rotationAxis);
+
                         break;
                     }
             }
@@ -320,6 +345,10 @@ public class TrackSectionShapeController : MonoBehaviour {
             {
                 m_endTrackLink.transform.rotation = m_endRotation;
                 m_endTrackLink.transform.position = m_endPoint;
+            }
+            if (m_startTrackLink.GetLinkCount() == 1)
+            {
+                m_startTrackLink.transform.rotation = transform.rotation;
             }
         }
     }
@@ -376,6 +405,9 @@ public class TrackSectionShapeController : MonoBehaviour {
             box.size = new Vector3(2.5f, 0.34f - averageTrackHeight / transform.localScale.y, (m_rail[i] - m_rail[i-1]).magnitude / transform.localScale.z);
             box.center = Vector3.zero;
         }
+
+        m_endTrackLink.RecalculateDirections(gameObject);
+        m_startTrackLink.RecalculateDirections(gameObject);
     }
 
     public Vector3 GetPositionFromTravelDistance(float distance)
@@ -393,24 +425,26 @@ public class TrackSectionShapeController : MonoBehaviour {
         return m_endPoint;
     }
 
-    // takes a bauble from one end of the track as argument, returns bauble from other end of the track.
-    public GameObject SelectBaubleForEditing(GameObject bauble)
+    public void SelectBaubleForEditing(GameObject bauble)
     {
-        BaubleController otherBaubleController;
-
         if (bauble == m_startTrackLink.gameObject)
         {
-            otherBaubleController = m_endTrackLink;
+            BaubleController otherBaubleController = m_endTrackLink;
             Debug.Log("Shape controller returning end track link");
 
             LinkEnd(m_startTrackLink);
             LinkStart(otherBaubleController);
         }
-        else
-        {
-            otherBaubleController = m_startTrackLink;
-        }
-        
-        return otherBaubleController.gameObject;
+    }
+
+    public GameObject GetOtherBauble(GameObject bauble)
+    {
+        if (m_startTrackLink == null || m_endTrackLink == null) return null;
+
+        if (m_startTrackLink.gameObject == bauble) return m_endTrackLink.gameObject;
+
+        if (m_endTrackLink.gameObject == bauble) return m_startTrackLink.gameObject;
+
+        return null;
     }
 }

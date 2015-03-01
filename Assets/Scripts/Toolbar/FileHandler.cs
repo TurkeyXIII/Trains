@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Windows.Forms;
@@ -217,4 +218,10 @@ public interface ISaveLoadable
 public interface IDataObject
 {
     System.Type GetLoaderType();
+}
+
+[Serializable()]
+public class DataObjectWithUID
+{
+    public int UID;
 }

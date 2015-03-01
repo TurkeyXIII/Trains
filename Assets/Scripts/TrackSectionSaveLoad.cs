@@ -49,6 +49,11 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
             data.startOrientationW = transform.rotation.w;
         }
 
+        data.UID = GetComponent<ObjectUID>().UID;
+
+        data.startBaubleUID = tssc.GetStartBauble().GetComponent<ObjectUID>().UID;
+        data.endBaubleUID = tssc.GetEndBauble().GetComponent<ObjectUID>().UID;
+
         return data;
     }
 
@@ -66,6 +71,8 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
         }
 
         tssc.SetEndPoint(new Vector3(tsData.endPointX, tsData.endPointY, tsData.endPointZ));
+
+        GetComponent<ObjectUID>().LoadFromDataObject(tsData);
     }
 
     public GameObject GetGameObject()
@@ -75,8 +82,10 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
 }
 
 [Serializable()]
-public class TrackSectionData : IDataObject
+public class TrackSectionData : DataObjectWithUID, IDataObject
 {
+    // All this data might be redundant if we're already saving it in the baubles.
+    // ***
     public float startPointX;
     public float startPointY;
     public float startPointZ;
@@ -88,6 +97,10 @@ public class TrackSectionData : IDataObject
     public float startOrientationY;
     public float startOrientationZ;
     public float startOrientationW;
+    // ***
+
+    public int startBaubleUID;
+    public int endBaubleUID;
 
     public Type GetLoaderType()
     {
