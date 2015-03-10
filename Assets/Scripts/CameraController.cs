@@ -105,14 +105,14 @@ public class CameraController : MonoBehaviour , ICameraView
         m_isPanning = GetMouseHitLocation(out m_panAnchor);
         if (m_isPanning)
         {
-            Debug.Log("Panning Started");
+//            Debug.Log("Panning Started");
             
         }
     }
 
     private void StopPanning()
     {
-        Debug.Log("Panning Stopped");
+//        Debug.Log("Panning Stopped");
         m_isPanning = false;
         /*
         Vector3 newPosition = transform.position;
@@ -359,7 +359,7 @@ public class Clamper
         Vector3 middle = cameraView.ViewportToWorldPoint(cameraPosition, new Vector3(0.5f, 0.5f, distToMid));
         //Vector3 middle = cameraView.RaycastHit(cameraPosition);
 
-        Debug.Log(middle.ToString());
+        //Debug.Log(middle.ToString());
 
         //ApplyClampForLocation(bottomLeft, ref cameraPosition);
         //ApplyClampForLocation(bottomRight, ref cameraPosition);
@@ -376,7 +376,7 @@ public class Clamper
 
         float maxY = (Mathf.Min((m_terrainMax.x - m_terrainMin.x), (m_terrainMax.z - m_terrainMin.z)) / (2 * tanFOV)) * Mathf.Cos(cameraView.AngleFromVertical() * Mathf.Deg2Rad) - 0.2f;
 
-        Debug.Log(maxY);
+        //Debug.Log(maxY);
 
         if (newCameraPos.y > maxY)
         {

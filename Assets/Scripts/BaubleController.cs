@@ -14,7 +14,7 @@ public class BaubleController : MonoBehaviour {
     private struct TrackLink
     {
         public GameObject track;
-        public Quaternion localRotation; // direction that the track leaves this node relative to this node's orientation.
+        public float angle; // direction that the track leaves this node relative to this node's orientation.
     }
 
     private LinkedList<TrackLink> m_tracks;
@@ -64,6 +64,8 @@ public class BaubleController : MonoBehaviour {
     public void RemoveLink(GameObject go)
     {
         //Debug.Log("RemoveLink searching for #" + go.GetComponent<TrackUID>().UID + " in " + GetLinkCount() + " links");
+        if (m_tracks == null) return;
+
         LinkedListNode<TrackLink> node = m_tracks.First;
         while (node != null)
         {
@@ -110,26 +112,59 @@ public class BaubleController : MonoBehaviour {
 
     private void RecalculateDirections(ref TrackLink trackLink)
     {
+        Debug.Log("Calculating directions...");
         GameObject otherBauble = trackLink.track.GetComponent<TrackSectionShapeController>().GetOtherBauble(gameObject);
         if (otherBauble == null)
         {
-            trackLink.localRotation = Quaternion.identity;
+            trackLink.angle = 0;
         }
         else
         {
             Vector3 otherEnd = otherBauble.transform.position;
 
-            float angle = Quaternion.Angle(Quaternion.LookRotation(otherEnd), transform.rotation);
+            Debug.Log("Vector to other end: " + (otherEnd - transform.position));
+            Debug.Log("Dot Product: " + Vector3.Dot((otherEnd - transform.position).normalized, transform.right));
 
-            if (angle > 180)
-            {
-                trackLink.localRotation = Quaternion.AngleAxis(180, Vector3.up);
-            }
-            else
-            {
-                trackLink.localRotation = Quaternion.identity;
-            }
+            float angle = Quaternion.FromToRotation(transform.right, otherEnd - transform.position).eulerAngles.y; // ?.magnitude?
+            
+            Debug.Log("Angle found to be " + angle);
+
+            trackLink.angle = angle;
         }
+    }
+
+    public Quaternion GetRotation(GameObject track)
+    {
+        TrackLink tl = GetTrackLink(track);
+
+        return transform.rotation * Quaternion.AngleAxis(tl.angle, transform.up);
+    }
+
+    public float GetAngle(GameObject track)
+    {
+        TrackLink tl = GetTrackLink(track);
+
+        return tl.angle;
+    }
+
+    private TrackLink GetTrackLink(GameObject track)
+    {
+        LinkedListNode<TrackLink> node = m_tracks.First;
+        while (node != null)
+        {
+            if (node.Value.track == track)
+            {
+                return node.Value;
+            }
+            node = node.Next;
+        }
+        
+        TrackLink tl = new TrackLink();
+
+        tl.angle = 0;
+        tl.track = null;
+
+        return tl;
     }
 
     public int GetLinkCount()

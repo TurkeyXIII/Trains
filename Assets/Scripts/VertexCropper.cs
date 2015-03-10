@@ -58,10 +58,26 @@ public class VertexCropper : MonoBehaviour , IMeshOwner
 
     public void SetMeshInfo(Vector3[] verts, Vector2[] uv, int[] triangles)
     {
+
         m_mesh.Clear();
-        m_mesh.vertices = verts;
-        m_mesh.uv = uv;
-        m_mesh.triangles = triangles;
+        if (verts.Length >= 3)
+        {
+            m_mesh.vertices = verts;
+            m_mesh.uv = uv;
+            m_mesh.triangles = triangles;
+        }
+        else
+        {
+            verts = new Vector3[3];
+            uv = new Vector2[3];
+            triangles = new int[3];
+            for (int i = 0; i < 3; i++)
+            {
+                verts[i] = Vector3.zero;
+                uv[i] = Vector2.zero;
+                triangles[i] = i;
+            }
+        }
         m_mesh.RecalculateNormals();
     }
 

@@ -173,6 +173,46 @@ public class TrackPlacementTool : MonoBehaviour, ITool
         SetTrackSectionBaubleVisibility(false);
     }
 
+    public void LinkBaublesFromUIDs()
+    {
+        foreach (GameObject trackSection in m_trackSections)
+        {
+            TrackSectionShapeController tssc = trackSection.GetComponent<TrackSectionShapeController>();
+            TrackSectionSaveLoad tssl = trackSection.GetComponent<TrackSectionSaveLoad>();
+            int startUID = tssl.GetStartBaubleUID();
+            int endUID = tssl.GetEndBaubleUID();
+
+            foreach (GameObject bauble in m_baubles)
+            {
+                int uid = bauble.GetComponent<ObjectUID>().UID;
+                if (uid == startUID)
+                {
+                    tssc.LinkStart(bauble, false);
+                    startUID = -1;
+                }
+                else if (uid == endUID)
+                {
+                    tssc.LinkEnd(bauble, false);
+                    endUID = -1;
+                }
+
+                if (startUID < 0 && endUID < 0) break;
+            }
+
+            Debug.Log("After linking, my endpoint is " + tssc.GetEndPoint());
+            Debug.Log("After linking, my rotation is " + trackSection.transform.rotation);
+        }
+    }
+
+    public void InstantiateBauble(IDataObject bData)
+    {
+        GameObject bauble = (GameObject)Instantiate(baublePrefab);
+        bauble.GetComponent<BaubleSaveLoad>().LoadFromDataObject(bData);
+        bauble.SetActive(false);
+        bauble.collider.enabled = true;
+        m_baubles.Add(bauble);
+    }
+
     public void InstantiateTrackSection(IDataObject tsData)
     {
         GameObject trackSection = (GameObject)Instantiate(trackSectionPrefab);
@@ -218,5 +258,11 @@ public class TrackPlacementTool : MonoBehaviour, ITool
         {
             bauble.SetActive(visible);
         }
+    }
+
+    public void ResetLists()
+    {
+        m_baubles = new List<GameObject>();
+        m_trackSections = new List<GameObject>();
     }
 }

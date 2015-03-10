@@ -41,13 +41,7 @@ public class FileHandler : MonoBehaviour {
 
         c_terrainSaveLoad.InitialiseTerrain();
 
-        foreach (ISaveLoadable sl in saveableObjects)
-        {
-            if (sl.GetType() != typeof(TerrainSaveLoad))
-            {
-                GameObject.Destroy(sl.GetGameObject());
-            }
-        }
+        DeleteSavables();
 
         levelHasChanged = false;
         filename = null;
@@ -75,13 +69,14 @@ public class FileHandler : MonoBehaviour {
         }
         else
         {
-            file = new FileStream(filename, FileMode.OpenOrCreate);
+            file = new FileStream(filename, FileMode.Create);
         }
 
         if (file != null)
         {
             foreach (ISaveLoadable loadable in saveableObjects)
             {
+                Debug.Log("Saving a " + loadable.GetType());
                 formatter.Serialize(file, loadable.GetDataObject());
             }
             filename = file.Name;
@@ -97,7 +92,9 @@ public class FileHandler : MonoBehaviour {
     {
         if (!YesIAmSure()) return;
 
-        FileStream file;
+        
+
+        FileStream file = null;
         BinaryFormatter formatter = new BinaryFormatter();
 
         OpenFileDialog dialog = new OpenFileDialog();
@@ -110,19 +107,23 @@ public class FileHandler : MonoBehaviour {
         dialog.AddExtension = true;
         dialog.ShowDialog();
 
+        /*
         try
         {
-
-            file = (FileStream)dialog.OpenFile();
+        */
+            if (dialog.FileName != null)
+                file = (FileStream)dialog.OpenFile();
 
             if (file != null)
             {
+                DeleteSavables();
+
                 while (file.Position < file.Length)
                 {
                     IDataObject dataObject = formatter.Deserialize(file) as IDataObject;
                     System.Type type = dataObject.GetLoaderType();
 
-                    Debug.Log("found something");
+                    Debug.Log("found a " + dataObject.GetLoaderType());
 
                     if (type == typeof(TerrainSaveLoad))
                     {
@@ -136,19 +137,27 @@ public class FileHandler : MonoBehaviour {
                     {
                         Control.GetControl().trackPlacer.InstantiateTrackSection(dataObject);
                     }
+                    else if (type == typeof(BaubleSaveLoad))
+                    {
+                        Control.GetControl().trackPlacer.InstantiateBauble(dataObject);
+                    }
                 }
 
                 filename = file.Name;
 
                 file.Close();
 
+                Control.GetControl().trackPlacer.LinkBaublesFromUIDs();
+
                 levelHasChanged = false;
             }
+        /*
         }
-        catch
+        catch (Exception e)
         {
-            //meh
+            Debug.Log("Caught exception loading file: " + e.Message);
         }
+        */
     }
 
     public void OnSelectQuit()
@@ -205,6 +214,19 @@ public class FileHandler : MonoBehaviour {
             }
         }
         return true;
+    }
+
+    private void DeleteSavables()
+    {
+        foreach (ISaveLoadable sl in saveableObjects)
+        {
+            if (sl.GetType() != typeof(TerrainSaveLoad))
+            {
+                GameObject.Destroy(sl.GetGameObject());
+            }
+        }
+
+        Control.GetControl().trackPlacer.ResetLists();
     }
 }
 

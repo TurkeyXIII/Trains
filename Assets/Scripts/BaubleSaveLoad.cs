@@ -4,7 +4,7 @@ using System.Collections;
 
 public class BaubleSaveLoad : MonoBehaviour, ISaveLoadable {
 
-    void Start()
+    void Awake()
     {
         Control.GetControl().GetComponent<FileHandler>().AddToSaveableObjects(this);
     }
@@ -38,7 +38,12 @@ public class BaubleSaveLoad : MonoBehaviour, ISaveLoadable {
 
     public void LoadFromDataObject(IDataObject data)
     {
-        throw new System.NotImplementedException();
+        BaubleData bData = (BaubleData) data;
+
+        transform.position = new Vector3(bData.positionX, bData.positionY, bData.positionZ);
+        transform.rotation = new Quaternion(bData.rotationX, bData.rotationY, bData.rotationZ, bData.rotationW);
+
+        GetComponent<ObjectUID>().LoadFromDataObject(bData);
     }
 
     public GameObject GetGameObject()

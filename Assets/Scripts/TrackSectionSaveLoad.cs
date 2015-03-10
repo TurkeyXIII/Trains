@@ -4,7 +4,11 @@ using System;
 
 public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
 {
-    void Start()
+    private int startBaubleUID = -1;
+    private int endBaubleUID = -1;
+
+
+    void Awake()
     {
         Control.GetControl().GetComponent<FileHandler>().AddToSaveableObjects(this);
     }
@@ -34,6 +38,8 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
         data.endPointY = endPoint.y;
         data.endPointZ = endPoint.z;
 
+        Debug.Log("Saving endpoint as " + endPoint);
+
         if (tssc.IsStraight())
         {
             data.startOrientationX = 0;
@@ -48,6 +54,8 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
             data.startOrientationZ = transform.rotation.z;
             data.startOrientationW = transform.rotation.w;
         }
+
+            Debug.Log("Saving rotation as " + transform.rotation);
 
         data.UID = GetComponent<ObjectUID>().UID;
 
@@ -67,17 +75,46 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
             tsData.startOrientationY != 0 || tsData.startOrientationZ != 0)
         {
             transform.rotation = new Quaternion(tsData.startOrientationX, tsData.startOrientationY, tsData.startOrientationZ, tsData.startOrientationW);
-            //TODO: something about linking to baubles.
+            tssc.SetCurved();
+        }
+        else
+        {
+            tssc.SetStraight();
         }
 
-        tssc.SetEndPoint(new Vector3(tsData.endPointX, tsData.endPointY, tsData.endPointZ));
+        Debug.Log("Loading rotation as " + transform.rotation);
+
+        Vector3 endpoint = new Vector3(tsData.endPointX, tsData.endPointY, tsData.endPointZ);
+
+        Debug.Log("Loading endpoint as " + endpoint);
+
+        tssc.SetEndPoint(endpoint);
+
+        tssc.FinalizeShape();
+
+        Debug.Log("After shape finalization, rotation is " + transform.rotation);
 
         GetComponent<ObjectUID>().LoadFromDataObject(tsData);
+
+        startBaubleUID = tsData.startBaubleUID;
+        endBaubleUID = tsData.endBaubleUID;
+
+        Debug.Log("My endpoint is " + tssc.GetEndPoint());
     }
 
     public GameObject GetGameObject()
     {
         return gameObject;
+    }
+
+    public int GetStartBaubleUID()
+    {
+        return startBaubleUID;
+    }
+
+    public int GetEndBaubleUID()
+    {
+        return endBaubleUID;
     }
 }
 

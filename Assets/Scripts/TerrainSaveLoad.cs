@@ -15,11 +15,7 @@ public class TerrainSaveLoad : MonoBehaviour, ISaveLoadable
 
         if (newTerrainOnAwake)
             InitialiseTerrain();
-        
-    }
 
-    void Start()
-    {
         Control.GetControl().GetComponent<FileHandler>().AddToSaveableObjects(this);
     }
 
