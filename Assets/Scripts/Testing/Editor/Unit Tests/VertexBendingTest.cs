@@ -10,22 +10,6 @@ namespace UnitTest
     internal class VertexBenderTests
     {
         [Test]
-        public void TestFresnelC()
-        {
-            Assert.That(VertexBenderLogic.FresnelC(0.3f), Is.EqualTo(0.299757).Within(0.1f).Percent);
-            Assert.That(VertexBenderLogic.FresnelC(0.8f), Is.EqualTo(0.767848).Within(0.1f).Percent);
-            Assert.That(VertexBenderLogic.FresnelC(1.44f), Is.EqualTo(0.932543).Within(0.01f).Percent);
-        }
-
-        [Test]
-        public void TestFresnelS()
-        {
-            Assert.That(VertexBenderLogic.FresnelS(0.3f), Is.EqualTo(0.00899479).Within(0.1f).Percent);
-            Assert.That(VertexBenderLogic.FresnelS(0.8f), Is.EqualTo(0.165738).Within(0.1f).Percent);
-            Assert.That(VertexBenderLogic.FresnelS(1.44f), Is.EqualTo(0.728459).Within(0.01f).Percent);
-        }
-
-        [Test]
         public void TestEndpoint()
         {
             VertexBenderLogic logic = new VertexBenderLogic();
@@ -451,10 +435,12 @@ namespace UnitTest
             meshOwner.tris[8] = 4;
 
             // when bent, this quad should have 7 verts total
+            // the triangle in z should have an additional 3
             float z = Mathf.Tan(Mathf.PI / 6f); //for a 30 degree bend
+            logic.maxCornerAngleRadians = Mathf.PI;
             logic.Bend(new Vector3(1, 0, 0), new Vector3(1, 0, z));
 
-            Assert.AreEqual(9, meshOwner.vertices.Length);
+            Assert.AreEqual(10, meshOwner.vertices.Length);
             Assert.AreEqual(27, meshOwner.tris.Length);
 
             for (int i = 0; i > 27; i++)
@@ -530,7 +516,7 @@ namespace UnitTest
 
             meshOwner.tris = new int[3];
             for (int i = 0; i < 3; i++) meshOwner.tris[i] = i;
-
+            logic.maxCornerAngleRadians = Mathf.PI;
             logic.Bend(new Vector3(1, 0, 0), new Vector3(1, 0, 1));
 
             Assert.That(meshOwner.vertices[3].x, Is.EqualTo(0.833099 / 1.055089 - 0.5 * 0.7071).Within(0.1).Percent);
@@ -611,7 +597,7 @@ namespace UnitTest
             Assert.That(length, Is.EqualTo(2).Within(0.001f));
 
             // theta = 60 deg
-            float targetLength = 1 / (0.5f * VertexBenderLogic.FresnelC(1.02333f) + 0.866f * VertexBenderLogic.FresnelS(1.02333f)) * 2 * 1.02333f;
+            float targetLength = 1 / (0.5f * FresnelMath.FresnelC(1.02333f) + 0.866f * FresnelMath.FresnelS(1.02333f)) * 2 * 1.02333f;
             length = GetBentLength(new Vector3(1, 0, 0), new Vector3(1, 0, Mathf.Tan(Mathf.PI / 3)));
             Assert.That(length, Is.EqualTo(targetLength).Within(0.001f));
 
@@ -619,7 +605,7 @@ namespace UnitTest
             Assert.That(length, Is.EqualTo(targetLength).Within(0.001f));
 
             // theta = 90 deg
-            targetLength = 1 / (2 * VertexBenderLogic.FresnelS(1.2533f)) * 2 * 1.2533f;
+            targetLength = 1 / (2 * FresnelMath.FresnelS(1.2533f)) * 2 * 1.2533f;
             length = GetBentLength(new Vector3(1, 0, 0), new Vector3(0, 0, 1));
             Assert.That(length, Is.EqualTo(targetLength).Within(0.001f));
 
@@ -627,15 +613,16 @@ namespace UnitTest
             Assert.That(length, Is.EqualTo(targetLength).Within(0.001f));
 
             // theta = 120 deg
+            // as of iteration 4, angles greater than 90 degrees (pi/2) will return negative length
             float L = 1.4472f;
-            targetLength = -1 / (0.5f * VertexBenderLogic.FresnelC(L) - 0.866f * VertexBenderLogic.FresnelS(L)) * 2 * L;
+            targetLength = -1 / (0.5f * FresnelMath.FresnelC(L) - 0.866f * FresnelMath.FresnelS(L)) * 2 * L;
             length = GetBentLength(new Vector3(1, 0, 0), new Vector3(-1, 0, Mathf.Tan(Mathf.PI / 3)));
-            Assert.That(length, Is.EqualTo(targetLength).Within(0.1f).Percent);
-            Assert.Greater(length, 0);
+            //Assert.That(length, Is.EqualTo(targetLength).Within(0.1f).Percent);
+            Assert.Less(length, 0);
 
             length = GetBentLength(new Vector3(1, 0, 0), new Vector3(-1, 0, -Mathf.Tan(Mathf.PI / 3)));
-            Assert.That(length, Is.EqualTo(targetLength).Within(0.1f).Percent);
-            Assert.Greater(length, 0);
+            //Assert.That(length, Is.EqualTo(targetLength).Within(0.1f).Percent);
+            Assert.Less(length, 0);
 
             // theta = 150 deg
             length = GetBentLength(new Vector3(1, 0, 0), new Vector3(-1, 0, Mathf.Tan(Mathf.PI / 6)));

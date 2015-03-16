@@ -58,7 +58,7 @@ public class VertexBender : MonoBehaviour, IMeshOwner
 
 public class VertexBenderLogic
 {
-    private const float c_errorMargin = 0.0001f;
+    
 
     public IMeshOwner meshOwner { set; private get; }
 
@@ -83,7 +83,7 @@ public class VertexBenderLogic
 
         if (thetaRadians > Mathf.PI / 2)
         {
-            scale = -1;
+            scale = 1;
             normalizedLength = -1;
             return;
         }
@@ -97,8 +97,8 @@ public class VertexBenderLogic
             return;
         }
 
-        float xL = FresnelC(normalizedLength);
-        float yL = FresnelS(normalizedLength);
+        float xL = FresnelMath.FresnelC(normalizedLength);
+        float yL = FresnelMath.FresnelS(normalizedLength);
 
         float xA = xL * (1 + Mathf.Cos(thetaRadians * 2)) + yL * Mathf.Sin(thetaRadians * 2);
 
@@ -364,8 +364,8 @@ public class VertexBenderLogic
             Vector3 vy = newVerts[i] - Vector3.Dot(newVerts[i], unitXdash) * unitXdash;
             if (Ls[i] <= normalizedLength) // the first half, 'transition in' part of the curve
             {
-                float xvdash = FresnelC(Ls[i]) * scale;
-                float yvdash = FresnelS(Ls[i]) * scale;
+                float xvdash = FresnelMath.FresnelC(Ls[i]) * scale;
+                float yvdash = FresnelMath.FresnelS(Ls[i]) * scale;
 
                 float thetaRadiansAtVert = Mathf.Pow(Ls[i], 2);
                 Vector3 lineOffset = Mathf.Cos(thetaRadiansAtVert) * vy + Mathf.Sin(thetaRadiansAtVert) * Vector3.Cross(rotationAxis, vy) + (1 - Mathf.Cos(thetaRadiansAtVert)) * Vector3.Dot(rotationAxis, vy) * rotationAxis;
@@ -373,8 +373,8 @@ public class VertexBenderLogic
             }
             else // the second half, 'transition out' part of the curve
             {
-                float xvdoubledash = FresnelC((2 * normalizedLength) - Ls[i]) * scale;
-                float yvdoubledash = FresnelS((2 * normalizedLength) - Ls[i]) * scale;
+                float xvdoubledash = FresnelMath.FresnelC((2 * normalizedLength) - Ls[i]) * scale;
+                float yvdoubledash = FresnelMath.FresnelS((2 * normalizedLength) - Ls[i]) * scale;
 
                 float thetaRadiansAtVert = thetaRadians * 2 - Mathf.Pow(2 * normalizedLength - Ls[i], 2);
                 Vector3 lineOffset = Mathf.Cos(thetaRadiansAtVert) * vy + Mathf.Sin(thetaRadiansAtVert) * Vector3.Cross(rotationAxis, vy) + (1 - Mathf.Cos(thetaRadiansAtVert)) * Vector3.Dot(rotationAxis, vy) * rotationAxis;
@@ -438,8 +438,8 @@ public class VertexBenderLogic
 
             if (L <= normalizedLength) // the first half, 'transition in' part of the curve
             {
-                float xvdash = FresnelC(L) * scale;
-                float yvdash = FresnelS(L) * scale;
+                float xvdash = FresnelMath.FresnelC(L) * scale;
+                float yvdash = FresnelMath.FresnelS(L) * scale;
 
                 float thetaRadiansAtVert = Mathf.Pow(L, 2);
                 Vector3 lineOffset = Mathf.Cos(thetaRadiansAtVert) * vy + Mathf.Sin(thetaRadiansAtVert) * Vector3.Cross(rotationAxis, vy) + (1 - Mathf.Cos(thetaRadiansAtVert)) * Vector3.Dot(rotationAxis, vy) * rotationAxis;
@@ -447,8 +447,8 @@ public class VertexBenderLogic
             }
             else // the second half, 'transition out' part of the curve
             {
-                float xvdoubledash = FresnelC((2 * normalizedLength) - L) * scale;
-                float yvdoubledash = FresnelS((2 * normalizedLength) - L) * scale;
+                float xvdoubledash = FresnelMath.FresnelC((2 * normalizedLength) - L) * scale;
+                float yvdoubledash = FresnelMath.FresnelS((2 * normalizedLength) - L) * scale;
 
                 float thetaRadiansAtVert = thetaRadians * 2 - Mathf.Pow(2 * normalizedLength - L, 2);
                 Vector3 lineOffset = Mathf.Cos(thetaRadiansAtVert) * vy + Mathf.Sin(thetaRadiansAtVert) * Vector3.Cross(rotationAxis, vy) + (1 - Mathf.Cos(thetaRadiansAtVert)) * Vector3.Dot(rotationAxis, vy) * rotationAxis;
@@ -473,61 +473,4 @@ public class VertexBenderLogic
         return -1;
     }
 
-    public static float FresnelS(float x)
-    {
-        float lastTerm = float.PositiveInfinity;
-        float FresnelS = 0;
-        int n = 0;
-
-        while (lastTerm / FresnelS > c_errorMargin || lastTerm / FresnelS < -c_errorMargin)
-        {
-            lastTerm = Mathf.Pow(x, 4 * n + 3) / Factorial(2 * n + 1) / (float)(4 * n + 3);
-
-            if (n % 2 == 1) lastTerm = -lastTerm;
-
-            FresnelS += lastTerm;
-            n++;
-
-            if (n > 20)
-            {
-                return -1;
-            }
-        }
-
-        return FresnelS;
-    }
-
-    public static float FresnelC(float x)
-    {
-        float lastTerm = float.PositiveInfinity;
-        float FresnelC = 0;
-        int n = 0;
-
-        while (lastTerm / FresnelC > c_errorMargin || lastTerm / FresnelC < -c_errorMargin)
-        {
-            lastTerm = Mathf.Pow(x, 4 * n + 1) / Factorial(2 * n) / (float)(4 * n + 1);
-
-            if (n % 2 == 1) lastTerm = -lastTerm;
-
-            FresnelC += lastTerm;
-            n++;
-
-            if (n > 20)
-            {
-                return -1;
-            }
-        }
-        return FresnelC;
-    }
-
-    public static float Factorial(int x)
-    {
-        float factorial = 1;
-        for (float i = 2; i < x+1; i++)
-        {
-            factorial *= i;
-        }
-
-        return factorial;
-    }
 }
