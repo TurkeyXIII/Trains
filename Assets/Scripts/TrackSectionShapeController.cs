@@ -163,22 +163,29 @@ public class TrackSectionShapeController : MonoBehaviour {
 
         if (bc.GetLinkCount() > 1)
         {
-            Quaternion trackRotationAtEnd = bc.GetRotation(gameObject);
-            Vector3 startDirection = (transform.position - bc.transform.position).normalized;
-            Debug.Log("Start direction: " + startDirection);
-            Vector3 trackDirectionAtEnd = (trackRotationAtEnd * Vector3.right).normalized;
-            Debug.Log("Track Direction at End: " + trackDirectionAtEnd);
-            float angle = bc.GetAngle(gameObject);
-
-            Vector3 axis = bc.transform.up;
-
-            Debug.Log("curvature angle: " + angle);
-            
-            transform.rotation = trackRotationAtEnd * Quaternion.AngleAxis(angle, axis);
-
-            if (m_startTrackLink != null)
+            if (m_startTrackLink != null && m_startTrackLink.GetLinkCount() > 1)
             {
-                m_startTrackLink.transform.rotation = transform.rotation;
+                transform.rotation = m_startTrackLink.GetRotation(gameObject);
+            }
+            else
+            {
+                Quaternion trackRotationAtEnd = bc.GetRotation(gameObject);
+                Vector3 startDirection = (transform.position - bc.transform.position).normalized;
+                Debug.Log("Start direction: " + startDirection);
+                Vector3 trackDirectionAtEnd = (trackRotationAtEnd * Vector3.right).normalized;
+                Debug.Log("Track Direction at End: " + trackDirectionAtEnd);
+                float angle = bc.GetAngle(gameObject);
+
+                Vector3 axis = bc.transform.up;
+
+                Debug.Log("curvature angle: " + angle);
+
+                transform.rotation = trackRotationAtEnd * Quaternion.AngleAxis(angle, axis);
+
+                if (m_startTrackLink != null)
+                {
+                    m_startTrackLink.transform.rotation = transform.rotation;
+                }
             }
         }
         else

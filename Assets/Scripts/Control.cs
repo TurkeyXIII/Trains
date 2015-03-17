@@ -25,11 +25,11 @@ public class Control : MonoBehaviour {
             Destroy(this);
         }
 
-        
-        float L = Mathf.Sqrt(Mathf.PI / 4f);
-        Debug.Log("C(0.886) = " + FresnelMath.FresnelC(L));
-        Debug.Log("S(0.886) = " + FresnelMath.FresnelS(L));
-        
+        /*
+        float L = Mathf.Sqrt(Mathf.PI/6);
+        Debug.Log("C(0.7236) = " + FresnelMath.FresnelC(L));
+        Debug.Log("S(0.7236) = " + FresnelMath.FresnelS(L));
+        */
     }
 
     void Start()

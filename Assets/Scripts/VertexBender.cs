@@ -166,7 +166,7 @@ public class VertexBenderLogic
         int nNewTris = tris.Length;
         int nNewVerts = verts.Length;
 
-        //      Debug.Log("starting tris: " + tris.Length + ", starting verts: " + verts.Length);
+        //    Debug.Log("starting tris: " + tris.Length + ", starting verts: " + verts.Length);
         //    Debug.Log("Maximum tris: " + newTris.Length + ", maximum verts: " + newVerts.Length);
 
         // set up normals

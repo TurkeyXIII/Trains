@@ -53,6 +53,14 @@ namespace UnitTest
 
             Assert.That(theta1, Is.EqualTo(Mathf.PI / 4).Within(0.001f));
             Assert.That(theta2, Is.EqualTo(Mathf.PI / 4).Within(0.001f));
+
+            float L1 = Mathf.Sqrt(theta1);
+            float L2 = Mathf.Sqrt(theta2);
+
+            float phi = Mathf.PI/2;
+            float A2 = FresnelMath.A2(theta1, phi, endPoint.x);
+            float A1 = FresnelMath.A1(A2, theta1, phi);
+            Debug.Log("A1: " + A1 + ", L1: " + L1 + ", A2: " + A2 + ", L2: " + L2 + ", LTot: " + (L1 / A1 + L2 / A2) + ", R: " + (1/(2*A1*L1)));
         }
 
         [Test]
@@ -78,14 +86,14 @@ namespace UnitTest
         }
 
         [Test]
-        public void TestTheta90Deg2to1Asymmetrical()
+        public void TestTheta90Deg57to100Asymmetrical()
         {
             float theta1, theta2;
 
             Vector3 startPoint, endPoint, startDirection, endDirection;
             startPoint = Vector3.zero;
             startDirection = new Vector3(1, 0, 0);
-            endPoint = new Vector3(2, 1, 0);
+            endPoint = new Vector3(0.57f, 1, 0);
             endDirection = new Vector3(0, -1, 0);
 
             FresnelMath.FindTheta(out theta1, out theta2, startPoint, endPoint, startDirection, endDirection);
@@ -96,10 +104,13 @@ namespace UnitTest
             float L1 = Mathf.Sqrt(theta1);
             float L2 = Mathf.Sqrt(theta2);
 
-            float A2 = FresnelMath.A2(theta1);
-            float A1 = FresnelMath.A1(A2, theta1);
+            float phi = Mathf.PI/2;
+
+            float A2 = FresnelMath.A2(theta1, phi, endPoint.x);
+            float A1 = FresnelMath.A1(A2, theta1, phi);
 
             Assert.That(A1*L1, Is.EqualTo(A2*L2).Within(0.001f));
+            Debug.Log("A1: " + A1 + ", L1: " + L1 + ", A2: " + A2 + ", L2: " + L2 + ", LTot: " + (L1/A1+L2/A2) + ", R: " + (1/(2*A1*L1)));
         }
 
         [Test]
@@ -125,6 +136,56 @@ namespace UnitTest
 
             Assert.That(theta1, Is.EqualTo(Mathf.PI / 12).Within(0.001f));
             Assert.That(theta2, Is.EqualTo(Mathf.PI / 12).Within(0.001f));
+        }
+
+        [Test]
+        public void TestTheta30DegSymmetricalBadGuess()
+        {
+            float theta1, theta2;
+
+            Vector3 startPoint, endPoint, startDirection, endDirection;
+            startPoint = Vector3.zero;
+            startDirection = new Vector3(1, 0, 0);
+            endPoint = new Vector3(1, Mathf.Tan(Mathf.PI / 12), 0);
+            endDirection = new Vector3(-Mathf.Cos(Mathf.PI / 6), -Mathf.Sin(Mathf.PI / 6), 0);
+
+            FresnelMath.FindTheta(out theta1, out theta2, startPoint, endPoint, startDirection, endDirection, 0.01f);
+
+            Assert.That(theta1, Is.EqualTo(Mathf.PI / 12).Within(0.001f));
+            Assert.That(theta2, Is.EqualTo(Mathf.PI / 12).Within(0.001f));
+
+            FresnelMath.FindTheta(out theta1, out theta2, startPoint, endPoint, startDirection, endDirection, Mathf.PI/6 - 0.01f);
+
+            Assert.That(theta1, Is.EqualTo(Mathf.PI / 12).Within(0.001f));
+            Assert.That(theta2, Is.EqualTo(Mathf.PI / 12).Within(0.001f));
+        }
+
+        [Test]
+        public void TestTheta30Deg5To1Asymmetrical()
+        {
+            float theta1, theta2;
+
+            Vector3 startPoint, endPoint, startDirection, endDirection;
+            startPoint = Vector3.zero;
+            startDirection = new Vector3(1, 0, 0);
+            endPoint = new Vector3(2.75f, 1, 0);
+            endDirection = new Vector3(-Mathf.Cos(Mathf.PI / 6), -Mathf.Sin(Mathf.PI / 6), 0);
+
+            FresnelMath.FindTheta(out theta1, out theta2, startPoint, endPoint, startDirection, endDirection);
+
+            Assert.Greater(theta1, 0);
+            Assert.Greater(theta2, 0);
+
+            float L1 = Mathf.Sqrt(theta1);
+            float L2 = Mathf.Sqrt(theta2);
+
+            float phi = Mathf.PI / 6;
+
+            float A2 = FresnelMath.A2(theta1, phi, endPoint.x);
+            float A1 = FresnelMath.A1(A2, theta1, phi);
+
+            Assert.That(A1 * L1, Is.EqualTo(A2 * L2).Within(0.001f));
+            Debug.Log("A1: " + A1 + ", L1: " + L1 + ", A2: " + A2 + ", L2: " + L2 + ", LTot: " + (L1 / A1 + L2 / A2) + ", R: " + (1 / (2 * A1 * L1)));
         }
     }
 }

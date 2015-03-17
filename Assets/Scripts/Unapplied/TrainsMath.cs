@@ -92,31 +92,31 @@ public class FresnelMath
         return factorial;
     }
 
-    public static float A2(float theta1)
+    public static float A2(float theta1, float phi, float x)
     {
-        return FresnelS(Mathf.Sqrt(theta1)) / Mathf.Sqrt(Mathf.PI / (2*theta1) - 1) + FresnelC(Mathf.Sqrt(Mathf.PI/2 - theta1));
+        return ( FresnelC(Mathf.Sqrt(theta1)) / Mathf.Sqrt(phi/theta1 - 1) + FresnelC(Mathf.Sqrt(phi - theta1)) * Mathf.Cos(phi) + FresnelS(Mathf.Sqrt(phi - theta1)) * Mathf.Sin(phi) ) / x;
     }
 
-    public static float A1(float A2, float theta1)
+    public static float A1(float A2, float theta1, float phi)
     {
-        return A2 * Mathf.Sqrt(Mathf.PI/(2*theta1) - 1);
+        return A2 * Mathf.Sqrt((phi-theta1) / theta1);
     }
 
     public static float DeltaA(float theta1, float phi, float x, float y)
     {
         float equation1;
         float equation2;
-        Debug.Log("phi = " + phi + ", theta1 = " + theta1);
+//        Debug.Log("phi = " + phi + ", theta1 = " + theta1);
         float rootTheta = Mathf.Sqrt(theta1);
         float rootPhiMinusTheta = Mathf.Sqrt(phi - theta1);
         float rootPhiOnThetaMinus1 = rootPhiMinusTheta / rootTheta;
 
         equation1 = (FresnelC(rootTheta) / rootPhiOnThetaMinus1 + FresnelC(rootPhiMinusTheta) * Mathf.Cos(phi) + FresnelS(rootPhiMinusTheta) * Mathf.Sin(phi)) / x;
-        Debug.Log("Equation1 = " + equation1);
+//        Debug.Log("Equation1 = " + equation1);
 
         equation2 = (FresnelS(rootTheta) / rootPhiOnThetaMinus1 + FresnelC(rootPhiMinusTheta) * Mathf.Sin(phi) - FresnelS(rootPhiMinusTheta) * Mathf.Cos(phi)) / y;
 
-        Debug.Log("Equation2 = " + equation2);
+//        Debug.Log("DeltaA = " + (equation1 - equation2));
 
         return equation1 - equation2;
     }
@@ -148,31 +148,57 @@ public class FresnelMath
         return ad1/x - ad2/y;
     }
 
+
+    // uses newton's method of numerical analysis to find theta from simultaneous equations of A2
     public static void FindTheta(out float theta1, out float theta2, Vector3 startPos, Vector3 endPos, Vector3 startDir, Vector3 endDir, float initialGuess = -1)
     {
         float phi = Mathf.Acos(Vector3.Dot(startDir, -endDir));
-        if (initialGuess == -1)
-        {
-            initialGuess = phi / 2;
-        }
 
         float xd = Vector3.Dot((endPos - startPos), startDir);
         float yd = ((endPos - startPos) - xd * startDir).magnitude;
 
         Debug.Log("phi = " + phi + ", xd = " + xd + ", yd = " + yd);
 
-        theta1 = initialGuess;
 
-        int maxIterations = 20;
+        // this should catch all impossible scenarios, making maxIterations redundant
+        float maximumRatio = FresnelC(Mathf.Sqrt(phi)) / FresnelS(Mathf.Sqrt(phi));
+        float xdd = Vector3.Dot((startPos - endPos), endDir);
+        float ydd = ((startPos - endPos) - xdd * endDir).magnitude;
+
+        Debug.Log("Ratio: " + maximumRatio + ", xd/yd: " + (xd/yd) + ", xdd/ydd: " + (xdd/ydd));
+        
+        if (xd / yd > maximumRatio || xdd / ydd > maximumRatio)
+        {
+            theta1 = -1;
+            theta2 = -1;
+            return;
+        }
+        
+
+        if (initialGuess == -1)
+        {
+            initialGuess = phi / 2;
+        }
+
+        theta1 = initialGuess;
+        Debug.Log("Theta guess: " + theta1);
+
+        int maxIterations = 10;
 
         for (int i = 0; i < maxIterations; i++)
         {
             float aDerivative = DeltaADerivative(theta1, phi, xd, yd);
-            Debug.Log("aDerivative = " + aDerivative);
+//            Debug.Log("aDerivative = " + aDerivative);
             float difference = DeltaA(theta1, phi, xd, yd) / aDerivative;
 
             theta1 -= difference;
+
             Debug.Log("Theta guess: " + theta1);
+
+            //constrain theta
+            if (theta1 < 0.001f*phi) theta1 = 0.001f*phi;
+            if (theta1 > 0.999f*phi) theta1 = 0.999f*phi;
+
             if (difference < c_errorMargin && difference > -c_errorMargin)
             {
                 theta2 = phi - theta1;
