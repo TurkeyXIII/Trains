@@ -30,6 +30,11 @@ public class VertexBender : MonoBehaviour, IMeshOwner
         c_bender.Bend(fixedPosition, movableEndPosition, targetPostion);
     }
 
+    public void Bend(Vector3 fixedPosition, Vector3 movableEndPosition, Vector3 targetPostion, Vector3 targetDirection)
+    {
+        c_bender.Bend(fixedPosition, movableEndPosition, targetPostion, targetDirection);
+    }
+
     public void GetMeshInfo(out Vector3[] verts, out Vector2[] uv, out int[] triangles)
     {
         verts = m_mesh.vertices;
@@ -51,7 +56,7 @@ public class VertexBender : MonoBehaviour, IMeshOwner
     public static void GetBentLengthAndRotation(Vector3 movableEndPosition, Vector3 targetPostion, out float length, out Vector3 rotationAxis, out float angle)
     {
         length = VertexBenderLogic.GetBentLength(movableEndPosition, targetPostion);
-        angle = Mathf.Acos(Vector3.Dot(movableEndPosition, targetPostion) / (movableEndPosition.magnitude * targetPostion.magnitude)) * 2 * Mathf.Rad2Deg;
+        angle = Mathf.Acos(Vector3.Dot(movableEndPosition, targetPostion) / (movableEndPosition.magnitude * targetPostion.magnitude));
         rotationAxis = Vector3.Cross(movableEndPosition, targetPostion).normalized;
     }
 }
@@ -80,7 +85,7 @@ public class VertexBenderLogic
     private static void GetBendProperties(Vector3 movableEndPosition, Vector3 targetPostion, out float scale, out float normalizedLength, out float thetaRadians)
     {
         thetaRadians = Mathf.Acos(Vector3.Dot(movableEndPosition, targetPostion) / (movableEndPosition.magnitude * targetPostion.magnitude));
-
+        Debug.Log("thetaRadians: " + thetaRadians);
         if (thetaRadians > Mathf.PI / 2)
         {
             scale = 1;
@@ -111,6 +116,264 @@ public class VertexBenderLogic
 
     }
 
+    //this has the precondition that the start direction (movableEndPosition - fixedPosition) is positive x.
+    public float Bend(Vector3 fixedPosition, Vector3 movableEndPosition, Vector3 targetPosition, Vector3 targetDirection)
+    {
+        movableEndPosition -= fixedPosition;
+        targetPosition -= fixedPosition;
+
+        //properties of the two curve sections
+        float A1, L1, A2, L2;
+        float theta1, theta2;
+        FresnelMath.FindTheta(out theta1, out theta2, Vector3.zero, targetPosition, Vector3.right, -targetDirection);
+        if (theta1 < 0) return 0;
+
+        float phi = Mathf.Acos(Vector3.Dot(Vector3.right, targetDirection));
+
+        A2 = FresnelMath.A2(theta1, phi, targetPosition.x);
+        A1 = FresnelMath.A1(A2, theta1, phi);
+
+        L1 = Mathf.Sqrt(theta1);
+        L2 = Mathf.Sqrt(theta2);
+
+        Debug.Log("theta1 = " + theta1 + ", theta2 = " + theta2);
+
+        // orthogonal unit vectors describing the x and y directions of a co-ordinate system where x is the original direction and y is the lateral movement
+        Vector3 unitXdash = new Vector3(1,0,0);
+        Vector3 unitYdash = targetPosition - unitXdash * targetPosition.x;
+        unitYdash /= unitYdash.magnitude;
+
+        // orthogonal unit vectors describing x and y directions of co-ordinate system where x is direction away from target point along straigh line and y is lateral movement to origin
+        Vector3 rotationAxis = Vector3.Cross(unitXdash, unitYdash);
+        // Rodrigues' rotation forumla
+        Vector3 unitXdoubledash = -(Mathf.Cos(phi) * unitXdash +
+                                Mathf.Sin(phi) * Vector3.Cross(rotationAxis, unitXdash) +
+                                (1 - Mathf.Cos(phi)) * Vector3.Dot(rotationAxis, unitXdash) * rotationAxis); //rotate phi
+        Vector3 unitYdoubledash = Mathf.Cos(phi) * unitYdash +
+                                Mathf.Sin(phi) * Vector3.Cross(rotationAxis, unitYdash) +
+                                (1 - Mathf.Cos(phi)) * Vector3.Dot(rotationAxis, unitYdash) * rotationAxis; //rotate phi
+
+        Vector3[] verts;
+        Vector2[] uvs;
+        int[] tris;
+
+        meshOwner.GetMeshInfo(out verts, out uvs, out tris);
+
+        //create new triangles where it's necessary to fit them onto the curve
+
+        //these array sizes are an arbitrary guess at how big they might need to be
+        Vector3[] newVerts = new Vector3[verts.Length * 100];
+        Vector3[] normals = new Vector3[verts.Length * 100];
+        Vector2[] newUVs = new Vector2[verts.Length * 100];
+        int[] newTris = new int[tris.Length * 270];
+        float[] Ls = new float[verts.Length * 100];
+        int nNewTris = tris.Length;
+        int nNewVerts = verts.Length;
+
+        //    Debug.Log("starting tris: " + tris.Length + ", starting verts: " + verts.Length);
+        //    Debug.Log("Maximum tris: " + newTris.Length + ", maximum verts: " + newVerts.Length);
+
+        // set up normals
+        for (int t = 0; t < tris.Length; t += 3)
+        {
+            Vector3 normal = Vector3.Cross(verts[tris[t + 2]] - verts[tris[t + 1]], verts[tris[t]] - verts[tris[t + 1]]);
+            for (int u = 0; u < 3; u++)
+            {
+                normals[tris[t + u]] += normal;
+            }
+        }
+
+        for (int i = 0; i < verts.Length; i++)
+        {
+            Vector3 newVert = verts[i] - fixedPosition;
+            newVerts[i] = newVert;
+            Ls[i] = Vector3.Dot(newVert, unitXdash) * (L1+L2) / movableEndPosition.magnitude;
+            newUVs[i] = uvs[i];
+
+            normals[i].Normalize();
+            //         Debug.Log("Vert " + i + ": " + newVert);
+        }
+
+        for (int t = 0; t < tris.Length; t++)
+        {
+            newTris[t] = tris[t];
+        }
+
+        #region creases
+        // Set up creases: creases should be applied as evenly as possible
+        List<float> creases = new List<float>();
+        creases.Add(L1);
+        float minAngle = L1 * L1;
+
+        while (minAngle > maxCornerAngleRadians)
+        {
+            minAngle = minAngle / 2;
+            float angle = minAngle;
+            while (angle < L1 * L1)
+            {
+                float crease = Mathf.Sqrt(angle);
+                creases.Add(crease);
+                creases.Add(L1+L2 - crease);
+                angle += angle * 2;
+            }
+        }
+
+        //do this for each crease
+
+
+        bool[] greaterThanCrease = new bool[3];
+
+
+        foreach (float crease in creases)
+        {
+
+            int trisLength = nNewTris; //store this because nNewTris is likely to change but we only want to look at the tris that exist before this crease
+
+            for (int t = 0; t < trisLength; t += 3)
+            {
+                bool anyGreaterThanCrease = false;
+                bool anyLessThanCrease = false;
+                for (int u = 0; u < 3; u++)
+                {
+                    greaterThanCrease[u] = Ls[newTris[t + u]] > crease;
+                    if (greaterThanCrease[u]) anyGreaterThanCrease = true;
+                    else anyLessThanCrease = true;
+                }
+
+                if (anyGreaterThanCrease && anyLessThanCrease) //this triangle crosses the crease; 
+                {
+                    //         Debug.Log("Triangle creasing: " + newVerts[tris[t]] + ", " + newVerts[tris[t + 1]] + ", " + newVerts[tris[t + 2]]);
+
+                    int indexIsolatedVert = 0, indexPairedVert1 = 0, indexPairedVert2 = 0;
+                    for (int u = 0; u < 3; u++)
+                    {
+                        indexIsolatedVert = u;
+                        indexPairedVert1 = (u + 1) % 3;
+                        indexPairedVert2 = (u + 2) % 3;
+
+                        if ((greaterThanCrease[indexPairedVert1] && greaterThanCrease[indexPairedVert2]) || (!greaterThanCrease[indexPairedVert1] && !greaterThanCrease[indexPairedVert2]))
+                            break;
+                    }
+
+                    //            Debug.Log("isolatedIndex: " + indexIsolatedVert + " paired1index: " + indexPairedVert1 + " paired2index: " + indexPairedVert2);
+
+                    //we acquire two new verts by moving the paired verts towards the isolated one such that L == crease;
+                    Vector3 normal1, normal2;
+
+                    float a = (crease - Ls[newTris[t + indexPairedVert1]]) / (Ls[newTris[t + indexIsolatedVert]] - Ls[newTris[t + indexPairedVert1]]);
+                    Vector3 newVert1 = newVerts[newTris[t + indexPairedVert1]] + a * (newVerts[newTris[t + indexIsolatedVert]] - newVerts[newTris[t + indexPairedVert1]]);
+                    Vector2 newUV1 = newUVs[newTris[t + indexPairedVert1]] + a * (newUVs[newTris[t + indexIsolatedVert]] - newUVs[newTris[t + indexPairedVert1]]);
+                    normal1 = ((1 - a) * normals[newTris[t + indexPairedVert1]] + a * (normals[newTris[indexIsolatedVert]])).normalized;
+
+                    a = (crease - Ls[newTris[t + indexPairedVert2]]) / (Ls[newTris[t + indexIsolatedVert]] - Ls[newTris[t + indexPairedVert2]]);
+                    Vector3 newVert2 = newVerts[newTris[t + indexPairedVert2]] + a * (newVerts[newTris[t + indexIsolatedVert]] - newVerts[newTris[t + indexPairedVert2]]);
+                    Vector2 newUV2 = newUVs[newTris[t + indexPairedVert2]] + a * (newUVs[newTris[t + indexIsolatedVert]] - newUVs[newTris[t + indexPairedVert2]]);
+                    normal2 = ((1 - a) * normals[newTris[t + indexPairedVert2]] + a * (normals[newTris[indexIsolatedVert]])).normalized;
+
+                    //insert the two new verts
+                    int indexNewVert1;
+                    int indexNewVert2;
+
+                    indexNewVert1 = FindVertInArray(newVert1, normal1, newVerts, normals, nNewVerts);
+                    if (indexNewVert1 == -1)
+                    {
+                        newVerts[nNewVerts] = newVert1;
+                        newUVs[nNewVerts] = newUV1;
+                        Ls[nNewVerts] = crease; // by definition
+                        normals[nNewVerts] = normal1;
+                        indexNewVert1 = nNewVerts;
+                        nNewVerts++;
+
+                        //             Debug.Log("Requiring new vert at " + newVert1);
+                    }
+                    //             else
+                    //               Debug.Log("Using existing vert at " + newVert1);
+
+                    indexNewVert2 = FindVertInArray(newVert2, normal2, newVerts, normals, nNewVerts);
+                    if (indexNewVert2 == -1)
+                    {
+                        newVerts[nNewVerts] = newVert2;
+                        newUVs[nNewVerts] = newUV2;
+                        Ls[nNewVerts] = crease;
+                        normals[nNewVerts] = normal2;
+                        indexNewVert2 = nNewVerts;
+                        nNewVerts++;
+
+                        //                Debug.Log("Requiring new vert at " + newVert2);
+                    }
+                    //             else
+                    //                  Debug.Log("Using existing vert at " + newVert2);
+
+
+                    //create two new triangles to fill the gap
+                    newTris[nNewTris] = indexNewVert2;
+                    newTris[nNewTris + 1] = indexNewVert1;
+                    newTris[nNewTris + 2] = newTris[t + indexPairedVert2];
+                    newTris[nNewTris + 3] = indexNewVert1;
+                    newTris[nNewTris + 4] = newTris[t + indexPairedVert1];
+                    newTris[nNewTris + 5] = newTris[t + indexPairedVert2];
+
+                    //reassign the old triangle to use the new verts
+                    newTris[t + indexPairedVert1] = indexNewVert1;
+                    newTris[t + indexPairedVert2] = indexNewVert2;
+
+                    //                Debug.Log("Adding 2 new triangles at " + nNewTris + ", " + (nNewTris+1) + ", " + (nNewTris+2) + ", " + (nNewTris+3) + ", " + (nNewTris+4) + ", " + (nNewTris+5) + ".");
+                    //                Debug.Log(newVerts[indexNewVert2] + ", " + newVerts[indexNewVert1] + ", " + newVerts[t+indexPairedVert1] + ", " + newVerts[indexNewVert2] + ", " + newVerts[t+indexPairedVert1] + ", " + newVerts[t+indexPairedVert2]);
+
+                    nNewTris += 6;
+                }
+
+            }
+        }
+#endregion
+
+        tris = new int[nNewTris];
+        for (int i = 0; i < nNewTris; i++)
+        {
+            tris[i] = newTris[i];
+        }
+
+        uvs = new Vector2[nNewVerts];
+        for (int i = 0; i < nNewVerts; i++)
+        {
+            uvs[i] = newUVs[i];
+        }
+
+        //bend the verts with the curve
+        verts = new Vector3[nNewVerts];
+
+        for (int i = 0; i < nNewVerts; i++)
+        {
+            Vector3 vy = newVerts[i] - Vector3.Dot(newVerts[i], unitXdash) * unitXdash;
+            if (Ls[i] <= L1) // the first half, 'transition in' part of the curve
+            {
+                float xvdash = FresnelMath.FresnelC(Ls[i]) / A1;
+                float yvdash = FresnelMath.FresnelS(Ls[i]) / A1;
+
+                float thetaRadiansAtVert = Mathf.Pow(Ls[i], 2);
+                Vector3 lineOffset = Mathf.Cos(thetaRadiansAtVert) * vy + Mathf.Sin(thetaRadiansAtVert) * Vector3.Cross(rotationAxis, vy) + (1 - Mathf.Cos(thetaRadiansAtVert)) * Vector3.Dot(rotationAxis, vy) * rotationAxis;
+                verts[i] = xvdash * unitXdash + yvdash * unitYdash + lineOffset + fixedPosition;
+            }
+            else // the second half, 'transition out' part of the curve
+            {
+                float xvdoubledash = FresnelMath.FresnelC((L1+L2) - Ls[i]) / A2;
+                float yvdoubledash = FresnelMath.FresnelS((L1+L2) - Ls[i]) / A2;
+
+                float thetaRadiansAtVert = phi - Mathf.Pow(L1 + L2 - Ls[i], 2);
+                Vector3 lineOffset = Mathf.Cos(thetaRadiansAtVert) * vy + Mathf.Sin(thetaRadiansAtVert) * Vector3.Cross(rotationAxis, vy) + (1 - Mathf.Cos(thetaRadiansAtVert)) * Vector3.Dot(rotationAxis, vy) * rotationAxis;
+
+                verts[i] = targetPosition + xvdoubledash * unitXdoubledash + yvdoubledash * unitYdoubledash + lineOffset + fixedPosition;
+
+            }
+
+            //            Debug.Log("Moving vert " + i + " from " + newVerts[i] + " to " + verts[i]);
+        }
+
+        meshOwner.SetMeshInfo(verts, uvs, tris);
+
+        return L1/A1 + L2/A2;
+    }
+
     public float Bend(Vector3 fixedPosition, Vector3 movableEndPosition, Vector3 targetPosition)
     {
         float thetaRadians;
@@ -122,6 +385,8 @@ public class VertexBenderLogic
         targetPosition -= fixedPosition;
 
         GetBendProperties(movableEndPosition, targetPosition, out scale, out normalizedLength, out thetaRadians);
+
+        Debug.Log("ThetaRadians(3arg): " + thetaRadians);
 
         if (thetaRadians == 0)
         {

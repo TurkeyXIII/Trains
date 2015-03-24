@@ -181,7 +181,7 @@ public class FresnelMath
         }
 
         theta1 = initialGuess;
-        Debug.Log("Theta guess: " + theta1);
+ //       Debug.Log("Theta guess: " + theta1);
 
         int maxIterations = 10;
 
@@ -193,7 +193,7 @@ public class FresnelMath
 
             theta1 -= difference;
 
-            Debug.Log("Theta guess: " + theta1);
+//          Debug.Log("Theta guess: " + theta1);
 
             //constrain theta
             if (theta1 < 0.001f*phi) theta1 = 0.001f*phi;

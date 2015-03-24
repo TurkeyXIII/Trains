@@ -186,6 +186,8 @@ namespace UnitTest
 
             Assert.That(A1 * L1, Is.EqualTo(A2 * L2).Within(0.001f));
             Debug.Log("A1: " + A1 + ", L1: " + L1 + ", A2: " + A2 + ", L2: " + L2 + ", LTot: " + (L1 / A1 + L2 / A2) + ", R: " + (1 / (2 * A1 * L1)));
+
+            Assert.That(theta1 + theta2, Is.EqualTo(Mathf.Acos(Vector3.Dot(startDirection, -endDirection))).Within(0.001f));
         }
     }
 }

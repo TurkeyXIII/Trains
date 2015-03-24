@@ -91,7 +91,7 @@ public class BaubleController : MonoBehaviour {
         
         m_tracks.AddLast(tl);
 
-        Debug.Log("Link added; count = " + m_tracks.Count);
+//        Debug.Log("Link added; count = " + m_tracks.Count);
     }
 
     public void RecalculateDirections(GameObject trackSection)
@@ -112,7 +112,7 @@ public class BaubleController : MonoBehaviour {
 
     private void RecalculateDirections(ref TrackLink trackLink)
     {
-        Debug.Log("Calculating directions...");
+//        Debug.Log("Calculating directions...");
         GameObject otherBauble = trackLink.track.GetComponent<TrackSectionShapeController>().GetOtherBauble(gameObject);
         if (otherBauble == null)
         {
@@ -122,12 +122,12 @@ public class BaubleController : MonoBehaviour {
         {
             Vector3 otherEnd = otherBauble.transform.position;
 
-            Debug.Log("Vector to other end: " + (otherEnd - transform.position));
-            Debug.Log("Dot Product: " + Vector3.Dot((otherEnd - transform.position).normalized, transform.right));
+//            Debug.Log("Vector to other end: " + (otherEnd - transform.position));
+//            Debug.Log("Dot Product: " + Vector3.Dot((otherEnd - transform.position).normalized, transform.right));
 
             float angle = Quaternion.FromToRotation(transform.right, otherEnd - transform.position).eulerAngles.y; // ?.magnitude?
             
-            Debug.Log("Angle found to be " + angle);
+//            Debug.Log("Angle found to be " + angle);
 
             trackLink.angle = angle;
         }
