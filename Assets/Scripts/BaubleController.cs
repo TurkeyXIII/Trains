@@ -136,8 +136,8 @@ public class BaubleController : MonoBehaviour {
     public Quaternion GetRotation(GameObject track)
     {
         TrackLink tl = GetTrackLink(track);
-
-        return transform.rotation * Quaternion.AngleAxis(tl.angle, transform.up);
+        float angleToRotate = (tl.angle > 180 || tl.angle < -180) ? 180 : 0;
+        return transform.rotation * Quaternion.AngleAxis(angleToRotate, transform.up);
     }
 
     public float GetAngle(GameObject track)

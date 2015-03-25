@@ -152,7 +152,7 @@ public class FresnelMath
     // uses newton's method of numerical analysis to find theta from simultaneous equations of A2
     public static void FindTheta(out float theta1, out float theta2, Vector3 startPos, Vector3 endPos, Vector3 startDir, Vector3 endDir, float initialGuess = -1)
     {
-        float phi = Mathf.Acos(Vector3.Dot(startDir, -endDir));
+        float phi = Mathf.Acos(Vector3.Dot(startDir, -endDir) / (startDir.magnitude * endDir.magnitude));
 
         float xd = Vector3.Dot((endPos - startPos), startDir);
         float yd = ((endPos - startPos) - xd * startDir).magnitude;
@@ -181,19 +181,21 @@ public class FresnelMath
         }
 
         theta1 = initialGuess;
- //       Debug.Log("Theta guess: " + theta1);
+        Debug.Log("Theta guess: " + theta1);
 
         int maxIterations = 10;
 
         for (int i = 0; i < maxIterations; i++)
         {
             float aDerivative = DeltaADerivative(theta1, phi, xd, yd);
-//            Debug.Log("aDerivative = " + aDerivative);
-            float difference = DeltaA(theta1, phi, xd, yd) / aDerivative;
+            Debug.Log("aDerivative = " + aDerivative);
+            float deltaA = DeltaA(theta1, phi, xd, yd);
+            Debug.Log("deltaA = " + deltaA);
+            float difference = deltaA / aDerivative;
 
             theta1 -= difference;
 
-//          Debug.Log("Theta guess: " + theta1);
+            Debug.Log("Theta guess: " + theta1);
 
             //constrain theta
             if (theta1 < 0.001f*phi) theta1 = 0.001f*phi;

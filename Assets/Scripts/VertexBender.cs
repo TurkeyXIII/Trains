@@ -125,6 +125,7 @@ public class VertexBenderLogic
         //properties of the two curve sections
         float A1, L1, A2, L2;
         float theta1, theta2;
+        Debug.Log("TargetPosition: " + targetPosition + ", TargetDirection: " + targetDirection);
         FresnelMath.FindTheta(out theta1, out theta2, Vector3.zero, targetPosition, Vector3.right, -targetDirection);
         if (theta1 < 0) return 0;
 

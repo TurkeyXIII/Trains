@@ -186,7 +186,7 @@ public class TrackSectionShapeController : MonoBehaviour {
 
 //                Debug.Log("curvature angle: " + angle);
 
-                transform.rotation = trackRotationAtEnd * Quaternion.AngleAxis(angle, axis);
+                transform.rotation = trackRotationAtEnd * Quaternion.AngleAxis(2 * angle, axis);
 
                 if (m_startTrackLink != null)
                 {
@@ -391,8 +391,7 @@ public class TrackSectionShapeController : MonoBehaviour {
                             m_endRotation = transform.rotation * Quaternion.AngleAxis(angle * 2 * Mathf.Rad2Deg, rotationAxis);
                         }
                         else
-                        {
-                            
+                        {                            
                             m_endRotation = m_endTrackLink.GetRotation(gameObject) * Quaternion.AngleAxis(180, rotationAxis);
                             Debug.Log("Angle between ends: " + Quaternion.Angle(m_endRotation, transform.rotation));
                         }

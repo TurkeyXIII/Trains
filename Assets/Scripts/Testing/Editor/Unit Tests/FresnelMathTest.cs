@@ -109,8 +109,9 @@ namespace UnitTest
             float A2 = FresnelMath.A2(theta1, phi, endPoint.x);
             float A1 = FresnelMath.A1(A2, theta1, phi);
 
+            Debug.Log("A1: " + A1 + ", L1: " + L1 + ", A2: " + A2 + ", L2: " + L2 + ", LTot: " + (L1 / A1 + L2 / A2) + ", R: " + (1 / (2 * A1 * L1)));
             Assert.That(A1*L1, Is.EqualTo(A2*L2).Within(0.001f));
-            Debug.Log("A1: " + A1 + ", L1: " + L1 + ", A2: " + A2 + ", L2: " + L2 + ", LTot: " + (L1/A1+L2/A2) + ", R: " + (1/(2*A1*L1)));
+            Assert.That(theta1 + theta2, Is.EqualTo(Mathf.Acos(Vector3.Dot(startDirection, -endDirection))).Within(0.001f));
         }
 
         [Test]
@@ -188,6 +189,66 @@ namespace UnitTest
             Debug.Log("A1: " + A1 + ", L1: " + L1 + ", A2: " + A2 + ", L2: " + L2 + ", LTot: " + (L1 / A1 + L2 / A2) + ", R: " + (1 / (2 * A1 * L1)));
 
             Assert.That(theta1 + theta2, Is.EqualTo(Mathf.Acos(Vector3.Dot(startDirection, -endDirection))).Within(0.001f));
+        }
+
+        [Test]
+        public void TestThetaArbitrary1()
+        {
+            float theta1, theta2;
+
+            Vector3 startPoint, endPoint, startDirection, endDirection;
+            startPoint = Vector3.zero;
+            startDirection = Vector3.right;
+            endPoint = new Vector3(15.6f, 6.8f, 0);
+            endDirection = new Vector3(0.8f, 0.6f, 0);
+
+            FresnelMath.FindTheta(out theta1, out theta2, startPoint, endPoint, startDirection, -endDirection);
+
+            Assert.Greater(theta1, 0);
+            Assert.Greater(theta2, 0);
+
+            float L1 = Mathf.Sqrt(theta1);
+            float L2 = Mathf.Sqrt(theta2);
+
+            float phi = theta1 + theta2;
+
+            float A2 = FresnelMath.A2(theta1, phi, endPoint.x);
+            float A1 = FresnelMath.A1(A2, theta1, phi);
+
+
+            Debug.Log("A1: " + A1 + ", L1: " + L1 + ", A2: " + A2 + ", L2: " + L2 + ", LTot: " + (L1 / A1 + L2 / A2) + ", R: " + (1 / (2 * A1 * L1)));
+            Assert.That(A1 * L1, Is.EqualTo(A2 * L2).Within(0.001f));
+            Assert.That(theta1 + theta2, Is.EqualTo(Mathf.Acos(Vector3.Dot(startDirection, endDirection))).Within(0.001f));
+        }
+
+        [Test]
+        public void TestThetaArbitrary2()
+        {
+            float theta1, theta2;
+
+            Vector3 startPoint, endPoint, startDirection, endDirection;
+            startPoint = Vector3.zero;
+            startDirection = Vector3.right;
+            endPoint = new Vector3(21.2f, 11.3f, 0);
+            endDirection = new Vector3(0.6f, 0f, -0.8f);
+
+            FresnelMath.FindTheta(out theta1, out theta2, startPoint, endPoint, startDirection, -endDirection);
+
+            Assert.Greater(theta1, 0);
+            Assert.Greater(theta2, 0);
+
+            float L1 = Mathf.Sqrt(theta1);
+            float L2 = Mathf.Sqrt(theta2);
+
+            float phi = theta1 + theta2;
+
+            float A2 = FresnelMath.A2(theta1, phi, endPoint.x);
+            float A1 = FresnelMath.A1(A2, theta1, phi);
+
+
+            Debug.Log("A1: " + A1 + ", L1: " + L1 + ", A2: " + A2 + ", L2: " + L2 + ", LTot: " + (L1 / A1 + L2 / A2) + ", R: " + (1 / (2 * A1 * L1)));
+            Assert.That(A1 * L1, Is.EqualTo(A2 * L2).Within(0.001f));
+            Assert.That(theta1 + theta2, Is.EqualTo(Mathf.Acos(Vector3.Dot(startDirection, endDirection))).Within(0.001f));
         }
     }
 }
