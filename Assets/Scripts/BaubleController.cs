@@ -127,7 +127,7 @@ public class BaubleController : MonoBehaviour {
 
             float angle = Quaternion.FromToRotation(transform.right, otherEnd - transform.position).eulerAngles.y; // ?.magnitude?
             
-//            Debug.Log("Angle found to be " + angle);
+            Debug.Log("Track angle found to be " + angle);
 
             trackLink.angle = angle;
         }
@@ -136,7 +136,7 @@ public class BaubleController : MonoBehaviour {
     public Quaternion GetRotation(GameObject track)
     {
         TrackLink tl = GetTrackLink(track);
-        float angleToRotate = (tl.angle > 180 || tl.angle < -180) ? 180 : 0;
+        float angleToRotate = (tl.angle > 90 && tl.angle < 270) ? 180 : 0;
         return transform.rotation * Quaternion.AngleAxis(angleToRotate, transform.up);
     }
 

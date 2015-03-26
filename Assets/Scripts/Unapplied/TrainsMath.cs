@@ -157,7 +157,7 @@ public class FresnelMath
         float xd = Vector3.Dot((endPos - startPos), startDir);
         float yd = ((endPos - startPos) - xd * startDir).magnitude;
 
-        Debug.Log("phi = " + phi + ", xd = " + xd + ", yd = " + yd);
+//        Debug.Log("phi = " + phi + ", xd = " + xd + ", yd = " + yd);
 
 
         // this should catch all impossible scenarios, making maxIterations redundant
@@ -165,7 +165,7 @@ public class FresnelMath
         float xdd = Vector3.Dot((startPos - endPos), endDir);
         float ydd = ((startPos - endPos) - xdd * endDir).magnitude;
 
-        Debug.Log("Ratio: " + maximumRatio + ", xd/yd: " + (xd/yd) + ", xdd/ydd: " + (xdd/ydd));
+//        Debug.Log("Ratio: " + maximumRatio + ", xd/yd: " + (xd/yd) + ", xdd/ydd: " + (xdd/ydd));
         
         if (xd / yd > maximumRatio || xdd / ydd > maximumRatio)
         {
@@ -181,21 +181,21 @@ public class FresnelMath
         }
 
         theta1 = initialGuess;
-        Debug.Log("Theta guess: " + theta1);
+//        Debug.Log("Theta guess: " + theta1);
 
         int maxIterations = 10;
 
         for (int i = 0; i < maxIterations; i++)
         {
             float aDerivative = DeltaADerivative(theta1, phi, xd, yd);
-            Debug.Log("aDerivative = " + aDerivative);
+//            Debug.Log("aDerivative = " + aDerivative);
             float deltaA = DeltaA(theta1, phi, xd, yd);
-            Debug.Log("deltaA = " + deltaA);
+//            Debug.Log("deltaA = " + deltaA);
             float difference = deltaA / aDerivative;
 
             theta1 -= difference;
 
-            Debug.Log("Theta guess: " + theta1);
+//            Debug.Log("Theta guess: " + theta1);
 
             //constrain theta
             if (theta1 < 0.001f*phi) theta1 = 0.001f*phi;

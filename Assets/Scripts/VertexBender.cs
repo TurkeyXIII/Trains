@@ -85,7 +85,7 @@ public class VertexBenderLogic
     private static void GetBendProperties(Vector3 movableEndPosition, Vector3 targetPostion, out float scale, out float normalizedLength, out float thetaRadians)
     {
         thetaRadians = Mathf.Acos(Vector3.Dot(movableEndPosition, targetPostion) / (movableEndPosition.magnitude * targetPostion.magnitude));
-        Debug.Log("thetaRadians: " + thetaRadians);
+//        Debug.Log("thetaRadians: " + thetaRadians);
         if (thetaRadians > Mathf.PI / 2)
         {
             scale = 1;
@@ -116,8 +116,30 @@ public class VertexBenderLogic
 
     }
 
+    public static float GetLengthOfCompoundCurve(Vector3 startPosition, Vector3 targetPosition, Vector3 startDirection, Vector3 targetDirection)
+    {
+        float A1, L1, A2, L2;
+        float theta1, theta2;
+        Debug.Log("startPos: " + startPosition + ", endPos: " + targetPosition + ", startDir: " + startDirection + ", endDir: " + targetDirection);
+
+        FresnelMath.FindTheta(out theta1, out theta2, startPosition, targetPosition, startDirection, -targetDirection);
+        if (theta1 < 0) return -1;
+
+        float x = Vector3.Dot((targetPosition - startPosition), startDirection.normalized);
+
+        float phi = theta1 + theta2;
+
+        A2 = FresnelMath.A2(theta1, phi, x);
+        A1 = FresnelMath.A1(A2, theta1, phi);
+
+        L1 = Mathf.Sqrt(theta1);
+        L2 = Mathf.Sqrt(theta2);
+
+        return L1/A1 + L2/A2;
+    }
+
     //this has the precondition that the start direction (movableEndPosition - fixedPosition) is positive x.
-    public float Bend(Vector3 fixedPosition, Vector3 movableEndPosition, Vector3 targetPosition, Vector3 targetDirection)
+    public void Bend(Vector3 fixedPosition, Vector3 movableEndPosition, Vector3 targetPosition, Vector3 targetDirection)
     {
         movableEndPosition -= fixedPosition;
         targetPosition -= fixedPosition;
@@ -127,9 +149,9 @@ public class VertexBenderLogic
         float theta1, theta2;
         Debug.Log("TargetPosition: " + targetPosition + ", TargetDirection: " + targetDirection);
         FresnelMath.FindTheta(out theta1, out theta2, Vector3.zero, targetPosition, Vector3.right, -targetDirection);
-        if (theta1 < 0) return 0;
+        if (theta1 < 0) return;
 
-        float phi = Mathf.Acos(Vector3.Dot(Vector3.right, targetDirection));
+        float phi = theta1 + theta2;
 
         A2 = FresnelMath.A2(theta1, phi, targetPosition.x);
         A1 = FresnelMath.A1(A2, theta1, phi);
@@ -137,7 +159,9 @@ public class VertexBenderLogic
         L1 = Mathf.Sqrt(theta1);
         L2 = Mathf.Sqrt(theta2);
 
-        Debug.Log("theta1 = " + theta1 + ", theta2 = " + theta2);
+        Debug.Log("Bending with lengths " + L1/A1 + " and " + L2/A2);
+
+//        Debug.Log("theta1 = " + theta1 + ", theta2 = " + theta2);
 
         // orthogonal unit vectors describing the x and y directions of a co-ordinate system where x is the original direction and y is the lateral movement
         Vector3 unitXdash = new Vector3(1,0,0);
@@ -188,7 +212,16 @@ public class VertexBenderLogic
         {
             Vector3 newVert = verts[i] - fixedPosition;
             newVerts[i] = newVert;
-            Ls[i] = Vector3.Dot(newVert, unitXdash) * (L1+L2) / movableEndPosition.magnitude;
+            float positionAlongLength = Vector3.Dot(newVert, unitXdash);
+            float L1Real = L1 / A1;
+            if (positionAlongLength <= L1 / A1) //we are in L1 territory
+            {
+                Ls[i] = positionAlongLength * A1;
+            }
+            else // L2 territory
+            {
+                Ls[i] = L1 + ((positionAlongLength - L1Real) * A2);
+            }
             newUVs[i] = uvs[i];
 
             normals[i].Normalize();
@@ -204,13 +237,13 @@ public class VertexBenderLogic
         // Set up creases: creases should be applied as evenly as possible
         List<float> creases = new List<float>();
         creases.Add(L1);
-        float minAngle = L1 * L1;
+        float minAngle = L1 * L2;
 
         while (minAngle > maxCornerAngleRadians)
         {
             minAngle = minAngle / 2;
             float angle = minAngle;
-            while (angle < L1 * L1)
+            while (angle < L1 * L2)
             {
                 float crease = Mathf.Sqrt(angle);
                 creases.Add(crease);
@@ -371,8 +404,6 @@ public class VertexBenderLogic
         }
 
         meshOwner.SetMeshInfo(verts, uvs, tris);
-
-        return L1/A1 + L2/A2;
     }
 
     public float Bend(Vector3 fixedPosition, Vector3 movableEndPosition, Vector3 targetPosition)
