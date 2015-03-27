@@ -19,8 +19,16 @@ public class LevelTool : MonoBehaviour, ITool {
     {
     }
 
-
     public void OnSelect()
     {
+    }
+
+    public void OnEffectChange()
+    {
+    }
+
+    public Effect GetDefaultEffect()
+    {
+        return Effect.None;
     }
 }

@@ -14,13 +14,20 @@ public class SmoothTool : MonoBehaviour, ITool {
         c_terrainController.UpdateSmooth();
     }
 
-
     public void OnDeselect()
     {
     }
 
-
     public void OnSelect()
     {
+    }
+
+    public void OnEffectChange()
+    {
+    }
+
+    public Effect GetDefaultEffect()
+    {
+        return Effect.Small;
     }
 }

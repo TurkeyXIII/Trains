@@ -5,6 +5,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
 {
     public GameObject trackSectionPrefab;
     public GameObject baublePrefab;
+    public GameObject bufferStopPrefab;
 
     private GameObject m_currentTrackSection;
     private TrackSectionShapeController m_shapeController;
@@ -40,121 +41,145 @@ public class TrackPlacementTool : MonoBehaviour, ITool
             if (hoveringBaubleController != null) hoveringBaubleController.OnMouseover();
         }
 
-        if (Input.GetMouseButtonDown(0))
+        switch (Control.GetControl().GetToolSelector().GetEffect())
         {
-            if (m_currentTrackSection == null)
-            {
-                //instantiate a new track section
-                Vector3 location;
-                if (hoveringBaubleController == null) // the section should be straight
+            case Effect.Track:
                 {
-                    if (CameraController.GetMouseHitTerrainLocation(out location))
+
+                    if (Input.GetMouseButtonDown(0))
                     {
-                        InstantiateTrackSection(location);
-                        m_baubleAnchor = (GameObject)Instantiate(baublePrefab, location, m_currentTrackSection.transform.rotation);
-                        m_baubles.Add(m_baubleAnchor);
-                        m_shapeController.LinkStart(m_baubleAnchor);
+                        if (m_currentTrackSection == null)
+                        {
+                            //instantiate a new track section
+                            Vector3 location;
+                            if (hoveringBaubleController == null) // the section should be straight
+                            {
+                                if (CameraController.GetMouseHitTerrainLocation(out location))
+                                {
+                                    InstantiateTrackSection(location);
+                                    m_baubleAnchor = (GameObject)Instantiate(baublePrefab, location, m_currentTrackSection.transform.rotation);
+                                    m_baubles.Add(m_baubleAnchor);
+                                    m_shapeController.LinkStart(m_baubleAnchor);
+                                }
+                            }
+                            else // the section should start at the bauble's location and curve if necessary
+                            {
+                                InstantiateTrackSection(hoveringBaubleController.transform.position);
+
+                                Debug.Log("section instantiated at " + m_currentTrackSection.transform.position + " from bauble at " + hoveringBaubleController.transform.position);
+
+                                m_baubleAnchor = hoveringBaubleController.gameObject;
+                                m_baubleAnchor.collider.enabled = false;
+                                m_shapeController.LinkStart(m_baubleAnchor);
+                            }
+                        }
+                        else // currentTrackSection != null
+                        {
+                            m_shapeController.FinalizeShape();
+
+                            m_baubleAnchor.collider.enabled = true;
+                            m_baubleCursor.collider.enabled = true;
+
+                            if (m_baubleCursor.GetComponent<BaubleController>().GetLinkCount() == 0)
+                            {
+                                m_baubles.Remove(m_baubleCursor);
+                                Destroy(m_baubleCursor);
+                            }
+                            //leave the current section where it is
+                            m_currentTrackSection = null;
+                            m_shapeController = null;
+                            m_baubleAnchor = null;
+                            m_baubleCursor = null;
+                        }
                     }
-                }
-                else // the section should start at the bauble's location and curve if necessary
-                {
-                    InstantiateTrackSection(hoveringBaubleController.transform.position);
-
-                    Debug.Log("section instantiated at " + m_currentTrackSection.transform.position + " from bauble at " + hoveringBaubleController.transform.position);
-
-                    m_baubleAnchor = hoveringBaubleController.gameObject;
-                    m_baubleAnchor.collider.enabled = false;
-                    m_shapeController.LinkStart(m_baubleAnchor);
-                }
-            }
-            else // currentTrackSection != null
-            {
-                m_shapeController.FinalizeShape();
-
-                m_baubleAnchor.collider.enabled = true;
-                m_baubleCursor.collider.enabled = true;
-
-                if (m_baubleCursor.GetComponent<BaubleController>().GetLinkCount() == 0)
-                {
-                    m_baubles.Remove(m_baubleCursor);
-                    Destroy(m_baubleCursor);
-                }
-                //leave the current section where it is
-                m_currentTrackSection = null;
-                m_shapeController = null;
-                m_baubleAnchor = null;
-                m_baubleCursor = null;
-            }
-        }
-        else if (Input.GetMouseButtonDown(1))
-        {
-            if (m_currentTrackSection == null)
-            {
-                if (hoveringBaubleController != null)
-                {
-                    // select this end of the track for editing
-                    m_currentTrackSection = hoveringBaubleController.GetLastTrackSection();
-                    Debug.Log("Current track section: #" + m_currentTrackSection.GetComponent<ObjectUID>().UID);
-                    m_shapeController = m_currentTrackSection.GetComponent<TrackSectionShapeController>();
-
-                    if (hoveringBaubleController.GetLinkCount() == 1)
+                    else if (Input.GetMouseButtonDown(1))
                     {
-                        Debug.Log("Found only 1 link; selecting this bauble");
-                        m_baubleCursor = hoveringBaubleController.gameObject;
-                        m_baubleCursor.collider.enabled = false;
-                        
+                        if (m_currentTrackSection == null)
+                        {
+                            if (hoveringBaubleController != null)
+                            {
+                                // select this end of the track for editing
+                                m_currentTrackSection = hoveringBaubleController.GetLastTrackSection();
+                                Debug.Log("Current track section: #" + m_currentTrackSection.GetComponent<ObjectUID>().UID);
+                                m_shapeController = m_currentTrackSection.GetComponent<TrackSectionShapeController>();
+
+                                if (hoveringBaubleController.GetLinkCount() == 1)
+                                {
+                                    Debug.Log("Found only 1 link; selecting this bauble");
+                                    m_baubleCursor = hoveringBaubleController.gameObject;
+                                    m_baubleCursor.collider.enabled = false;
+
+                                }
+                                else
+                                {
+                                    Debug.Log("Found " + hoveringBaubleController.GetLinkCount() + " links, instantiating new bauble");
+                                    m_baubleCursor = (GameObject)Instantiate(baublePrefab, hoveringBaubleController.transform.position, hoveringBaubleController.transform.rotation);
+                                    m_baubles.Add(m_baubleCursor);
+                                }
+
+                                m_shapeController.SelectBaubleForEditing(hoveringBaubleController.gameObject);
+                                m_baubleAnchor = m_shapeController.GetOtherBauble(hoveringBaubleController.gameObject);
+                                m_baubleAnchor.collider.enabled = false;
+                            }
+                        }
+                        else //(m_currentTrackSection != null)
+                        {
+                            DeleteCurrentTrackSection();
+                        }
                     }
-                    else
+
+                    else // no mouse button down
                     {
-                        Debug.Log("Found " + hoveringBaubleController.GetLinkCount() + " links, instantiating new bauble");
-                        m_baubleCursor = (GameObject)Instantiate(baublePrefab, hoveringBaubleController.transform.position, hoveringBaubleController.transform.rotation);
-                        m_baubles.Add(m_baubleCursor);
+                        if (m_currentTrackSection == null)
+                        {
+
+                        }
+                        else //(m_currentTrackSection != null)
+                        {
+                            if (hoveringBaubleController != null)
+                            {
+                                m_shapeController.LinkEnd(hoveringBaubleController);
+                                m_baubleCursor.SetActive(false);
+                            }
+                            else // baubleController == null
+                            {
+                                m_shapeController.LinkEnd(m_baubleCursor);
+                                m_baubleCursor.SetActive(true);
+
+                                //stretch it to the mouse pointer
+                                Vector3 location;
+
+                                if (CameraController.GetMouseHitTerrainLocation(out location))
+                                {
+                                    m_shapeController.SetEndPoint(location);
+                                    //m_baubleCursor.transform.position = location;
+                                }
+                                else
+                                {
+                                    OnDeselect();
+                                }
+                            }
+
+                        }
                     }
-
-                    m_shapeController.SelectBaubleForEditing(hoveringBaubleController.gameObject);
-                    m_baubleAnchor = m_shapeController.GetOtherBauble(hoveringBaubleController.gameObject);
-                    m_baubleAnchor.collider.enabled = false;
+                    break;
                 }
-            }
-            else //(m_currentTrackSection != null)
-            {
-                DeleteCurrentTrackSection();
-            }
-        }
-
-        else // no mouse button down
-        {
-            if (m_currentTrackSection == null)
-            {
-
-            }
-            else //(m_currentTrackSection != null)
-            {
-                if (hoveringBaubleController != null)
+            case Effect.BufferStop:
                 {
-                    m_shapeController.LinkEnd(hoveringBaubleController);
-                    m_baubleCursor.SetActive(false);
-                }
-                else // baubleController == null
-                {
-                    m_shapeController.LinkEnd(m_baubleCursor);
-                    m_baubleCursor.SetActive(true);
-
-                    //stretch it to the mouse pointer
-                    Vector3 location;
-
-                    if (CameraController.GetMouseHitTerrainLocation(out location))
+                    if (Input.GetMouseButtonDown(0) && hoveringBaubleController != null && hoveringBaubleController.GetLinkCount() == 1)
                     {
-                        m_shapeController.SetEndPoint(location);
-                        //m_baubleCursor.transform.position = location;
+                        GameObject bufferStop = (GameObject)GameObject.Instantiate(bufferStopPrefab, hoveringBaubleController.transform.position, hoveringBaubleController.GetRotationForContinuedTrack());
+                        hoveringBaubleController.AddBufferStop(bufferStop);
                     }
-                    else
+                    else if (Input.GetMouseButtonDown(1) && hoveringBaubleController != null && hoveringBaubleController.GetBufferStop() != null)
                     {
-                        OnDeselect();
+                        GameObject.Destroy(hoveringBaubleController.GetBufferStop());
+                        hoveringBaubleController.RemoveBufferStop();
                     }
-                }
+                    
 
-            }
+                    break;
+                }
         }
     }
 
@@ -171,6 +196,17 @@ public class TrackPlacementTool : MonoBehaviour, ITool
         }
 
         SetTrackSectionBaubleVisibility(false);
+    }
+
+    public void OnEffectChange()
+    {
+        if (m_currentTrackSection != null)
+            DeleteCurrentTrackSection();
+    }
+
+    public Effect GetDefaultEffect()
+    {
+        return Effect.Track;
     }
 
     public void LinkBaublesFromUIDs()

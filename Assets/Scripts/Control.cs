@@ -8,6 +8,7 @@ public class Control : MonoBehaviour {
 
     private FileHandler fileHandler;
     private TerrainController terrainController;
+    private ToolSelector toolSelector;
 
     public TrackPlacementTool trackPlacer;
 
@@ -45,6 +46,10 @@ public class Control : MonoBehaviour {
             if (terrain != null)
                 terrainController = terrain.GetComponent<TerrainController>();
         }
+        if (toolSelector == null)
+        {
+            toolSelector = (ToolSelector)GameObject.FindObjectOfType(typeof(ToolSelector));
+        }
     }
 
     public static Control GetControl()
@@ -60,5 +65,10 @@ public class Control : MonoBehaviour {
     public TerrainController GetTerrainController()
     {
         return terrainController;
+    }
+
+    public ToolSelector GetToolSelector()
+    {
+        return toolSelector;
     }
 }

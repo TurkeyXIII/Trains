@@ -3,21 +3,35 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections;
 
-public enum EffectSize
+public enum Effect
 {
+    None,
     Small,
     Medium,
-    Large
+    Large,
+    Track,
+    BufferStop
 }
 
-public class ToolSelector : MonoBehaviour {
+public class ToolSelector : MonoBehaviour
+{
+
+    private string[] effectNames = 
+    {
+        "",
+        "Small Brush",
+        "Medium Brush",
+        "Large Brush",
+        "Track",
+        "Buffer Stop"
+    };
 
     public Texture2D[] toolCursors;
     public GameObject[] subToolBars;
 
     public Color selectedColor, normalColor;
 
-    private EffectSize currentEffect;
+    private Effect currentEffect;
 
     private GameObject currentToolButton;
     private ITool currentToolBehaviour;
@@ -33,7 +47,7 @@ public class ToolSelector : MonoBehaviour {
         {
             if (go != null) go.SetActive(false);
         }
-        currentEffect = EffectSize.Small;
+        currentEffect = Effect.None;
     }
 
     void LateUpdate()
@@ -72,20 +86,30 @@ public class ToolSelector : MonoBehaviour {
 
     public void OnSelectSmall()
     {
-        OnEffectSelect(EffectSize.Small);
+        OnEffectSelect(Effect.Small);
     }
 
     public void OnSelectMedium()
     {
-        OnEffectSelect(EffectSize.Medium);
+        OnEffectSelect(Effect.Medium);
     }
 
     public void OnSelectLarge()
     {
-        OnEffectSelect(EffectSize.Large);
+        OnEffectSelect(Effect.Large);
     }
 
-    public EffectSize GetEffectSize()
+    public void OnSelectLayTrack()
+    {
+        OnEffectSelect(Effect.Track);
+    }
+
+    public void OnSelectBufferStop()
+    {
+        OnEffectSelect(Effect.BufferStop);
+    }
+
+    public Effect GetEffect()
     {
         return currentEffect;
     }
@@ -117,7 +141,11 @@ public class ToolSelector : MonoBehaviour {
                 if (toggle != null)
                 {
                     toggle.Toggle();
-                    ToggleHighlightOnCurrentEffect();
+                    if (!ToggleHighlightOnCurrentEffect())
+                    {
+                        currentEffect = tool.GetDefaultEffect();
+                        ToggleHighlightOnCurrentEffect();
+                    }
                     break;
                 }
             }
@@ -141,9 +169,11 @@ public class ToolSelector : MonoBehaviour {
         }
     }
 
-    private void OnEffectSelect(EffectSize effect)
+    private void OnEffectSelect(Effect effect)
     {
         ToggleHighlightOnCurrentEffect();
+
+        currentToolBehaviour.OnEffectChange();
 
         currentEffect = effect;
 
@@ -170,15 +200,22 @@ public class ToolSelector : MonoBehaviour {
 
         Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
     }
-
-    private void ToggleHighlightOnCurrentEffect()
+     // returns true if a highlight was successfully toggled
+    private bool ToggleHighlightOnCurrentEffect()
     {
         ButtonHighlighter[] highlighters = currentToolButton.GetComponentsInChildren<ButtonHighlighter>();
 
-        if (highlighters.Length > (int)currentEffect+1)
+        for (int i = 1; i < highlighters.Length; i++)
         {
-            highlighters[(int)currentEffect+1].ToggleHighlight();
+            if (highlighters[i].gameObject.name == effectNames[(int)currentEffect])
+            {
+                highlighters[i].ToggleHighlight();
+
+                return true;
+            }
+
         }
+        return false;
     }
 
     private void ToggleHighlightOnCurrentTool()
@@ -199,7 +236,9 @@ public class ToolSelector : MonoBehaviour {
 
 public interface ITool
 {
+    Effect GetDefaultEffect();
     void UpdateWhenSelected();
     void OnSelect();
     void OnDeselect();
+    void OnEffectChange();
 }

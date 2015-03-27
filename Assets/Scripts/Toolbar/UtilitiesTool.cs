@@ -18,4 +18,13 @@ public class UtilitiesTool : MonoBehaviour, ITool
     public void OnSelect()
     {
     }
+
+    public void OnEffectChange()
+    {
+    }
+
+    public Effect GetDefaultEffect()
+    {
+        return Effect.None;
+    }
 }

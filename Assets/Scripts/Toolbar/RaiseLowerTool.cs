@@ -15,13 +15,20 @@ public class RaiseLowerTool : MonoBehaviour, ITool {
         c_terrainController.UpdateRaiseLower();
     }
 
-
     public void OnDeselect()
     {
     }
 
-
     public void OnSelect()
     {
+    }
+
+    public void OnEffectChange()
+    {
+    }
+
+    public Effect GetDefaultEffect()
+    {
+        return Effect.Small;
     }
 }

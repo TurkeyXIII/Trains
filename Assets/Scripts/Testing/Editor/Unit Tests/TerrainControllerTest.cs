@@ -9,9 +9,9 @@ namespace UnitTest
     internal class StubToolSelector : IToolSelector
     {
 
-        public EffectSize GetBrushSize()
+        public Effect GetBrushSize()
         {
-            return EffectSize.Small;
+            return (Effect)0;
         }
     }
     internal class StubTerrainData : ITerrainData

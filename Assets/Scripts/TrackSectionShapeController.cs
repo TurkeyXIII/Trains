@@ -12,7 +12,7 @@ public class TrackSectionShapeController : MonoBehaviour {
     private Vector3 m_endPoint;
     private Quaternion m_endRotation;
 
-    private const float c_verticalOffset = 0.01f;
+    private const float c_verticalOffset = 0.0f;
     
     public float ballastWidth = 0.1f;
 

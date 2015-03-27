@@ -15,7 +15,7 @@ public interface ITerrainData
 
 public interface IToolSelector
 {
-    EffectSize GetBrushSize();
+    Effect GetBrushSize();
 }
 
 public class TerrainController : MonoBehaviour, IHeightmapOwner
@@ -49,14 +49,19 @@ public class TerrainController : MonoBehaviour, IHeightmapOwner
             m_toolSelector = ts;
         }
 
-        public EffectSize GetBrushSize()
+        public Effect GetBrushSize()
         {
-            return m_toolSelector.GetEffectSize();
+            Effect effect;
+            if (m_toolSelector != null)
+                effect =  m_toolSelector.GetEffect();
+            else
+                effect = Control.GetControl().GetToolSelector().GetEffect();
+
+            return (Effect)((int)effect - (int)Effect.Small); // Effect starts with 'none'; 'Small' is the first brush size
         }
     }
     
 	private TerrainData terrainData;
-    private ToolSelector toolSelector;
     private Brush brush;
     private TerrainControllerLogic logic;
 
@@ -85,10 +90,9 @@ public class TerrainController : MonoBehaviour, IHeightmapOwner
     void Awake()
     {
         terrainData = GetComponent<Terrain>().terrainData;
-        toolSelector = (ToolSelector)GameObject.FindObjectOfType(typeof(ToolSelector));
 
         brush = new Brush();
-        brush.SetToolSelector(new ToolSelectorWrapper(toolSelector));
+        brush.SetToolSelector(new ToolSelectorWrapper(Control.GetControl().GetToolSelector()));
         brush.SetTerrainData(new TerrainDataWrapper(terrainData));
         brush.SetSizeRadii(brushSizeRadii);
 
@@ -237,7 +241,7 @@ public class TerrainController : MonoBehaviour, IHeightmapOwner
         else if (currentTool == Tool.Smooth)
         {
             float[,] newHeightmap = new float[dimension.y, dimension.x];
-            int averagingRadius = smoothingFactors[(int)toolSelector.GetEffectSize()];
+            int averagingRadius = smoothingFactors[(int)Control.GetControl().GetToolSelector().GetEffect() - (int)Effect.Small];
 
             //there must be more efficient smoothing algorithms out there
             for (int i = 0; i < dimension.y; i++)

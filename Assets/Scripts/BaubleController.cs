@@ -19,6 +19,8 @@ public class BaubleController : MonoBehaviour {
 
     private LinkedList<TrackLink> m_tracks;
 
+    private GameObject m_bufferStop;
+
     void Awake()
     {
         m_isHightlighted = false;
@@ -123,11 +125,17 @@ public class BaubleController : MonoBehaviour {
             Vector3 otherEnd = otherBauble.transform.position;
 
 //            Debug.Log("Vector to other end: " + (otherEnd - transform.position));
+
+
+//            float angle = Quaternion.FromToRotation(transform.right, (otherEnd - transform.position).normalized).eulerAngles.magnitude;
+            float dotProduct = Vector3.Dot((otherEnd - transform.position).normalized, transform.right);
+            if (dotProduct > 1) dotProduct = 1;
+            if (dotProduct < -1) dotProduct = -1;
 //            Debug.Log("Dot Product: " + Vector3.Dot((otherEnd - transform.position).normalized, transform.right));
 
-            float angle = Quaternion.FromToRotation(transform.right, otherEnd - transform.position).eulerAngles.y; // ?.magnitude?
+            float angle = Mathf.Rad2Deg * Mathf.Acos(dotProduct);
             
-            Debug.Log("Track angle found to be " + angle);
+//            Debug.Log("Track angle found to be " + angle);
 
             trackLink.angle = angle;
         }
@@ -176,5 +184,36 @@ public class BaubleController : MonoBehaviour {
         }
         */
         return m_tracks.Count;
+    }
+
+    public void AddBufferStop(GameObject bufferStop)
+    {
+        if (m_bufferStop != null)
+        {
+            Destroy(m_bufferStop);
+        }
+        m_bufferStop = bufferStop;
+    }
+
+    public GameObject GetBufferStop()
+    {
+        return m_bufferStop;
+    }
+
+    public void RemoveBufferStop()
+    {
+        m_bufferStop = null;
+    }
+
+    public Quaternion GetRotationForContinuedTrack()
+    {
+        if (m_tracks.Count != 1) return transform.rotation;
+
+        float angle = m_tracks.First.Value.angle;
+        Debug.Log("Angle = " + angle);
+        if (angle > 90 && angle < 270)
+            return transform.rotation;
+        else
+            return transform.rotation * Quaternion.AngleAxis(180, transform.up);
     }
 }
