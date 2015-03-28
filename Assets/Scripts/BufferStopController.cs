@@ -2,7 +2,8 @@
 using System.Collections;
 
 public class BufferStopController : MonoBehaviour {
-    
+    private GameObject m_bauble;
+
 	void Start () 
     {
 	    VertexCropper trackVertCropper = GetComponentInChildren<VertexCropper>();
@@ -12,4 +13,15 @@ public class BufferStopController : MonoBehaviour {
             trackVertCropper.Crop(b);
         }
 	}
+
+    public void Link(GameObject bauble)
+    {
+        m_bauble = bauble;
+        bauble.GetComponent<BaubleController>().AddBufferStop(gameObject);
+    }
+
+    public int GetBaubleUID()
+    {
+        return m_bauble.GetComponent<ObjectUID>().UID;
+    }
 }

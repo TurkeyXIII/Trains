@@ -141,6 +141,10 @@ public class FileHandler : MonoBehaviour {
                     {
                         Control.GetControl().trackPlacer.InstantiateBauble(dataObject);
                     }
+                    else if (type == typeof(BufferStopSaveLoad))
+                    {
+                        Control.GetControl().trackPlacer.InstantiateBufferStop(dataObject);
+                    }
                 }
 
                 filename = file.Name;

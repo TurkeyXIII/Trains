@@ -93,6 +93,11 @@ public class TrackSectionShapeController : MonoBehaviour {
         m_mode = Mode.Curved;
     }
 
+    public void SetCompound()
+    {
+        m_mode = Mode.Compound;
+    }
+
     public void LinkStart(GameObject bauble, bool checkStateChanges = true)
     {
         if (bauble == null)
@@ -400,11 +405,11 @@ public class TrackSectionShapeController : MonoBehaviour {
                     {
                         float length;
 
-                        m_endRotation = m_endTrackLink.GetRotation(gameObject) * Quaternion.AngleAxis(180, m_endTrackLink.transform.up);
+                        if (m_endTrackLink != null)
+                            m_endRotation = m_endTrackLink.GetRotation(gameObject) * Quaternion.AngleAxis(180, m_endTrackLink.transform.up);
 
-                        Debug.Log("section rotation: " + transform.rotation + ", bauble angle: " + m_startTrackLink.GetAngle(gameObject));
-
-                        transform.rotation = m_startTrackLink.GetRotation(gameObject);
+                        if (m_startTrackLink != null)
+                            transform.rotation = m_startTrackLink.GetRotation(gameObject);
 
                         Debug.Log("renewed section rotation: " + transform.rotation);
 
@@ -534,6 +539,16 @@ public class TrackSectionShapeController : MonoBehaviour {
             LinkEnd(m_startTrackLink);
             LinkStart(otherBaubleController);
         }
+    }
+
+    public Quaternion GetEndRotation()
+    {
+        return m_endRotation;
+    }
+
+    public void SetEndRotation(Quaternion endRotation)
+    {
+        m_endRotation = endRotation;
     }
 
     public GameObject GetOtherBauble(GameObject bauble)

@@ -183,7 +183,7 @@ public class BaubleController : MonoBehaviour {
             Debug.Log("Link found: #" + tl.track.GetComponent<TrackUID>().UID);
         }
         */
-        return m_tracks.Count;
+        return m_tracks.Count + (m_bufferStop == null ? 0 : 1);
     }
 
     public void AddBufferStop(GameObject bufferStop)

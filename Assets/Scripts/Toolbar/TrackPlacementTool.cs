@@ -13,8 +13,10 @@ public class TrackPlacementTool : MonoBehaviour, ITool
     private TrackSectionShapeController m_shapeController;
 
     private List<GameObject> m_trackSections;
-    private List<Collider> m_trackColliders;
+    private List<GameObject> m_bufferStops;
     private List<GameObject> m_baubles;
+
+    private List<Collider> m_trackColliders;
 
     private GameObject m_baubleAnchor;
     private GameObject m_baubleCursor;
@@ -23,8 +25,10 @@ public class TrackPlacementTool : MonoBehaviour, ITool
     {
         m_currentTrackSection = null;
         m_trackSections = new List<GameObject>();
-        m_trackColliders = new List<Collider>();
+        m_bufferStops = new List<GameObject>();
         m_baubles = new List<GameObject>();
+
+        m_trackColliders = new List<Collider>();
     }
 
     void Start()
@@ -223,12 +227,14 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                     if (Input.GetMouseButtonDown(0) && hoveringBaubleController != null && hoveringBaubleController.GetLinkCount() == 1)
                     {
                         GameObject bufferStop = (GameObject)GameObject.Instantiate(bufferStopPrefab, hoveringBaubleController.transform.position + verticalOffset * hoveringBaubleController.transform.up, hoveringBaubleController.GetRotationForContinuedTrack());
-                        hoveringBaubleController.AddBufferStop(bufferStop);
+                        bufferStop.GetComponent<BufferStopController>().Link(hoveringBaubleController.gameObject);
+                        m_bufferStops.Add(bufferStop);
                     }
                     else if (Input.GetMouseButtonDown(1) && hoveringBaubleController != null && hoveringBaubleController.GetBufferStop() != null)
                     {
                         GameObject.Destroy(hoveringBaubleController.GetBufferStop());
                         hoveringBaubleController.RemoveBufferStop();
+                        m_bufferStops.Remove(hoveringBaubleController.GetBufferStop());
                     }
                     break;
                 }
@@ -290,6 +296,21 @@ public class TrackPlacementTool : MonoBehaviour, ITool
             Debug.Log("After linking, my endpoint is " + tssc.GetEndPoint());
             Debug.Log("After linking, my rotation is " + trackSection.transform.rotation);
         }
+
+        foreach (GameObject bufferStop in m_bufferStops)
+        {
+            int targetUID = bufferStop.GetComponent<BufferStopSaveLoad>().GetBaubleUID();
+
+            foreach (GameObject bauble in m_baubles)
+            {
+                int uid = bauble.GetComponent<ObjectUID>().UID;
+                if (uid == targetUID)
+                {
+                    bufferStop.GetComponent<BufferStopController>().Link(bauble);
+                    break;
+                }
+            }
+        }
     }
 
     public void InstantiateBauble(IDataObject bData)
@@ -299,6 +320,13 @@ public class TrackPlacementTool : MonoBehaviour, ITool
         bauble.SetActive(false);
         bauble.collider.enabled = true;
         m_baubles.Add(bauble);
+    }
+
+    public void InstantiateBufferStop(IDataObject bsData)
+    {
+        GameObject bufferStop = (GameObject)Instantiate(bufferStopPrefab);
+        bufferStop.GetComponent<BufferStopSaveLoad>().LoadFromDataObject(bsData);
+        m_bufferStops.Add(bufferStop);
     }
 
     public void InstantiateTrackSection(IDataObject tsData)
@@ -358,6 +386,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
     {
         m_baubles = new List<GameObject>();
         m_trackSections = new List<GameObject>();
+        m_bufferStops = new List<GameObject>();
         m_trackColliders = new List<Collider>();
     }
 

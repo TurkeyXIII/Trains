@@ -53,6 +53,13 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
             data.startOrientationY = transform.rotation.y;
             data.startOrientationZ = transform.rotation.z;
             data.startOrientationW = transform.rotation.w;
+
+            Quaternion endRotation = tssc.GetEndRotation();
+
+            data.endOrientationX = endRotation.x;
+            data.endOrientationY = endRotation.y;
+            data.endOrientationZ = endRotation.z;
+            data.endOrientationW = endRotation.w;
         }
 
             Debug.Log("Saving rotation as " + transform.rotation);
@@ -75,7 +82,11 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
             tsData.startOrientationY != 0 || tsData.startOrientationZ != 0)
         {
             transform.rotation = new Quaternion(tsData.startOrientationX, tsData.startOrientationY, tsData.startOrientationZ, tsData.startOrientationW);
-            tssc.SetCurved();
+
+            tssc.SetCompound();
+
+            Quaternion endRotation = new Quaternion(tsData.endOrientationX, tsData.endOrientationY, tsData.endOrientationZ, tsData.endOrientationW);
+            tssc.SetEndRotation(endRotation);
         }
         else
         {
@@ -87,7 +98,7 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
         Vector3 endpoint = new Vector3(tsData.endPointX, tsData.endPointY, tsData.endPointZ);
 
         Debug.Log("Loading endpoint as " + endpoint);
-
+        
         tssc.SetEndPoint(endpoint);
 
         tssc.FinalizeShape();
@@ -134,6 +145,11 @@ public class TrackSectionData : DataObjectWithUID, IDataObject
     public float startOrientationY;
     public float startOrientationZ;
     public float startOrientationW;
+
+    public float endOrientationX;
+    public float endOrientationY;
+    public float endOrientationZ;
+    public float endOrientationW;
     // ***
 
     public int startBaubleUID;
