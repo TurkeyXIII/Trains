@@ -1466,6 +1466,7 @@ MonoBehaviour:
   trackSectionPrefab: {fileID: 100000, guid: 79cbad5af96af234f9711ce78698904f, type: 2}
   baublePrefab: {fileID: 100000, guid: 841d3fe9ac05b2b4da0bb4504c1c5266, type: 2}
   bufferStopPrefab: {fileID: 100002, guid: 2031124de59465546ac1e45f99eebf6e, type: 2}
+  verticalOffset: .00999999978
 --- !u!1 &569194645
 GameObject:
   m_ObjectHideFlags: 0

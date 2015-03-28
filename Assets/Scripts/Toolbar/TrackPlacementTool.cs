@@ -7,10 +7,13 @@ public class TrackPlacementTool : MonoBehaviour, ITool
     public GameObject baublePrefab;
     public GameObject bufferStopPrefab;
 
+    public float verticalOffset;
+
     private GameObject m_currentTrackSection;
     private TrackSectionShapeController m_shapeController;
 
     private List<GameObject> m_trackSections;
+    private List<Collider> m_trackColliders;
     private List<GameObject> m_baubles;
 
     private GameObject m_baubleAnchor;
@@ -20,7 +23,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
     {
         m_currentTrackSection = null;
         m_trackSections = new List<GameObject>();
-
+        m_trackColliders = new List<Collider>();
         m_baubles = new List<GameObject>();
     }
 
@@ -76,20 +79,56 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                         else // currentTrackSection != null
                         {
                             m_shapeController.FinalizeShape();
+                            BoxCollider[] currentColliders = m_currentTrackSection.GetComponentsInChildren<BoxCollider>();
+                            Debug.Log("Finalized track section has " + currentColliders.Length + " colliders");
 
-                            m_baubleAnchor.collider.enabled = true;
-                            m_baubleCursor.collider.enabled = true;
-
-                            if (m_baubleCursor.GetComponent<BaubleController>().GetLinkCount() == 0)
+                            bool positionIsValid = true;
+                            foreach (BoxCollider c in currentColliders)
                             {
-                                m_baubles.Remove(m_baubleCursor);
-                                Destroy(m_baubleCursor);
+                                foreach (BoxCollider d in m_trackColliders)
+                                {
+
+                                    if (c.bounds.Intersects(d.bounds))
+                                    {
+                                        if (BoxCollidersOverlap(c, d))
+                                        {
+                                            Debug.Log("Collision found");
+
+                                            if (!TrainsMath.AreApproximatelyEqual(c.transform.position.y, d.transform.position.y))
+                                            {
+                                                positionIsValid = false;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
                             }
-                            //leave the current section where it is
-                            m_currentTrackSection = null;
-                            m_shapeController = null;
-                            m_baubleAnchor = null;
-                            m_baubleCursor = null;
+
+                            if (positionIsValid)
+                            {
+                                foreach (Collider c in currentColliders)
+                                    m_trackColliders.Add(c);
+
+                                m_shapeController.SetBallast();
+
+                                m_baubleAnchor.collider.enabled = true;
+                                m_baubleCursor.collider.enabled = true;
+
+                                if (m_baubleCursor.GetComponent<BaubleController>().GetLinkCount() == 0)
+                                {
+                                    m_baubles.Remove(m_baubleCursor);
+                                    Destroy(m_baubleCursor);
+                                }
+                                //leave the current section where it is
+                                m_currentTrackSection = null;
+                                m_shapeController = null;
+                                m_baubleAnchor = null;
+                                m_baubleCursor = null;
+                            }
+                            else
+                            {
+                                m_shapeController.Unfinalize();
+                            }
                         }
                     }
                     else if (Input.GetMouseButtonDown(1))
@@ -102,6 +141,12 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                                 m_currentTrackSection = hoveringBaubleController.GetLastTrackSection();
                                 Debug.Log("Current track section: #" + m_currentTrackSection.GetComponent<ObjectUID>().UID);
                                 m_shapeController = m_currentTrackSection.GetComponent<TrackSectionShapeController>();
+
+                                Collider[] colliders = m_shapeController.GetComponentsInChildren<Collider>();
+                                foreach (Collider c in colliders)
+                                    m_trackColliders.Remove(c);
+
+                                m_shapeController.Unfinalize();
 
                                 if (hoveringBaubleController.GetLinkCount() == 1)
                                 {
@@ -168,7 +213,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                 {
                     if (Input.GetMouseButtonDown(0) && hoveringBaubleController != null && hoveringBaubleController.GetLinkCount() == 1)
                     {
-                        GameObject bufferStop = (GameObject)GameObject.Instantiate(bufferStopPrefab, hoveringBaubleController.transform.position, hoveringBaubleController.GetRotationForContinuedTrack());
+                        GameObject bufferStop = (GameObject)GameObject.Instantiate(bufferStopPrefab, hoveringBaubleController.transform.position + verticalOffset * hoveringBaubleController.transform.up, hoveringBaubleController.GetRotationForContinuedTrack());
                         hoveringBaubleController.AddBufferStop(bufferStop);
                     }
                     else if (Input.GetMouseButtonDown(1) && hoveringBaubleController != null && hoveringBaubleController.GetBufferStop() != null)
@@ -176,8 +221,6 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                         GameObject.Destroy(hoveringBaubleController.GetBufferStop());
                         hoveringBaubleController.RemoveBufferStop();
                     }
-                    
-
                     break;
                 }
         }
@@ -252,6 +295,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
     public void InstantiateTrackSection(IDataObject tsData)
     {
         GameObject trackSection = (GameObject)Instantiate(trackSectionPrefab);
+        trackSection.GetComponent<TrackSectionShapeController>().verticalOffset = verticalOffset;
         trackSection.GetComponent<TrackSectionSaveLoad>().LoadFromDataObject(tsData);
         m_trackSections.Add(trackSection);
     }
@@ -261,6 +305,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
         m_currentTrackSection = (GameObject)Instantiate(trackSectionPrefab, location, Quaternion.identity);
         m_trackSections.Add(m_currentTrackSection);
         m_shapeController = m_currentTrackSection.GetComponent<TrackSectionShapeController>();
+        m_shapeController.verticalOffset = verticalOffset;
 
         m_baubleCursor = (GameObject)Instantiate(baublePrefab, location, m_currentTrackSection.transform.rotation);
         m_baubles.Add(m_baubleCursor);
@@ -281,6 +326,10 @@ public class TrackPlacementTool : MonoBehaviour, ITool
         m_baubles.Remove(m_baubleCursor);
         Destroy(m_baubleCursor);
 
+        Collider[] currentColliders = m_currentTrackSection.GetComponentsInChildren<Collider>();
+        foreach (Collider c in currentColliders)
+            m_trackColliders.Remove(c);
+
         m_trackSections.Remove(m_currentTrackSection);
         Destroy(m_currentTrackSection);
         m_currentTrackSection = null;
@@ -300,5 +349,29 @@ public class TrackPlacementTool : MonoBehaviour, ITool
     {
         m_baubles = new List<GameObject>();
         m_trackSections = new List<GameObject>();
+        m_trackColliders = new List<Collider>();
+    }
+
+    private static bool BoxCollidersOverlap(BoxCollider a, BoxCollider b)
+    {
+        return (BoxCollidersRaycastCheck(a, b) || BoxCollidersRaycastCheck(b, a));
+    }
+
+    private static bool BoxCollidersRaycastCheck(BoxCollider a, BoxCollider b)
+    {
+        Vector3 start = a.transform.TransformPoint(new Vector3(a.center.x - a.size.x / 2, a.center.y + a.size.y / 2, a.center.z - a.size.z / 2));
+        Vector3 direction = a.transform.forward;
+        float distance = a.size.z * a.transform.lossyScale.z;
+
+//        Debug.Log("Start: " + start + ", direction: " + direction + ", distance: " + distance);
+
+        RaycastHit hit;
+        if (b.Raycast(new Ray(start, direction), out hit, distance)) return true;
+
+        start = a.transform.TransformPoint(new Vector3(a.center.x + a.size.x / 2, a.center.y + a.size.y / 2, a.center.z - a.size.z / 2));
+//        Debug.Log("Start: " + start + ", direction: " + direction + ", distance: " + distance);
+        if (b.Raycast(new Ray(start, direction), out hit, distance)) return true;
+
+        return false;
     }
 }

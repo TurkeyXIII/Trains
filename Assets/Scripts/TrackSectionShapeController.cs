@@ -12,7 +12,7 @@ public class TrackSectionShapeController : MonoBehaviour {
     private Vector3 m_endPoint;
     private Quaternion m_endRotation;
 
-    private const float c_verticalOffset = 0.0f;
+    public float verticalOffset { set; private get; }
     
     public float ballastWidth = 0.1f;
 
@@ -288,7 +288,7 @@ public class TrackSectionShapeController : MonoBehaviour {
 
                 newSection.transform.parent = transform;
                 
-                newSection.transform.localPosition = new Vector3(xPosition, c_verticalOffset / transform.localScale.y, 0);
+                newSection.transform.localPosition = new Vector3(xPosition, verticalOffset / transform.localScale.y, 0);
                 newSection.transform.localRotation = Quaternion.Euler(new Vector3(-90, 0, 0));
                 newSection.transform.localScale = Vector3.one;
                 
@@ -325,7 +325,7 @@ public class TrackSectionShapeController : MonoBehaviour {
         {
             Vector3 relativeMovablePosition = new Vector3(m_currentLength/transform.localScale.x - trackModel.transform.localPosition.x, 0, 0) * trackModel.transform.localScale.x;
             Vector3 relativeFixedPosition = new Vector3(-trackModel.transform.localPosition.x * trackModel.transform.localScale.x, 0, 0);
-            Vector3 relativeTargetPosition = trackModel.transform.InverseTransformPoint(m_endPoint + c_verticalOffset * Vector3.up);
+            Vector3 relativeTargetPosition = trackModel.transform.InverseTransformPoint(m_endPoint + verticalOffset * Vector3.up);
             Vector3 relativeTargetDirection = trackModel.transform.InverseTransformDirection(m_endRotation * Vector3.right);
 
       //      Debug.Log("RelativeTargetDirection" + relativeTargetDirection);
@@ -470,11 +470,8 @@ public class TrackSectionShapeController : MonoBehaviour {
 
         }
 
-        TerrainController terrrainController = Control.GetControl().GetTerrainController();
         for (int i = 1; i < m_rail.Length; i++)
         {
-            terrrainController.SetLineHeight(m_rail[i-1], m_rail[i], ballastWidth);
-
             float averageTrackHeight = (m_rail[i-1].y + m_rail[i].y) / 2f;
 
             GameObject boxColliderChild = (GameObject)GameObject.Instantiate(colliderObjectReference);
@@ -490,6 +487,26 @@ public class TrackSectionShapeController : MonoBehaviour {
 
         if (m_endTrackLink != null) m_endTrackLink.RecalculateDirections(gameObject);
         if (m_startTrackLink != null) m_startTrackLink.RecalculateDirections(gameObject);
+    }
+
+    // reverse anything that FinalizeShape() did. Doesn't undo terrain modification though.
+    public void Unfinalize()
+    {
+        m_rail = null;
+        Collider[] colliders = GetComponentsInChildren<Collider>();
+        foreach (Collider c in colliders)
+        {
+            Destroy(c.gameObject);
+        }
+    }
+
+    public void SetBallast()
+    {
+        TerrainController terrrainController = Control.GetControl().GetTerrainController();
+        for (int i = 1; i < m_rail.Length; i++)
+        {
+            terrrainController.SetLineHeight(m_rail[i - 1], m_rail[i], ballastWidth);
+        }
     }
 
     public Vector3 GetPositionFromTravelDistance(float distance)
