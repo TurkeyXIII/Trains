@@ -83,6 +83,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                             Debug.Log("Finalized track section has " + currentColliders.Length + " colliders");
 
                             bool positionIsValid = true;
+                            GameObject collidedTrackSection = null;
                             foreach (BoxCollider c in currentColliders)
                             {
                                 foreach (BoxCollider d in m_trackColliders)
@@ -96,6 +97,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
 
                                             if (!TrainsMath.AreApproximatelyEqual(c.transform.position.y, d.transform.position.y))
                                             {
+                                                collidedTrackSection = d.transform.parent.gameObject;
                                                 positionIsValid = false;
                                                 break;
                                             }
@@ -128,6 +130,13 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                             else
                             {
                                 m_shapeController.Unfinalize();
+                                Highlighter[] highlighters = m_currentTrackSection.GetComponentsInChildren<Highlighter>();
+                                foreach (Highlighter h in highlighters)
+                                    h.Highlight(1);
+
+                                highlighters = collidedTrackSection.GetComponentsInChildren<Highlighter>();
+                                foreach (Highlighter h in highlighters)
+                                    h.Highlight(1);
                             }
                         }
                     }
