@@ -190,7 +190,7 @@ public class TrackSectionShapeController : MonoBehaviour {
 
                 Vector3 axis = bc.transform.up;
 
-//                Debug.Log("curvature angle: " + angle);
+                Debug.Log("curvature angle: " + angle);
 
                 transform.rotation = trackRotationAtEnd * Quaternion.AngleAxis(2 * angle, axis);
 
@@ -494,7 +494,7 @@ public class TrackSectionShapeController : MonoBehaviour {
         if (m_startTrackLink != null) m_startTrackLink.RecalculateDirections(gameObject);
     }
 
-    // reverse anything that FinalizeShape() did. Doesn't undo terrain modification though.
+    // reverse anything that FinalizeShape() did. Doesn't undo SetBallast though.
     public void Unfinalize()
     {
         m_rail = null;

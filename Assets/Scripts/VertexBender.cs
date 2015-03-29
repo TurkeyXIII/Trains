@@ -147,7 +147,7 @@ public class VertexBenderLogic
         //properties of the two curve sections
         float A1, L1, A2, L2;
         float theta1, theta2;
-        Debug.Log("TargetPosition: " + targetPosition + ", TargetDirection: " + targetDirection);
+//        Debug.Log("TargetPosition: " + targetPosition + ", TargetDirection: " + targetDirection);
         FresnelMath.FindTheta(out theta1, out theta2, Vector3.zero, targetPosition, Vector3.right, -targetDirection);
         if (theta1 < 0) return;
 
@@ -159,7 +159,7 @@ public class VertexBenderLogic
         L1 = Mathf.Sqrt(theta1);
         L2 = Mathf.Sqrt(theta2);
 
-        Debug.Log("Bending with lengths " + L1/A1 + " and " + L2/A2);
+//        Debug.Log("Bending with lengths " + L1/A1 + " and " + L2/A2);
 
 //        Debug.Log("theta1 = " + theta1 + ", theta2 = " + theta2);
 

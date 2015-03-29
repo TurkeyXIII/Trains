@@ -84,7 +84,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                         {
                             m_shapeController.FinalizeShape();
                             BoxCollider[] currentColliders = m_currentTrackSection.GetComponentsInChildren<BoxCollider>();
-                            Debug.Log("Finalized track section has " + currentColliders.Length + " colliders");
+                            //Debug.Log("Finalized track section has " + currentColliders.Length + " colliders");
 
                             bool positionIsValid = true;
                             GameObject collidedTrackSection = null;
@@ -97,7 +97,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                                     {
                                         if (BoxCollidersOverlap(c, d))
                                         {
-                                            Debug.Log("Collision found");
+                                            //Debug.Log("Collision found");
 
                                             if (!TrainsMath.AreApproximatelyEqual(c.transform.position.y, d.transform.position.y))
                                             {

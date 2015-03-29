@@ -14,7 +14,7 @@ public class BaubleController : MonoBehaviour {
     private struct TrackLink
     {
         public GameObject track;
-        public float angle; // direction that the track leaves this node relative to this node's orientation.
+        public float angle; // direction that the track leaves this node relative to this node's orientation. -180 < angle < 180.
     }
 
     private LinkedList<TrackLink> m_tracks;
@@ -114,7 +114,7 @@ public class BaubleController : MonoBehaviour {
 
     private void RecalculateDirections(ref TrackLink trackLink)
     {
-//        Debug.Log("Calculating directions...");
+        Debug.Log("Calculating directions...");
         GameObject otherBauble = trackLink.track.GetComponent<TrackSectionShapeController>().GetOtherBauble(gameObject);
         if (otherBauble == null)
         {
@@ -124,18 +124,24 @@ public class BaubleController : MonoBehaviour {
         {
             Vector3 otherEnd = otherBauble.transform.position;
 
-//            Debug.Log("Vector to other end: " + (otherEnd - transform.position));
+            Debug.Log("Vector to other end: " + (otherEnd - transform.position));
 
+            Vector3 endDirection = (otherEnd - transform.position).normalized;
 
-//            float angle = Quaternion.FromToRotation(transform.right, (otherEnd - transform.position).normalized).eulerAngles.magnitude;
-            float dotProduct = Vector3.Dot((otherEnd - transform.position).normalized, transform.right);
+            float dotProduct = Vector3.Dot(endDirection, transform.right);
             if (dotProduct > 1) dotProduct = 1;
             if (dotProduct < -1) dotProduct = -1;
-//            Debug.Log("Dot Product: " + Vector3.Dot((otherEnd - transform.position).normalized, transform.right));
+            Debug.Log("Dot Product: " + dotProduct);
 
             float angle = Mathf.Rad2Deg * Mathf.Acos(dotProduct);
-            
-//            Debug.Log("Track angle found to be " + angle);
+
+            if (Vector3.Dot(endDirection, -transform.forward) < 0)
+            {
+                Debug.Log("Inverting angle");
+                angle = -angle;
+            }
+
+            Debug.Log("Track angle found to be " + angle);
 
             trackLink.angle = angle;
         }
@@ -144,7 +150,7 @@ public class BaubleController : MonoBehaviour {
     public Quaternion GetRotation(GameObject track)
     {
         TrackLink tl = GetTrackLink(track);
-        float angleToRotate = (tl.angle > 90 && tl.angle < 270) ? 180 : 0;
+        float angleToRotate = (tl.angle > 90 || tl.angle < -90) ? 180 : 0;
         return transform.rotation * Quaternion.AngleAxis(angleToRotate, transform.up);
     }
 
@@ -211,7 +217,7 @@ public class BaubleController : MonoBehaviour {
 
         float angle = m_tracks.First.Value.angle;
         Debug.Log("Angle = " + angle);
-        if (angle > 90 && angle < 270)
+        if (angle > 90 || angle < -90)
             return transform.rotation;
         else
             return transform.rotation * Quaternion.AngleAxis(180, transform.up);
