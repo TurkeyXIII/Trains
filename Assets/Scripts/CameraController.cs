@@ -177,7 +177,7 @@ public class CameraController : MonoBehaviour , ICameraView
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
-        if (m_sTerrain.collider.Raycast(ray, out hit, 100))
+        if (m_sTerrain.GetComponent<Collider>().Raycast(ray, out hit, 100))
         {
             location = hit.point;
             return true;
@@ -204,7 +204,7 @@ public class CameraController : MonoBehaviour , ICameraView
         Vector3 mouseLocation;
         Vector3 mouseDirection = transform.forward;
 
-        if (Input.mouseScrollDelta != Vector3.zero)
+        if (Input.mouseScrollDelta != Vector2.zero)
         {
             if (GetMouseHitLocation(out mouseLocation))
             {
@@ -224,7 +224,8 @@ public class CameraController : MonoBehaviour , ICameraView
         if (GetScreenCentreLocation(out m_tiltAnchor))
         {
             m_isTilting = true;
-            Screen.lockCursor = true;
+            Cursor.visible = false;
+            Cursor.lockState = CursorLockMode.Locked;
 
         }
     }
@@ -232,8 +233,8 @@ public class CameraController : MonoBehaviour , ICameraView
     private void StopTilting()
     {
         m_isTilting = false;
-        Screen.lockCursor = false;
-
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
         c_clamper.ClampPosition(ref m_targetPosition);
     }
 
@@ -277,11 +278,11 @@ public class CameraController : MonoBehaviour , ICameraView
     public Vector3 ViewportToWorldPoint(Vector3 position, Vector3 viewPort)
     {
         if (position == transform.position)
-            return camera.ViewportToWorldPoint(viewPort);
+            return GetComponent<Camera>().ViewportToWorldPoint(viewPort);
 
         Vector3 actualCameraPosition = transform.position;
         transform.position = position;
-        Vector3 worldPoint= camera.ViewportToWorldPoint(viewPort);
+        Vector3 worldPoint= GetComponent<Camera>().ViewportToWorldPoint(viewPort);
         transform.position = actualCameraPosition;
         return worldPoint;
     }
@@ -293,7 +294,7 @@ public class CameraController : MonoBehaviour , ICameraView
 
     public float FieldOfView()
     {
-        return camera.fieldOfView;
+        return GetComponent<Camera>().fieldOfView;
     }
 }
 

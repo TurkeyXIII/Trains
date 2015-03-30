@@ -10,7 +10,7 @@ public class Highlighter : MonoBehaviour {
 
     void Awake()
     {
-        m_defaultMaterial = renderer.material;
+        m_defaultMaterial = GetComponent<Renderer>().material;
         m_endTime = -1;
     }
 
@@ -24,7 +24,7 @@ public class Highlighter : MonoBehaviour {
 
     public void ToggleHighlight()
     {
-        if (renderer.material == m_defaultMaterial)
+        if (GetComponent<Renderer>().material == m_defaultMaterial)
             Highlight();
         else
             RemoveHighlight();
@@ -38,12 +38,12 @@ public class Highlighter : MonoBehaviour {
 
     public void Highlight()
     {
-        renderer.material = highlightMaterial;
+        GetComponent<Renderer>().material = highlightMaterial;
     }
 
     public void RemoveHighlight()
     {
-        renderer.material = m_defaultMaterial;
+        GetComponent<Renderer>().material = m_defaultMaterial;
         m_endTime = -1;
     }
 }

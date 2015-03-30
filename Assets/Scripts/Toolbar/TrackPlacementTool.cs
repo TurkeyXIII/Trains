@@ -76,7 +76,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                                 Debug.Log("section instantiated at " + m_currentTrackSection.transform.position + " from bauble at " + hoveringBaubleController.transform.position);
 
                                 m_baubleAnchor = hoveringBaubleController.gameObject;
-                                m_baubleAnchor.collider.enabled = false;
+                                m_baubleAnchor.GetComponent<Collider>().enabled = false;
                                 m_shapeController.LinkStart(m_baubleAnchor);
                             }
                         }
@@ -117,8 +117,8 @@ public class TrackPlacementTool : MonoBehaviour, ITool
 
                                 m_shapeController.SetBallast();
 
-                                m_baubleAnchor.collider.enabled = true;
-                                m_baubleCursor.collider.enabled = true;
+                                m_baubleAnchor.GetComponent<Collider>().enabled = true;
+                                m_baubleCursor.GetComponent<Collider>().enabled = true;
 
                                 if (m_baubleCursor.GetComponent<BaubleController>().GetLinkCount() == 0)
                                 {
@@ -165,7 +165,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
                                 {
                                     Debug.Log("Found only 1 link; selecting this bauble");
                                     m_baubleCursor = hoveringBaubleController.gameObject;
-                                    m_baubleCursor.collider.enabled = false;
+                                    m_baubleCursor.GetComponent<Collider>().enabled = false;
 
                                 }
                                 else
@@ -177,7 +177,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
 
                                 m_shapeController.SelectBaubleForEditing(hoveringBaubleController.gameObject);
                                 m_baubleAnchor = m_shapeController.GetOtherBauble(hoveringBaubleController.gameObject);
-                                m_baubleAnchor.collider.enabled = false;
+                                m_baubleAnchor.GetComponent<Collider>().enabled = false;
                             }
                         }
                         else //(m_currentTrackSection != null)
@@ -318,7 +318,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
         GameObject bauble = (GameObject)Instantiate(baublePrefab);
         bauble.GetComponent<BaubleSaveLoad>().LoadFromDataObject(bData);
         bauble.SetActive(false);
-        bauble.collider.enabled = true;
+        bauble.GetComponent<Collider>().enabled = true;
         m_baubles.Add(bauble);
     }
 
@@ -358,7 +358,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
         }
         else
         {
-            m_baubleAnchor.collider.enabled = true;
+            m_baubleAnchor.GetComponent<Collider>().enabled = true;
         }
         m_baubles.Remove(m_baubleCursor);
         Destroy(m_baubleCursor);

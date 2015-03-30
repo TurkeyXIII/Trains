@@ -27,19 +27,19 @@ namespace UnityTest
         private UnitTestsRunnerSettings m_Settings;
 
         #region GUI Contents
-        private readonly GUIContent m_GUIRunSelectedTestsIcon = new GUIContent(Icons.RunImg, "Run selected tests");
-        private readonly GUIContent m_GUIRunAllTestsIcon = new GUIContent(Icons.RunAllImg, "Run all tests");
-        private readonly GUIContent m_GUIRerunFailedTestsIcon = new GUIContent(Icons.RunFailedImg, "Rerun failed tests");
-        private readonly GUIContent m_GUIOptionButton = new GUIContent("Options", Icons.GearImg);
-        private readonly GUIContent m_GUIHideButton = new GUIContent("Hide", Icons.GearImg);
-        private readonly GUIContent m_GUIRunOnRecompile = new GUIContent("Run on recompile", "Run all tests after recompilation");
-        private readonly GUIContent m_GUIShowDetailsBelowTests = new GUIContent("Show details below tests", "Show run details below test list");
-        private readonly GUIContent m_GUIRunTestsOnNewScene = new GUIContent("Run tests on a new scene", "Run tests on a new scene");
-        private readonly GUIContent m_GUIAutoSaveSceneBeforeRun = new GUIContent("Autosave scene", "The runner will automatically save the current scene changes before it starts");
-        private readonly GUIContent m_GUIShowSucceededTests = new GUIContent("Succeeded", Icons.SuccessImg, "Show tests that succeeded");
-        private readonly GUIContent m_GUIShowFailedTests = new GUIContent("Failed", Icons.FailImg, "Show tests that failed");
-        private readonly GUIContent m_GUIShowIgnoredTests = new GUIContent("Ignored", Icons.IgnoreImg, "Show tests that are ignored");
-        private readonly GUIContent m_GUIShowNotRunTests = new GUIContent("Not Run", Icons.UnknownImg, "Show tests that didn't run");
+        private GUIContent m_GUIRunSelectedTestsIcon;
+        private GUIContent m_GUIRunAllTestsIcon;
+        private GUIContent m_GUIRerunFailedTestsIcon;
+        private GUIContent m_GUIOptionButton;
+        private GUIContent m_GUIHideButton;
+        private GUIContent m_GUIRunOnRecompile;
+        private GUIContent m_GUIShowDetailsBelowTests;
+        private GUIContent m_GUIRunTestsOnNewScene;
+        private GUIContent m_GUIAutoSaveSceneBeforeRun;
+        private GUIContent m_GUIShowSucceededTests;
+        private GUIContent m_GUIShowFailedTests;
+        private GUIContent m_GUIShowIgnoredTests;
+        private GUIContent m_GUIShowNotRunTests;
         #endregion
 
         public UnitTestView()
@@ -54,6 +54,24 @@ namespace UnityTest
             m_Settings = ProjectSettingsBase.Load<UnitTestsRunnerSettings>();
             RefreshTests();
             EnableBackgroundRunner(m_Settings.runOnRecompilation);
+            SetGUIContents();
+        }
+
+        private void SetGUIContents()
+        {
+            m_GUIRunSelectedTestsIcon = new GUIContent(Icons.RunImg, "Run selected tests");
+            m_GUIRunAllTestsIcon = new GUIContent(Icons.RunAllImg, "Run all tests");
+            m_GUIRerunFailedTestsIcon = new GUIContent(Icons.RunFailedImg, "Rerun failed tests");
+            m_GUIOptionButton = new GUIContent("Options", Icons.GearImg);
+            m_GUIHideButton = new GUIContent("Hide", Icons.GearImg);
+            m_GUIRunOnRecompile = new GUIContent("Run on recompile", "Run all tests after recompilation");
+            m_GUIShowDetailsBelowTests = new GUIContent("Show details below tests", "Show run details below test list");
+            m_GUIRunTestsOnNewScene = new GUIContent("Run tests on a new scene", "Run tests on a new scene");
+            m_GUIAutoSaveSceneBeforeRun = new GUIContent("Autosave scene", "The runner will automatically save the current scene changes before it starts");
+            m_GUIShowSucceededTests = new GUIContent("Succeeded", Icons.SuccessImg, "Show tests that succeeded");
+            m_GUIShowFailedTests = new GUIContent("Failed", Icons.FailImg, "Show tests that failed");
+            m_GUIShowIgnoredTests = new GUIContent("Ignored", Icons.IgnoreImg, "Show tests that are ignored");
+            m_GUIShowNotRunTests = new GUIContent("Not Run", Icons.UnknownImg, "Show tests that didn't run");
         }
 
         public void OnDestroy()

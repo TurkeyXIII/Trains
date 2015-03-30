@@ -25,9 +25,9 @@ public class BaubleController : MonoBehaviour {
     {
         m_isHightlighted = false;
         m_mouseIsOver = false;
-        m_normalMaterial = gameObject.renderer.material;
+        m_normalMaterial = gameObject.GetComponent<Renderer>().material;
 
-        collider.enabled = false;
+        GetComponent<Collider>().enabled = false;
 
         m_tracks = new LinkedList<TrackLink>();
     }
@@ -38,11 +38,11 @@ public class BaubleController : MonoBehaviour {
         {
             if (m_mouseIsOver)
             {
-                gameObject.renderer.material = hightlightMaterial;
+                gameObject.GetComponent<Renderer>().material = hightlightMaterial;
             }
             else
             {
-                gameObject.renderer.material = m_normalMaterial;
+                gameObject.GetComponent<Renderer>().material = m_normalMaterial;
             }
 
             m_isHightlighted = m_mouseIsOver;
