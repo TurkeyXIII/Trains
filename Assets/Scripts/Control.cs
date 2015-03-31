@@ -4,11 +4,8 @@ using System.Collections;
 public class Control : MonoBehaviour {
     private static Control control;
 
-    public GameObject gameController;
-
     private FileHandler fileHandler;
     private TerrainController terrainController;
-    private ToolSelector toolSelector;
 
     public TrackPlacementTool trackPlacer;
 
@@ -46,10 +43,6 @@ public class Control : MonoBehaviour {
             if (terrain != null)
                 terrainController = terrain.GetComponent<TerrainController>();
         }
-        if (toolSelector == null)
-        {
-            toolSelector = (ToolSelector)GameObject.FindObjectOfType(typeof(ToolSelector));
-        }
     }
 
     public static Control GetControl()
@@ -67,8 +60,9 @@ public class Control : MonoBehaviour {
         return terrainController;
     }
 
+    // This function is redundant now
     public ToolSelector GetToolSelector()
     {
-        return toolSelector;
+        return ToolSelector.toolSelector;
     }
 }

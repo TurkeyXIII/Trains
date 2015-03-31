@@ -310,7 +310,6 @@ public class TrackSectionShapeController : MonoBehaviour {
             }
         }
 
-
         float lastSectionLength = localLength - ((m_currentModels.Count-1) * 10);
 
         if (lastSectionLength < 10)
@@ -346,8 +345,6 @@ public class TrackSectionShapeController : MonoBehaviour {
             trackModel.GetComponent<VertexBender>().Bend(relativeFixedPosition, relativeMovablePosition, relativeTargetPosition, relativeTargetDirection);
             //trackModel.GetComponent<VertexBender>().Bend(relativeFixedPosition, relativeMovablePosition, relativeTargetPosition);
         }
-
-
     }
 
     public void SetEndPoint(Vector3 point)

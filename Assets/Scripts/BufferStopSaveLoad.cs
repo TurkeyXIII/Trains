@@ -64,14 +64,14 @@ public class BufferStopSaveLoad : MonoBehaviour, ISaveLoadable
 }
 
 [Serializable()]
-public class BufferStopData : DataObjectWithUID, IDataObject
+public class BufferStopData : DataObjectWithUID
 {
     public float positionX, positionY, positionZ;
     public float rotationX, rotationY, rotationZ, rotationW;
 
     public int baubleUID;
 
-    public Type GetLoaderType()
+    public override Type GetLoaderType()
     {
         return typeof(BufferStopSaveLoad);
     }

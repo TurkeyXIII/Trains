@@ -247,7 +247,9 @@ public interface IDataObject
 }
 
 [Serializable()]
-public class DataObjectWithUID
+public abstract class DataObjectWithUID : IDataObject
 {
     public int UID;
+
+    public abstract Type GetLoaderType();
 }

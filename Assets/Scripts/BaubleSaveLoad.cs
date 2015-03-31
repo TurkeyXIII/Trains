@@ -53,12 +53,12 @@ public class BaubleSaveLoad : MonoBehaviour, ISaveLoadable {
 }
 
 [Serializable()]
-public class BaubleData : DataObjectWithUID, IDataObject
+public class BaubleData : DataObjectWithUID
 {
     public float positionX, positionY, positionZ;
     public float rotationX, rotationY, rotationZ, rotationW;
 
-    public Type GetLoaderType()
+    public override Type GetLoaderType()
     {
         return typeof(BaubleSaveLoad);
     }

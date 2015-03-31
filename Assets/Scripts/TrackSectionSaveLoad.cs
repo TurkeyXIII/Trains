@@ -130,7 +130,7 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
 }
 
 [Serializable()]
-public class TrackSectionData : DataObjectWithUID, IDataObject
+public class TrackSectionData : DataObjectWithUID
 {
     // All this data might be redundant if we're already saving it in the baubles.
     // ***
@@ -155,7 +155,7 @@ public class TrackSectionData : DataObjectWithUID, IDataObject
     public int startBaubleUID;
     public int endBaubleUID;
 
-    public Type GetLoaderType()
+    public override Type GetLoaderType()
     {
         return typeof(TrackSectionSaveLoad);
     }

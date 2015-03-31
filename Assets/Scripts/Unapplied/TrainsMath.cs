@@ -1,9 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class TrainsMath {
+public static class TrainsMath {
 
-    private static float c_fudgeFactor = 0.0001f;
+    private const float c_fudgeFactor = 0.0001f;
 
     public static bool AreApproximatelyEqual(float a, float b)
     {
@@ -30,7 +30,7 @@ public class TrainsMath {
 }
 
 
-public class FresnelMath
+public static class FresnelMath
 {
     private const float c_errorMargin = 0.0001f;
 
