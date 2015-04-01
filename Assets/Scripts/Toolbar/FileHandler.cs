@@ -6,12 +6,11 @@ using System.Windows.Forms;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Xml.Serialization;
 
 public class FileHandler : MonoBehaviour {
 
     private TerrainSaveLoad c_terrainSaveLoad;
-    private List<ISaveLoadable> saveableObjects;
+    private List<SaveLoad> saveableObjects;
 
     private string filename;
 
@@ -74,7 +73,7 @@ public class FileHandler : MonoBehaviour {
 
         if (file != null)
         {
-            foreach (ISaveLoadable loadable in saveableObjects)
+            foreach (SaveLoad loadable in saveableObjects)
             {
                 Debug.Log("Saving a " + loadable.GetType());
                 formatter.Serialize(file, loadable.GetDataObject());
@@ -178,11 +177,11 @@ public class FileHandler : MonoBehaviour {
         }
     }
 
-    public void AddToSaveableObjects(ISaveLoadable s)
+    public void AddToSaveableObjects(SaveLoad s)
     {
         if (saveableObjects == null)
         {
-            saveableObjects = new List<ISaveLoadable>();
+            saveableObjects = new List<SaveLoad>();
         }
 
         if (!saveableObjects.Contains(s))
@@ -191,7 +190,7 @@ public class FileHandler : MonoBehaviour {
         }
     }
 
-    public void RemoveFromSaveableObjects(ISaveLoadable s)
+    public void RemoveFromSaveableObjects(SaveLoad s)
     {
         saveableObjects.Remove(s);
     }
@@ -222,7 +221,7 @@ public class FileHandler : MonoBehaviour {
 
     private void DeleteSavables()
     {
-        foreach (ISaveLoadable sl in saveableObjects)
+        foreach (SaveLoad sl in saveableObjects)
         {
             if (sl.GetType() != typeof(TerrainSaveLoad))
             {
@@ -234,22 +233,3 @@ public class FileHandler : MonoBehaviour {
     }
 }
 
-public interface ISaveLoadable
-{
-    IDataObject GetDataObject();
-    void LoadFromDataObject(IDataObject data);
-    GameObject GetGameObject();
-}
-
-public interface IDataObject
-{
-    System.Type GetLoaderType();
-}
-
-[Serializable()]
-public abstract class DataObjectWithUID : IDataObject
-{
-    public int UID;
-
-    public abstract Type GetLoaderType();
-}

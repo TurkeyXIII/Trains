@@ -1,7 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class LevelTool : MonoBehaviour, ITool {
+public class LevelTool : Tool
+{
     private TerrainController c_terrainController;
 
     void Awake()
@@ -9,26 +10,8 @@ public class LevelTool : MonoBehaviour, ITool {
         c_terrainController = GameObject.FindGameObjectWithTag("Terrain").GetComponent<TerrainController>();
     }
 
-    public void UpdateWhenSelected()
+    public override void UpdateWhenSelected()
     {
         c_terrainController.UpdateLevel();
-    }
-
-
-    public void OnDeselect()
-    {
-    }
-
-    public void OnSelect()
-    {
-    }
-
-    public void OnEffectChange()
-    {
-    }
-
-    public Effect GetDefaultEffect()
-    {
-        return Effect.None;
     }
 }

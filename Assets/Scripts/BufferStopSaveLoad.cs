@@ -2,25 +2,21 @@
 using System;
 using System.Collections;
 
-public class BufferStopSaveLoad : MonoBehaviour, ISaveLoadable
+public class BufferStopSaveLoad : SaveLoad
 {
     private int m_baubleUID;
 
-    void Awake()
+    new void Awake()
     {
-        Control.GetControl().GetComponent<FileHandler>().AddToSaveableObjects(this);
+        base.Awake();
     }
 
-    void OnDestroy()
+    new void OnDestroy()
     {
-        Control control = Control.GetControl();
-        if (control != null)
-        {
-            control.GetComponent<FileHandler>().RemoveFromSaveableObjects(this);
-        }
+        base.OnDestroy();
     }
 
-    public IDataObject GetDataObject()
+    public override IDataObject GetDataObject()
     {
         BufferStopData data = new BufferStopData();
 
@@ -40,7 +36,7 @@ public class BufferStopSaveLoad : MonoBehaviour, ISaveLoadable
         return data;
     }
 
-    public void LoadFromDataObject(IDataObject data)
+    public override void LoadFromDataObject(IDataObject data)
     {
         BufferStopData bsData = (BufferStopData)data;
 
@@ -50,11 +46,6 @@ public class BufferStopSaveLoad : MonoBehaviour, ISaveLoadable
         m_baubleUID = bsData.baubleUID;
 
         GetComponent<ObjectUID>().LoadFromDataObject(bsData);
-    }
-
-    public GameObject GetGameObject()
-    {
-        return gameObject;
     }
 
     public int GetBaubleUID()

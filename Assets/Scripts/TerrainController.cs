@@ -18,49 +18,8 @@ public interface IToolSelector
     Effect GetBrushSize();
 }
 
-public class TerrainController : MonoBehaviour, IHeightmapOwner
-{
-    
-    private class TerrainDataWrapper : ITerrainData
-    {
-        private TerrainData m_terrainData;
-        public TerrainDataWrapper(TerrainData td)
-        {
-            m_terrainData = td;
-        }
-
-
-        public int GetAlphamapHeight()
-        {
-            return m_terrainData.alphamapHeight;
-        }
-
-        public int GetAlphamapWidth()
-        {
-            return m_terrainData.alphamapWidth;
-        }
-    };
-
-    private class ToolSelectorWrapper : IToolSelector
-    {
-        private ToolSelector m_toolSelector;
-        public ToolSelectorWrapper(ToolSelector ts)
-        {
-            m_toolSelector = ts;
-        }
-
-        public Effect GetBrushSize()
-        {
-            Effect effect;
-            if (m_toolSelector != null)
-                effect =  m_toolSelector.GetEffect();
-            else
-                effect = Control.GetControl().GetToolSelector().GetEffect();
-
-            return (Effect)((int)effect - (int)Effect.Small); // Effect starts with 'none'; 'Small' is the first brush size
-        }
-    }
-    
+public class TerrainController : MonoBehaviour, IHeightmapOwner, ITerrainData, IToolSelector
+{    
 	private TerrainData terrainData;
     private Brush brush;
     private TerrainControllerLogic logic;
@@ -92,8 +51,8 @@ public class TerrainController : MonoBehaviour, IHeightmapOwner
         terrainData = GetComponent<Terrain>().terrainData;
 
         brush = new Brush();
-        brush.SetToolSelector(new ToolSelectorWrapper(Control.GetControl().GetToolSelector()));
-        brush.SetTerrainData(new TerrainDataWrapper(terrainData));
+        brush.SetToolSelector(this);
+        brush.SetTerrainData(this);
         brush.SetSizeRadii(brushSizeRadii);
 
         logic = new TerrainControllerLogic();
@@ -479,6 +438,22 @@ public class TerrainController : MonoBehaviour, IHeightmapOwner
         OnHeightsChanged();
 
     }
+
+    public int GetAlphamapHeight()
+    {
+        return terrainData.alphamapHeight;
+    }
+
+    public int GetAlphamapWidth()
+    {
+        return terrainData.alphamapWidth;
+    }
+
+    public Effect GetBrushSize()
+    {
+        Effect effect = Control.GetControl().GetToolSelector().GetEffect();
+        return (Effect)((int)effect - (int)Effect.Small); // Effect starts with 'none'; 'Small' is the first brush size
+    }
 }
 
 public class TerrainControllerLogic
@@ -587,8 +562,6 @@ public class TerrainControllerLogic
         heightmapOwner.SetHeightmap(corner.x, corner.y, heightmap);
     }
 }
-
-
 
 public class Brush
 {

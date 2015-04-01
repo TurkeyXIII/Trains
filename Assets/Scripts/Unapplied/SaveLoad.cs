@@ -1,0 +1,55 @@
+﻿using UnityEngine;
+using System;
+using System.Collections;
+
+
+public abstract class SaveLoad : MonoBehaviour
+{
+    private static int UIDcounter = 0;
+
+    public int UID { get; private set; }
+
+    // subclasses must call base.Awake() from their awake function
+    public void Awake()
+    {
+        UID = UIDcounter++;
+        Control.GetControl().GetComponent<FileHandler>().AddToSaveableObjects(this);
+    }
+
+    // subclasses must call base.OnDestroy from their onDestroy function
+    public void OnDestroy()
+    {
+        Control control = Control.GetControl();
+        if (control != null)
+        {
+            control.GetComponent<FileHandler>().RemoveFromSaveableObjects(this);
+        }
+    }
+
+    public void LoadFromDataObject(DataObjectWithUID data)
+    {
+        UID = data.UID;
+        if (UID + 1 > UIDcounter)
+            UIDcounter = UID + 1;
+    }
+
+    public abstract IDataObject GetDataObject();
+    public abstract void LoadFromDataObject(IDataObject data);
+    public GameObject GetGameObject()
+    {
+        return gameObject;
+    }
+}
+
+public interface IDataObject
+{
+    System.Type GetLoaderType();
+}
+
+[Serializable()]
+public abstract class DataObjectWithUID : IDataObject
+{
+    public int UID;
+
+    public abstract Type GetLoaderType();
+}

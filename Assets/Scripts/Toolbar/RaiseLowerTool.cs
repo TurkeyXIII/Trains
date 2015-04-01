@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class RaiseLowerTool : MonoBehaviour, ITool {
+public class RaiseLowerTool : Tool {
 
     private TerrainController c_terrainController;
 
@@ -10,24 +10,12 @@ public class RaiseLowerTool : MonoBehaviour, ITool {
         c_terrainController = GameObject.FindGameObjectWithTag("Terrain").GetComponent<TerrainController>();
     }
 
-    public void UpdateWhenSelected()
+    public override void UpdateWhenSelected()
     {
         c_terrainController.UpdateRaiseLower();
     }
 
-    public void OnDeselect()
-    {
-    }
-
-    public void OnSelect()
-    {
-    }
-
-    public void OnEffectChange()
-    {
-    }
-
-    public Effect GetDefaultEffect()
+    public override Effect GetDefaultEffect()
     {
         return Effect.Small;
     }

@@ -1,7 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class SmoothTool : MonoBehaviour, ITool {
+public class SmoothTool : Tool
+{
     private TerrainController c_terrainController;
 
     void Awake()
@@ -9,24 +10,12 @@ public class SmoothTool : MonoBehaviour, ITool {
         c_terrainController = GameObject.FindGameObjectWithTag("Terrain").GetComponent<TerrainController>();
     }
 
-    public void UpdateWhenSelected()
+    public override void UpdateWhenSelected()
     {
         c_terrainController.UpdateSmooth();
     }
 
-    public void OnDeselect()
-    {
-    }
-
-    public void OnSelect()
-    {
-    }
-
-    public void OnEffectChange()
-    {
-    }
-
-    public Effect GetDefaultEffect()
+    public override Effect GetDefaultEffect()
     {
         return Effect.Small;
     }

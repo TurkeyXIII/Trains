@@ -2,23 +2,20 @@
 using System;
 using System.Collections;
 
-public class BaubleSaveLoad : MonoBehaviour, ISaveLoadable {
+public class BaubleSaveLoad : SaveLoad
+{
 
-    void Awake()
+    new void Awake()
     {
-        Control.GetControl().GetComponent<FileHandler>().AddToSaveableObjects(this);
+        base.Awake();
     }
 
-    void OnDestroy()
+    new void OnDestroy()
     {
-        Control control = Control.GetControl();
-        if (control != null)
-        {
-            control.GetComponent<FileHandler>().RemoveFromSaveableObjects(this);
-        }
+        base.OnDestroy();
     }
 
-    public IDataObject GetDataObject()
+    public override IDataObject GetDataObject()
     {
         BaubleData data = new BaubleData();
 
@@ -36,7 +33,7 @@ public class BaubleSaveLoad : MonoBehaviour, ISaveLoadable {
         return data;
     }
 
-    public void LoadFromDataObject(IDataObject data)
+    public override void LoadFromDataObject(IDataObject data)
     {
         BaubleData bData = (BaubleData) data;
 
@@ -44,11 +41,6 @@ public class BaubleSaveLoad : MonoBehaviour, ISaveLoadable {
         transform.rotation = new Quaternion(bData.rotationX, bData.rotationY, bData.rotationZ, bData.rotationW);
 
         GetComponent<ObjectUID>().LoadFromDataObject(bData);
-    }
-
-    public GameObject GetGameObject()
-    {
-        return gameObject;
     }
 }
 

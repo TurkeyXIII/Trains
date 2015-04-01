@@ -2,27 +2,23 @@
 using System.Collections;
 using System;
 
-public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
+public class TrackSectionSaveLoad : SaveLoad
 {
     private int startBaubleUID = -1;
     private int endBaubleUID = -1;
 
 
-    void Awake()
+    new void Awake()
     {
-        Control.GetControl().GetComponent<FileHandler>().AddToSaveableObjects(this);
+        base.Awake();
     }
 
-    void OnDestroy()
+    new void OnDestroy()
     {
-        Control control = Control.GetControl();
-        if (control != null)
-        {
-            control.GetComponent<FileHandler>().RemoveFromSaveableObjects(this);
-        }
+        base.OnDestroy();
     }
 
-    public IDataObject GetDataObject()
+    public override IDataObject GetDataObject()
     {
         TrackSectionData data = new TrackSectionData();
 
@@ -72,7 +68,7 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
         return data;
     }
 
-    public void LoadFromDataObject(IDataObject data)
+    public override void LoadFromDataObject(IDataObject data)
     {
         TrackSectionData tsData = (TrackSectionData)data;
         transform.position = new Vector3(tsData.startPointX, tsData.startPointY, tsData.startPointZ);
@@ -111,11 +107,6 @@ public class TrackSectionSaveLoad : MonoBehaviour, ISaveLoadable
         endBaubleUID = tsData.endBaubleUID;
 
         Debug.Log("My endpoint is " + tssc.GetEndPoint());
-    }
-
-    public GameObject GetGameObject()
-    {
-        return gameObject;
     }
 
     public int GetStartBaubleUID()

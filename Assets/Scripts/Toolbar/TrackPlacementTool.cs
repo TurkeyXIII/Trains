@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
-public class TrackPlacementTool : MonoBehaviour, ITool
+public class TrackPlacementTool : Tool
 {
     public GameObject trackSectionPrefab;
     public GameObject baublePrefab;
@@ -36,7 +36,7 @@ public class TrackPlacementTool : MonoBehaviour, ITool
         Control.GetControl().trackPlacer = this;
     }
 
-    public void UpdateWhenSelected()
+    public override void UpdateWhenSelected()
     {
         // this is the bauble we're over, if any
         BaubleController hoveringBaubleController = null;
@@ -241,12 +241,12 @@ public class TrackPlacementTool : MonoBehaviour, ITool
         }
     }
 
-    public void OnSelect()
+    public override void OnSelect()
     {
         SetTrackSectionBaubleVisibility(true);
     }
 
-    public void OnDeselect()
+    public override void OnDeselect()
     {
         if (m_currentTrackSection != null)
         {
@@ -256,13 +256,13 @@ public class TrackPlacementTool : MonoBehaviour, ITool
         SetTrackSectionBaubleVisibility(false);
     }
 
-    public void OnEffectChange()
+    public override void OnEffectChange()
     {
         if (m_currentTrackSection != null)
             DeleteCurrentTrackSection();
     }
 
-    public Effect GetDefaultEffect()
+    public override Effect GetDefaultEffect()
     {
         return Effect.Track;
     }

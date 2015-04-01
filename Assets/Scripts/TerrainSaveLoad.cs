@@ -2,21 +2,21 @@
 using System;
 using System.Collections;
 
-public class TerrainSaveLoad : MonoBehaviour, ISaveLoadable
+public class TerrainSaveLoad : SaveLoad
 {
     public bool newTerrainOnAwake = true;
     public float newTerrainHeight;
     private TerrainData terrainData;
     private SerializableTerrainData serializable;
 
-    void Awake()
+    new void Awake()
     {
         terrainData = GetComponent<Terrain>().terrainData;
 
         if (newTerrainOnAwake)
             InitialiseTerrain();
 
-        Control.GetControl().GetComponent<FileHandler>().AddToSaveableObjects(this);
+        base.Awake();
     }
 
     public void InitialiseTerrain()
@@ -51,16 +51,12 @@ public class TerrainSaveLoad : MonoBehaviour, ISaveLoadable
         terrainData.SetAlphamaps(0, 0, alphamap);
     }
 
-    void OnDestroy()
+    new void OnDestroy()
     {
-        Control control = Control.GetControl();
-        if (control != null)
-        {
-            control.GetComponent<FileHandler>().RemoveFromSaveableObjects(this);
-        }
+        base.OnDestroy();
     }
 
-    public IDataObject GetDataObject()
+    public override IDataObject GetDataObject()
     {
         SerializableTerrainData std = new SerializableTerrainData();
         std.heightmap = terrainData.GetHeights(0, 0, terrainData.heightmapWidth, terrainData.heightmapHeight);
@@ -70,19 +66,13 @@ public class TerrainSaveLoad : MonoBehaviour, ISaveLoadable
     }
 
 
-    public void LoadFromDataObject(IDataObject data)
+    public override void LoadFromDataObject(IDataObject data)
     {
         SerializableTerrainData std = (SerializableTerrainData) data;
 
         terrainData.SetHeights(0, 0, std.heightmap);
         terrainData.SetAlphamaps(0, 0, std.alphamap);
     }
-
-    public GameObject GetGameObject()
-    {
-        return gameObject;
-    }
-
 }
 
 [Serializable()]

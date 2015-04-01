@@ -34,7 +34,7 @@ public class ToolSelector : MonoBehaviour
     private Effect currentEffect;
 
     private GameObject currentToolButton;
-    private ITool currentToolBehaviour;
+    private Tool currentToolBehaviour;
 
     public static ToolSelector toolSelector { get; private set;}
 
@@ -61,7 +61,7 @@ public class ToolSelector : MonoBehaviour
 
     public void OnSelectUtilities()
     {
-        OnToolSelect<UtilitiesTool>();
+        OnToolSelect<Tool>();
     }
 	
     public void OnSelectRaiseLower()
@@ -114,7 +114,7 @@ public class ToolSelector : MonoBehaviour
         return currentEffect;
     }
 
-    private void OnToolSelect(GameObject button, ITool tool)
+    private void OnToolSelect(GameObject button, Tool tool)
     {
         if (currentToolButton == button)
         {
@@ -153,7 +153,7 @@ public class ToolSelector : MonoBehaviour
     }
 
     private void OnToolSelect<T>()
-        where T: MonoBehaviour, ITool
+        where T: Tool
     {
         T tool;
 
@@ -232,13 +232,4 @@ public class ToolSelector : MonoBehaviour
         if (toolSelector == this) toolSelector = null;
     }
 
-}
-
-public interface ITool
-{
-    Effect GetDefaultEffect();
-    void UpdateWhenSelected();
-    void OnSelect();
-    void OnDeselect();
-    void OnEffectChange();
 }
