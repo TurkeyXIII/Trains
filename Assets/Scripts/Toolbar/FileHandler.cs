@@ -134,15 +134,15 @@ public class FileHandler : MonoBehaviour {
                     }
                     else if (type == typeof(TrackSectionSaveLoad))
                     {
-                        Control.GetControl().trackPlacer.InstantiateTrackSection(dataObject);
+                        InstantiateTrackSection(dataObject);
                     }
                     else if (type == typeof(BaubleSaveLoad))
                     {
-                        Control.GetControl().trackPlacer.InstantiateBauble(dataObject);
+                        InstantiateBauble(dataObject);
                     }
                     else if (type == typeof(BufferStopSaveLoad))
                     {
-                        Control.GetControl().trackPlacer.InstantiateBufferStop(dataObject);
+                        InstantiateBufferStop(dataObject);
                     }
                 }
 
@@ -150,7 +150,7 @@ public class FileHandler : MonoBehaviour {
 
                 file.Close();
 
-                Control.GetControl().trackPlacer.LinkBaublesFromUIDs();
+                LinkBaublesFromUIDs();
 
                 levelHasChanged = false;
             }
@@ -225,11 +225,77 @@ public class FileHandler : MonoBehaviour {
         {
             if (sl.GetType() != typeof(TerrainSaveLoad))
             {
-                GameObject.Destroy(sl.GetGameObject());
+                GameObject.Destroy(sl.gameObject);
             }
         }
 
         Control.GetControl().trackPlacer.ResetLists();
+    }
+
+
+    private void LinkBaublesFromUIDs()
+    {
+        foreach (GameObject trackSection in Control.GetControl().GetTrackSections())
+        {
+            TrackSectionShapeController tssc = trackSection.GetComponent<TrackSectionShapeController>();
+            TrackSectionSaveLoad tssl = trackSection.GetComponent<TrackSectionSaveLoad>();
+            int startUID = tssl.GetStartBaubleUID();
+            int endUID = tssl.GetEndBaubleUID();
+
+            foreach (GameObject bauble in Control.GetControl().GetBaubles())
+            {
+                int uid = bauble.GetComponent<ObjectUID>().UID;
+                if (uid == startUID)
+                {
+                    tssc.LinkStart(bauble, false);
+                    startUID = -1;
+                }
+                else if (uid == endUID)
+                {
+                    tssc.LinkEnd(bauble, false);
+                    endUID = -1;
+                }
+
+                if (startUID < 0 && endUID < 0) break;
+            }
+
+            Debug.Log("After linking, my endpoint is " + tssc.GetEndPoint());
+            Debug.Log("After linking, my rotation is " + trackSection.transform.rotation);
+        }
+
+        foreach (GameObject bufferStop in Control.GetControl().GetBufferStops())
+        {
+            int targetUID = bufferStop.GetComponent<BufferStopSaveLoad>().GetBaubleUID();
+
+            foreach (GameObject bauble in Control.GetControl().GetBaubles())
+            {
+                int uid = bauble.GetComponent<ObjectUID>().UID;
+                if (uid == targetUID)
+                {
+                    bufferStop.GetComponent<BufferStopController>().Link(bauble);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void InstantiateBauble(IDataObject bData)
+    {
+        GameObject bauble = (GameObject)Instantiate(Control.GetControl().prefabBauble);
+        bauble.GetComponent<BaubleSaveLoad>().LoadFromDataObject(bData);
+        bauble.SetActive(false);
+    }
+
+    private void InstantiateBufferStop(IDataObject bsData)
+    {
+        GameObject bufferStop = (GameObject)Instantiate(Control.GetControl().prefabBufferStop);
+        bufferStop.GetComponent<BufferStopSaveLoad>().LoadFromDataObject(bsData);
+    }
+
+    private void InstantiateTrackSection(IDataObject tsData)
+    {
+        GameObject trackSection = (GameObject)Instantiate(Control.GetControl().prefabTrackSection);
+        trackSection.GetComponent<TrackSectionSaveLoad>().LoadFromDataObject(tsData);
     }
 }
 

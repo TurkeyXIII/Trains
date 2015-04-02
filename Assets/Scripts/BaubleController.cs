@@ -27,8 +27,6 @@ public class BaubleController : MonoBehaviour {
         m_mouseIsOver = false;
         m_normalMaterial = gameObject.GetComponent<Renderer>().material;
 
-        GetComponent<Collider>().enabled = false;
-
         m_tracks = new LinkedList<TrackLink>();
     }
 

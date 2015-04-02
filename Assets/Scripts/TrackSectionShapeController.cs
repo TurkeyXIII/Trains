@@ -12,7 +12,7 @@ public class TrackSectionShapeController : MonoBehaviour {
     private Vector3 m_endPoint;
     private Quaternion m_endRotation;
 
-    public float verticalOffset { set; private get; }
+    private float m_verticalOffset;
     
     public float ballastWidth = 0.1f;
 
@@ -52,6 +52,7 @@ public class TrackSectionShapeController : MonoBehaviour {
         transform.position = transform.position;
         m_endPoint = transform.position + Vector3.left;
         m_mode = Mode.Straight;
+        m_verticalOffset = Control.GetControl().trackPlacer.verticalOffset;
     }
 
     private void SetCurvature()
@@ -293,7 +294,7 @@ public class TrackSectionShapeController : MonoBehaviour {
 
                 newSection.transform.parent = transform;
                 
-                newSection.transform.localPosition = new Vector3(xPosition, verticalOffset / transform.localScale.y, 0);
+                newSection.transform.localPosition = new Vector3(xPosition, m_verticalOffset / transform.localScale.y, 0);
                 newSection.transform.localRotation = Quaternion.Euler(new Vector3(-90, 0, 0));
                 newSection.transform.localScale = Vector3.one;
                 
@@ -329,7 +330,7 @@ public class TrackSectionShapeController : MonoBehaviour {
         {
             Vector3 relativeMovablePosition = new Vector3(m_currentLength/transform.localScale.x - trackModel.transform.localPosition.x, 0, 0) * trackModel.transform.localScale.x;
             Vector3 relativeFixedPosition = new Vector3(-trackModel.transform.localPosition.x * trackModel.transform.localScale.x, 0, 0);
-            Vector3 relativeTargetPosition = trackModel.transform.InverseTransformPoint(m_endPoint + verticalOffset * Vector3.up);
+            Vector3 relativeTargetPosition = trackModel.transform.InverseTransformPoint(m_endPoint + m_verticalOffset * Vector3.up);
             Vector3 relativeTargetDirection = trackModel.transform.InverseTransformDirection(m_endRotation * Vector3.right);
 
       //      Debug.Log("RelativeTargetDirection" + relativeTargetDirection);

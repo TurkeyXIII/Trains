@@ -13,7 +13,7 @@ public abstract class SaveLoad : MonoBehaviour
     public void Awake()
     {
         UID = UIDcounter++;
-        Control.GetControl().GetComponent<FileHandler>().AddToSaveableObjects(this);
+        Control.GetControl().AddToLists(this);
     }
 
     // subclasses must call base.OnDestroy from their onDestroy function
@@ -22,7 +22,7 @@ public abstract class SaveLoad : MonoBehaviour
         Control control = Control.GetControl();
         if (control != null)
         {
-            control.GetComponent<FileHandler>().RemoveFromSaveableObjects(this);
+            control.RemoveFromLists(this);
         }
     }
 
@@ -35,10 +35,6 @@ public abstract class SaveLoad : MonoBehaviour
 
     public abstract IDataObject GetDataObject();
     public abstract void LoadFromDataObject(IDataObject data);
-    public GameObject GetGameObject()
-    {
-        return gameObject;
-    }
 }
 
 public interface IDataObject

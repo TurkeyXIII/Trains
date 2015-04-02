@@ -1,13 +1,23 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
+using System.Collections.Generic;
 
 public class Control : MonoBehaviour {
     private static Control control;
 
-    private FileHandler fileHandler;
-    private TerrainController terrainController;
+    private FileHandler m_fileHandler;
+    private TerrainController m_terrainController;
 
-    public TrackPlacementTool trackPlacer;
+    private LinkedList<GameObject> m_trackSections;
+    private LinkedList<GameObject> m_bufferStops;
+    private LinkedList<GameObject> m_baubles;
+
+    internal TrackPlacementTool trackPlacer;
+
+    public GameObject prefabTrackSection;
+    public GameObject prefabBufferStop;
+    public GameObject prefabBauble;
 
     void Awake()
     {
@@ -16,7 +26,7 @@ public class Control : MonoBehaviour {
             DontDestroyOnLoad(this);
             control = this;
 
-            fileHandler = GetComponent<FileHandler>();
+            m_fileHandler = GetComponent<FileHandler>();
         }
         else if (control != this)
         {
@@ -37,11 +47,11 @@ public class Control : MonoBehaviour {
 
     void OnLevelWasLoaded(int level)
     {
-        if (terrainController == null)
+        if (m_terrainController == null)
         {
             GameObject terrain =  GameObject.FindGameObjectWithTag("Terrain");
             if (terrain != null)
-                terrainController = terrain.GetComponent<TerrainController>();
+                m_terrainController = terrain.GetComponent<TerrainController>();
         }
     }
 
@@ -52,17 +62,71 @@ public class Control : MonoBehaviour {
 
     public FileHandler GetFileHandler()
     {
-        return fileHandler;
+        return m_fileHandler;
     }
 
     public TerrainController GetTerrainController()
     {
-        return terrainController;
+        return m_terrainController;
     }
 
     // This function is redundant now
     public ToolSelector GetToolSelector()
     {
         return ToolSelector.toolSelector;
+    }
+
+    public void AddToLists(SaveLoad sl)
+    {
+        m_fileHandler.AddToSaveableObjects(sl);
+        
+        LinkedList<GameObject> list = GetListForSaveLoad(sl);
+        if (list != null)
+        {
+            list.AddLast(sl.gameObject);
+        }
+    }
+
+    public void RemoveFromLists(SaveLoad sl)
+    {
+        m_fileHandler.RemoveFromSaveableObjects(sl);
+
+        LinkedList<GameObject> list = GetListForSaveLoad(sl);
+        if (list != null)
+        {
+            list.Remove(list.FindLast(sl.gameObject));
+        }
+    }
+
+    private LinkedList<GameObject> GetListForSaveLoad(SaveLoad sl)
+    {
+        Type type = sl.GetType();
+        if (type == typeof(TrackSectionSaveLoad)) return InstantiatedList(ref m_trackSections);
+        if (type == typeof(BaubleSaveLoad)) return InstantiatedList(ref m_baubles);
+        if (type == typeof(BufferStopSaveLoad)) return InstantiatedList(ref m_bufferStops);
+
+        return null;
+    }
+
+    private LinkedList<GameObject> InstantiatedList(ref LinkedList<GameObject> list)
+    {
+        if (list == null) list = new LinkedList<GameObject>();
+
+        return list;
+    }
+
+    public IEnumerable<GameObject> GetBaubles()
+    {
+        return InstantiatedList(ref m_baubles);
+    }
+
+    public IEnumerable<GameObject> GetBufferStops()
+    {
+        return InstantiatedList(ref m_bufferStops);
+    }
+
+    public IEnumerable<GameObject> GetTrackSections()
+    {
+        return InstantiatedList(ref m_trackSections);
     }
 }
