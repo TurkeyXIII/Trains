@@ -322,6 +322,8 @@ public class TrackSectionShapeController : MonoBehaviour {
         }
 
         m_currentLength = length;
+
+        CalculateRail();
     }
 
     public void Curve()
@@ -333,18 +335,39 @@ public class TrackSectionShapeController : MonoBehaviour {
             Vector3 relativeTargetPosition = trackModel.transform.InverseTransformPoint(m_endPoint + m_verticalOffset * Vector3.up);
             Vector3 relativeTargetDirection = trackModel.transform.InverseTransformDirection(m_endRotation * Vector3.right);
 
-      //      Debug.Log("RelativeTargetDirection" + relativeTargetDirection);
+            Vector3[] relativeRailWaypoints = null;
+            // pick out the waypoints that are within this model's influence
+            int first = m_rail.Length, last = 0;
+            for (int i = 0; i < m_rail.Length; i++)
+            {
+                Vector3 v = m_rail[i];
+                if (v.x >= (trackModel.transform.localPosition.x - 5) * transform.localScale.x && v.x < (trackModel.transform.localPosition.x + 5) * transform.localScale.x)
+                {
+                    if (i < first) first = i;
+                    last = i;
+                }
+            }
 
-            /*
-            Debug.Log("RelativeFixedPosition: " + relativeFixedPosition);
-            Debug.Log("RelativeMovablePosition: " + relativeMovablePosition);
+            Debug.Log("First = " + first + ", last = " + last);
+
+            if (first <= last)
+            {
+                relativeRailWaypoints = new Vector3[(last - first + 1)];
+                for (int i = first; i <= last; i++)
+                {
+                    relativeRailWaypoints[i - first] = m_rail[i] / trackModel.transform.lossyScale.x + relativeFixedPosition;
+                }
+
+                Debug.Log("Relative fixed: " + relativeFixedPosition + ", RelativeEnd: " + relativeMovablePosition);
+                Debug.Log("Relative first rail: " + relativeRailWaypoints[0] + ", Relative last rail: " + relativeRailWaypoints[relativeRailWaypoints.Length - 1]);
+            }
             
-            Debug.Log("real target position: " + m_endPoint);
-            */
-       //     Debug.Log("RelativeTargetPosition: " + relativeTargetPosition);
-            
-            trackModel.GetComponent<VertexBender>().Bend(relativeFixedPosition, relativeMovablePosition, relativeTargetPosition, relativeTargetDirection);
-            //trackModel.GetComponent<VertexBender>().Bend(relativeFixedPosition, relativeMovablePosition, relativeTargetPosition);
+            trackModel.GetComponent<VertexBender>().Bend(relativeFixedPosition, relativeMovablePosition, relativeTargetPosition, relativeTargetDirection, ref relativeRailWaypoints);
+
+            for (int i = 0; i < relativeRailWaypoints.Length; i++)
+            {
+                m_rail[first+i] = trackModel.transform.TransformPoint(relativeRailWaypoints[i] + relativeFixedPosition) - m_verticalOffset * Vector3.up;
+            }
         }
     }
 
@@ -386,14 +409,14 @@ public class TrackSectionShapeController : MonoBehaviour {
                             VertexBender.GetBentLengthAndRotation(transform.right, point - transform.position, out length, out rotationAxis, out angle);
                         }
 
+                        m_endRotation = transform.rotation * Quaternion.AngleAxis(angle * 2 * Mathf.Rad2Deg, rotationAxis);
+
+                        Debug.Log("end bauble rotation axis: " + rotationAxis + " angle (radians): " + angle);
+                        Debug.Log("endRotation = " + m_endRotation);
+
                         RestoreTrackSections();
 
                         SetLength(length);
-
-                        m_endRotation = transform.rotation * Quaternion.AngleAxis(angle * 2 * Mathf.Rad2Deg, rotationAxis);
-                       
-                        Debug.Log("end bauble rotation axis: " + rotationAxis + " angle (radians): " + angle);
-                        Debug.Log("endRotation = " + m_endRotation);
 
                         Curve();
 
@@ -438,6 +461,38 @@ public class TrackSectionShapeController : MonoBehaviour {
         }
     }
 
+    public void CalculateRail()
+    {
+        if (m_mode == Mode.Straight)
+        {
+            Debug.Log("Calculating straight section rail");
+
+            m_rail = new Vector3[2];
+            m_rail[0] = transform.position;
+            m_rail[1] = m_endPoint;
+        }
+        else
+        {
+            Debug.Log("Calculating curved/compound section rail");
+
+            m_rail = new Vector3[Mathf.CeilToInt(Quaternion.Angle(transform.rotation, m_endRotation) / 5f * m_currentLength) + 2]; // approximate to be fairly large?
+            for (int i = 0; i < m_rail.Length; i++)
+            {
+                m_rail[i] = new Vector3((float)(i * m_currentLength) / (float)(m_rail.Length - 1), 0, 0);
+            }
+
+            // this is now handled by the Curve() function
+            /*
+            VertexBenderLogic.BendVectors(temp, out m_rail, new Vector3(m_currentLength, 0, 0), transform.InverseTransformPoint(m_endPoint));
+
+            for (int i = 0; i < m_rail.Length; i++)
+            {
+                m_rail[i] = transform.TransformPoint(m_rail[i]);
+            }
+            */
+        }
+    }
+
     public void FinalizeShape()
     {
         BoxCollider[] existingColliders = GetComponentsInChildren<BoxCollider>();
@@ -446,32 +501,7 @@ public class TrackSectionShapeController : MonoBehaviour {
             Destroy(boxCollider.gameObject);
         }
 
-        if (m_mode == Mode.Straight)
-        {
-            Debug.Log("Finalising straight section");
-
-            m_rail = new Vector3[2];
-            m_rail[0] = transform.position;
-            m_rail[1] = m_endPoint;
-        }
-        else
-        {
-            Debug.Log("Finalising curved/compound section");
-
-            Vector3[] temp = new Vector3[Mathf.CeilToInt(Quaternion.Angle(transform.rotation * m_endRotation, Quaternion.identity) / 10f * m_currentLength)+1]; // approximate to be fairly large?
-            for (int i = 0; i < temp.Length; i++)
-            {
-                temp[i] = new Vector3((float)(i*m_currentLength)/(float)(temp.Length - 1), 0, 0);
-            }
-
-            VertexBenderLogic.BendVectors(temp, out m_rail, new Vector3(m_currentLength, 0, 0), transform.InverseTransformPoint(m_endPoint));
-
-            for (int i = 0; i < m_rail.Length; i++)
-            {
-                m_rail[i] = transform.TransformPoint(m_rail[i]);
-            }
-
-        }
+        
 
         for (int i = 1; i < m_rail.Length; i++)
         {

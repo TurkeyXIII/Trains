@@ -30,9 +30,9 @@ public class VertexBender : MonoBehaviour, IMeshOwner
         c_bender.Bend(fixedPosition, movableEndPosition, targetPostion);
     }
 
-    public void Bend(Vector3 fixedPosition, Vector3 movableEndPosition, Vector3 targetPostion, Vector3 targetDirection)
+    public void Bend(Vector3 fixedPosition, Vector3 movableEndPosition, Vector3 targetPostion, Vector3 targetDirection, ref Vector3[] creasePositions)
     {
-        c_bender.Bend(fixedPosition, movableEndPosition, targetPostion, targetDirection);
+        c_bender.Bend(fixedPosition, movableEndPosition, targetPostion, targetDirection, ref creasePositions);
     }
 
     public void GetMeshInfo(out Vector3[] verts, out Vector2[] uv, out int[] triangles)
@@ -139,10 +139,15 @@ public class VertexBenderLogic
     }
 
     //this has the precondition that the start direction (movableEndPosition - fixedPosition) is positive x.
-    public void Bend(Vector3 fixedPosition, Vector3 movableEndPosition, Vector3 targetPosition, Vector3 targetDirection)
+    public void Bend(Vector3 fixedPosition, Vector3 movableEndPosition, Vector3 targetPosition, Vector3 targetDirection, ref Vector3[] creasePositions)
     {
         movableEndPosition -= fixedPosition;
         targetPosition -= fixedPosition;
+
+        for (int i = 0; i < creasePositions.Length; i++)
+        {
+            creasePositions[i] -= fixedPosition;
+        }
 
         //properties of the two curve sections
         float A1, L1, A2, L2;
@@ -208,12 +213,13 @@ public class VertexBenderLogic
             }
         }
 
+        float L1Real = L1 / A1;
         for (int i = 0; i < verts.Length; i++)
         {
             Vector3 newVert = verts[i] - fixedPosition;
             newVerts[i] = newVert;
             float positionAlongLength = Vector3.Dot(newVert, unitXdash);
-            float L1Real = L1 / A1;
+            
             if (positionAlongLength <= L1 / A1) //we are in L1 territory
             {
                 Ls[i] = positionAlongLength * A1;
@@ -235,29 +241,23 @@ public class VertexBenderLogic
 
         #region creases
         // Set up creases: creases should be applied as evenly as possible
-        List<float> creases = new List<float>();
-        creases.Add(L1);
-        float minAngle = L1 * L2;
 
-        while (minAngle > maxCornerAngleRadians)
+        // each crease is in terms of normalised length. This list does not need to be ordered; in fact it is better to have the middle one first, then the n/4th and 3n/4th, and so-on
+        float[] creases = new float[creasePositions.Length];
+        bool[] done = new bool[creasePositions.Length];
+        float[] creaseLs = new float[creasePositions.Length]; // this is the same as creases, but in order so creaseLs[i] corresponds to creasePositions[i]
+
+        for (int i = 0; i < done.Length; i++)
         {
-            minAngle = minAngle / 2;
-            float angle = minAngle;
-            while (angle < L1 * L2)
-            {
-                float crease = Mathf.Sqrt(angle);
-                creases.Add(crease);
-                creases.Add(L1+L2 - crease);
-                angle += angle * 2;
-            }
+            done[i] = false;
         }
+        int n = 0;
 
+        recursiveCreases(ref creases, ref done, creasePositions.Length/2, ref n, creasePositions, L1, A1, A2, creasePositions.Length/2, ref creaseLs);
+
+        
         //do this for each crease
-
-
         bool[] greaterThanCrease = new bool[3];
-
-
         foreach (float crease in creases)
         {
 
@@ -404,6 +404,52 @@ public class VertexBenderLogic
         }
 
         meshOwner.SetMeshInfo(verts, uvs, tris);
+
+        for (int i = 0; i < creasePositions.Length; i++)
+        {
+            if (creaseLs[i] <= L1) // the first half, 'transition in' part of the curve
+            {
+                float xvdash = FresnelMath.FresnelC(creaseLs[i]) / A1;
+                float yvdash = FresnelMath.FresnelS(creaseLs[i]) / A1;
+
+                creasePositions[i] = xvdash * unitXdash + yvdash * unitYdash;
+            }
+            else // the second half, 'transition out' part of the curve
+            {
+                float xvdoubledash = FresnelMath.FresnelC((L1 + L2) - creaseLs[i]) / A2;
+                float yvdoubledash = FresnelMath.FresnelS((L1 + L2) - creaseLs[i]) / A2;
+
+                creasePositions[i] = targetPosition + xvdoubledash * unitXdoubledash + yvdoubledash * unitYdoubledash;
+            }
+        }
+    }
+
+    private void recursiveCreases(ref float[] creases, ref bool[] done, int i, ref int n, Vector3[] creasePositions, float L1, float A1, float A2, int lastDifference, ref float[] creaseLs)
+    {
+        if (creasePositions[i].x <= L1 / A1) //we are in L1 territory
+        {
+            creaseLs[i] = creasePositions[i].x * A1;
+        }
+        else // L2 territory
+        {
+            creaseLs[i] = L1 + ((creasePositions[i].x - L1/A1) * A2);
+        }
+
+        Debug.Log("CreasePosition: " + creasePositions[i] + ", creaseL: " + creaseLs[i]);
+
+        creases[n] = creaseLs[i];         
+        done[i] = true;
+        n++;
+
+        int difference = lastDifference / 2;
+        if (difference == 0) difference = 1;
+
+        int newI = i - difference;
+        if (newI >= 0 && !done[newI])
+            recursiveCreases(ref creases, ref done, newI, ref n, creasePositions, L1, A1, A2, difference, ref creaseLs);
+        newI = i + difference;
+        if (newI < done.Length && !done[newI])
+            recursiveCreases(ref creases, ref done, newI, ref n, creasePositions, L1, A1, A2, difference, ref creaseLs);
     }
 
     public float Bend(Vector3 fixedPosition, Vector3 movableEndPosition, Vector3 targetPosition)
