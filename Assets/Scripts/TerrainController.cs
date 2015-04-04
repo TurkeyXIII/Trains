@@ -473,7 +473,6 @@ public class TerrainControllerLogic
         lineDimension.y = terrainFrom.y - terrainTo.y;
         if (lineDimension.y < 0) lineDimension.y = -lineDimension.y;
 
-
         if (lineDimension.y == 0)
         {
             corner.x = Mathf.Min(terrainFrom.x, terrainTo.x);
@@ -505,6 +504,8 @@ public class TerrainControllerLogic
         float totalLength = Mathf.Sqrt(Mathf.Pow(terrainFrom.x - terrainTo.x, 2) + Mathf.Pow(terrainFrom.y - terrainTo.y, 2));
 
         bool positiveSlope = (terrainFrom.x - terrainTo.x) * (terrainFrom.y - terrainTo.y) > 0;
+
+        bool needsAdjusting = false;
 
         for (int i = 0; i < heightmap.GetLength(0); i++)
         {
@@ -556,10 +557,14 @@ public class TerrainControllerLogic
                 if (dist < 0) dist = -dist;
 
                 targetHeight = (dist / totalLength) * (toHeight - fromHeight) + fromHeight;
-                heightmap[i, j] = targetHeight;
+                if (heightmap[i, j] != targetHeight)
+                {
+                    heightmap[i, j] = targetHeight;
+                    needsAdjusting = true;
+                }
             }
         }
-        heightmapOwner.SetHeightmap(corner.x, corner.y, heightmap);
+        if (needsAdjusting) heightmapOwner.SetHeightmap(corner.x, corner.y, heightmap);
     }
 }
 

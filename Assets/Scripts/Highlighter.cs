@@ -3,7 +3,12 @@ using System.Collections;
 
 public class Highlighter : MonoBehaviour {
 
-    public Material highlightMaterial;
+    public enum HighlightMaterial
+    {
+        InvalidRed
+    }
+
+    public Material[] highlightMaterials; // must be the same order as enum above
 
     private Material m_defaultMaterial;
     private float m_endTime;
@@ -22,23 +27,24 @@ public class Highlighter : MonoBehaviour {
         }
     }
 
-    public void ToggleHighlight()
+    public void ToggleHighlight(HighlightMaterial mat)
     {
         if (GetComponent<Renderer>().material == m_defaultMaterial)
-            Highlight();
+            Highlight(mat);
         else
             RemoveHighlight();
     }
 
-    public void Highlight(float duration)
+    public void Highlight(HighlightMaterial mat, float duration)
     {
-        Highlight();
+        Highlight(mat);
         m_endTime = Time.time + duration;
     }
 
-    public void Highlight()
+    public void Highlight(HighlightMaterial mat)
     {
-        GetComponent<Renderer>().material = highlightMaterial;
+        GetComponent<Renderer>().material = highlightMaterials[(int)mat];
+        m_endTime = -1;
     }
 
     public void RemoveHighlight()

@@ -36,46 +36,77 @@ public class TrackPlacementTool : Tool
     {
         // this is the bauble we're over, if any
         BaubleController hoveringBaubleController = null;
+        TrackSectionShapeController hoveringTrackSectionController = null;
 
+        Vector3 actionLocation = Vector3.zero;
+        Quaternion actionRotation = Quaternion.identity;
         {
-            Vector3 location;
-            Collider hit = CameraController.GetMouseHit(out location);
-            if (hit != null) hoveringBaubleController = hit.GetComponent<BaubleController>();
-            if (hoveringBaubleController != null) hoveringBaubleController.OnMouseover();
+            Vector3 hitLocation;
+            Collider hit = CameraController.GetMouseHit(out hitLocation);
+            if (hit != null)
+            {
+                hoveringBaubleController = hit.GetComponent<BaubleController>();
+                if (hoveringBaubleController != null)
+                {
+                    hoveringBaubleController.OnMouseover();
+                    Control.GetControl().SnapCursorLight(hoveringBaubleController.transform.position);
+                }
+                else if (hit.transform.parent != null)
+                {
+                    hoveringTrackSectionController = hit.transform.parent.GetComponent<TrackSectionShapeController>();
+                }
+                if (hoveringTrackSectionController != null)
+                {
+                    if (hoveringTrackSectionController.IsStraight())
+                    {
+                        hoveringTrackSectionController.FindTrackCenter(hitLocation, out actionLocation, out actionRotation);
+                        Control.GetControl().SnapCursorLight(actionLocation);
+                    }
+                    else
+                    {
+                        hoveringTrackSectionController = null;
+                    }
+                }
+            }
         }
 
         switch (Control.GetControl().GetToolSelector().GetEffect())
         {
             case Effect.Track:
                 {
-
                     if (Input.GetMouseButtonDown(0))
                     {
                         if (m_currentTrackSection == null)
                         {
                             //instantiate a new track section
-                            Vector3 location;
-                            if (hoveringBaubleController == null) // the section should be straight
+                            if (hoveringBaubleController == null && hoveringTrackSectionController == null) // the section should be straight
                             {
-                                if (CameraController.GetMouseHitTerrainLocation(out location))
+                                if (CameraController.GetMouseHitTerrainLocation(out actionLocation))
                                 {
-                                    InstantiateTrackSection(location);
-                                    m_baubleAnchor = (GameObject)Instantiate(m_prefabBauble, location, m_currentTrackSection.transform.rotation);
-                                    m_baubleAnchor.GetComponent<Collider>().enabled = false;
-                                    m_shapeController.LinkStart(m_baubleAnchor);
+                                    InstantiateTrackSection(actionLocation);
+                                    m_baubleAnchor = (GameObject)Instantiate(m_prefabBauble, actionLocation, m_currentTrackSection.transform.rotation);
                                 }
                             }
-                            else // the section should start at the bauble's location and curve if necessary
+                            else if (hoveringBaubleController != null)// the section should start at the bauble's location and curve if necessary
                             {
                                 InstantiateTrackSection(hoveringBaubleController.transform.position);
 
-                                Debug.Log("section instantiated at " + m_currentTrackSection.transform.position + " from bauble at " + hoveringBaubleController.transform.position);
+                                //Debug.Log("section instantiated at " + m_currentTrackSection.transform.position + " from bauble at " + hoveringBaubleController.transform.position);
 
                                 m_baubleAnchor = hoveringBaubleController.gameObject;
-                                m_baubleAnchor.GetComponent<Collider>().enabled = false;
-                                m_shapeController.LinkStart(m_baubleAnchor);
                             }
+                            else if (hoveringTrackSectionController != null) // need to create a new bauble at the track centre position
+                            {
+                                InstantiateTrackSection(actionLocation);
+                                m_baubleAnchor = (GameObject)Instantiate(m_prefabBauble, actionLocation, actionRotation);
+
+                                hoveringTrackSectionController.Split(m_baubleAnchor.GetComponent<BaubleController>());
+                            }
+
+                            m_baubleAnchor.GetComponent<Collider>().enabled = false;
+                            m_shapeController.LinkStart(m_baubleAnchor);
                         }
+
                         else // currentTrackSection != null
                         {
                             m_shapeController.FinalizeShape();
@@ -108,6 +139,11 @@ public class TrackPlacementTool : Tool
 
                             if (positionIsValid)
                             {
+                                if (hoveringTrackSectionController != null)
+                                {
+                                    hoveringTrackSectionController.Split(m_shapeController.GetEndBauble().GetComponent<BaubleController>());
+                                }
+
                                 foreach (Collider c in currentColliders)
                                     m_trackColliders.Add(c);
 
@@ -131,11 +167,11 @@ public class TrackPlacementTool : Tool
                                 m_shapeController.Unfinalize();
                                 Highlighter[] highlighters = m_currentTrackSection.GetComponentsInChildren<Highlighter>();
                                 foreach (Highlighter h in highlighters)
-                                    h.Highlight(1);
+                                    h.Highlight(Highlighter.HighlightMaterial.InvalidRed);
 
                                 highlighters = collidedTrackSection.GetComponentsInChildren<Highlighter>();
                                 foreach (Highlighter h in highlighters)
-                                    h.Highlight(1);
+                                    h.Highlight(Highlighter.HighlightMaterial.InvalidRed);
                             }
                         }
                     }
@@ -147,7 +183,6 @@ public class TrackPlacementTool : Tool
                             {
                                 // select this end of the track for editing
                                 m_currentTrackSection = hoveringBaubleController.GetLastTrackSection();
-                                Debug.Log("Current track section: #" + m_currentTrackSection.GetComponent<ObjectUID>().UID);
                                 m_shapeController = m_currentTrackSection.GetComponent<TrackSectionShapeController>();
 
                                 Collider[] colliders = m_shapeController.GetComponentsInChildren<Collider>();
@@ -155,7 +190,7 @@ public class TrackPlacementTool : Tool
                                     m_trackColliders.Remove(c);
 
                                 m_shapeController.Unfinalize();
-
+                                hoveringBaubleController.fixedRotation = false;
                                 if (hoveringBaubleController.GetLinkCount() == 1)
                                 {
                                     Debug.Log("Found only 1 link; selecting this bauble");
@@ -193,10 +228,32 @@ public class TrackPlacementTool : Tool
                                 m_shapeController.LinkEnd(hoveringBaubleController);
                                 m_baubleCursor.SetActive(false);
                             }
+                            else if (hoveringTrackSectionController != null)
+                            {
+                                //hack to make it work until redesign
+                                m_baubleCursor.GetComponent<BaubleController>().fixedRotation = true;
+                                m_baubleCursor.SetActive(true);
+
+                                if (m_baubleCursor.transform.position != actionLocation)
+                                {
+                                    m_baubleCursor.transform.position = actionLocation;
+                                    m_baubleCursor.transform.rotation = actionRotation * Quaternion.Euler(0, -90, 0);
+                                    m_shapeController.UnlinkEnd();
+                                    m_shapeController.LinkEnd(m_baubleCursor);
+
+
+                                    Debug.Log("Action rotation: " + actionRotation.eulerAngles);
+
+                                }
+
+                                //m_shapeController.SetEndPoint(actionLocation);
+                            }
                             else // baubleController == null
                             {
                                 m_shapeController.LinkEnd(m_baubleCursor);
                                 m_baubleCursor.SetActive(true);
+
+                                m_baubleCursor.GetComponent<BaubleController>().fixedRotation = false;
 
                                 //stretch it to the mouse pointer
                                 Vector3 location;
@@ -235,11 +292,13 @@ public class TrackPlacementTool : Tool
 
     public override void OnSelect()
     {
+        Control.GetControl().CreateCursorLight();
         SetTrackSectionBaubleVisibility(true);
     }
 
     public override void OnDeselect()
     {
+        Control.GetControl().DestroyCursorLight();
         if (m_currentTrackSection != null)
         {
             DeleteCurrentTrackSection();
@@ -271,6 +330,7 @@ public class TrackPlacementTool : Tool
 
     private void DeleteCurrentTrackSection() //m_currentTrackSection != null
     {
+        m_baubleAnchor.GetComponent<BaubleController>().fixedRotation = false;
         if (m_baubleAnchor.GetComponent<BaubleController>().GetLinkCount() <= 1)
         {
             Destroy(m_baubleAnchor);
@@ -279,11 +339,10 @@ public class TrackPlacementTool : Tool
         {
             m_baubleAnchor.GetComponent<Collider>().enabled = true;
         }
-        Destroy(m_baubleCursor);
 
-        Collider[] currentColliders = m_currentTrackSection.GetComponentsInChildren<Collider>();
-        foreach (Collider c in currentColliders)
-            m_trackColliders.Remove(c);
+        DeleteCollidersForSection(m_currentTrackSection);
+
+        Destroy(m_baubleCursor);
 
         Destroy(m_currentTrackSection);
         m_currentTrackSection = null;
@@ -297,6 +356,14 @@ public class TrackPlacementTool : Tool
         {
             bauble.SetActive(visible);
         }
+    }
+
+    // this function is a result of poor structure, and is also quite inefficient
+    public void DeleteCollidersForSection(GameObject trackSection)
+    {
+        Collider[] currentColliders = trackSection.GetComponentsInChildren<Collider>();
+        foreach (Collider c in currentColliders)
+            m_trackColliders.Remove(c);
     }
 
     public void ResetLists()

@@ -15,6 +15,7 @@ public class TrackSectionShapeController : MonoBehaviour {
     private float m_verticalOffset;
     
     public float ballastWidth = 0.1f;
+    public float trackColliderHeight = 0.05f;
 
     private Stack<GameObject> m_currentModels;
 
@@ -61,8 +62,7 @@ public class TrackSectionShapeController : MonoBehaviour {
 
         if (m_endTrackLink.GetLinkCount() == 1 && m_startTrackLink.GetLinkCount() == 1)
         {
-            if (m_mode != Mode.Straight) RestoreTrackSections();
-            m_mode = Mode.Straight;
+            SetStraight();
         }
         else if (m_endTrackLink.GetLinkCount() == 1 || m_startTrackLink.GetLinkCount() == 1)
         {
@@ -86,6 +86,7 @@ public class TrackSectionShapeController : MonoBehaviour {
 
     public void SetStraight()
     {
+        if (m_mode != Mode.Straight) RestoreTrackSections();
         m_mode = Mode.Straight;
     }
 
@@ -108,6 +109,7 @@ public class TrackSectionShapeController : MonoBehaviour {
         }
         if (!checkStateChanges)
         {
+            UnlinkStart();
             BaubleController bc = bauble.GetComponent<BaubleController>();
             m_startTrackLink = bc;
             bc.AddLink(gameObject);
@@ -149,6 +151,7 @@ public class TrackSectionShapeController : MonoBehaviour {
         }
         if (!checkStateChanges)
         {
+            UnlinkEnd();
             BaubleController bc = bauble.GetComponent<BaubleController>();
             m_endTrackLink = bc;
             bc.AddLink(gameObject);
@@ -264,6 +267,31 @@ public class TrackSectionShapeController : MonoBehaviour {
         return m_endTrackLink.gameObject;
     }
 
+    public void Split(BaubleController centreBauble)
+    {
+        //Debug.Log("Splitting track");
+        GameObject newTrackSection = (GameObject)Instantiate(Control.GetControl().prefabTrackSection, centreBauble.transform.position, centreBauble.transform.rotation);
+        TrackSectionShapeController tssc = newTrackSection.GetComponent<TrackSectionShapeController>();
+
+        Control.GetControl().trackPlacer.DeleteCollidersForSection(gameObject);
+        
+        
+        tssc.LinkStart(centreBauble);
+        tssc.LinkEnd(m_endTrackLink);
+        
+        SetEndPoint(centreBauble.transform.position);
+
+        BaubleController startLink = m_startTrackLink;
+        UnlinkStart();
+        LinkEnd(centreBauble.gameObject, false);
+        LinkStart(startLink.gameObject, false);
+
+        tssc.FinalizeShape();
+
+        Unfinalize();
+        FinalizeShape();
+    }
+
     private void RestoreTrackSections()
     {
         //Debug.Log("RestoreTrackSections has been called");
@@ -348,7 +376,7 @@ public class TrackSectionShapeController : MonoBehaviour {
                 }
             }
 
-            Debug.Log("First = " + first + ", last = " + last);
+            //Debug.Log("First = " + first + ", last = " + last);
 
             if (first <= last)
             {
@@ -358,8 +386,8 @@ public class TrackSectionShapeController : MonoBehaviour {
                     relativeRailWaypoints[i - first] = m_rail[i] / trackModel.transform.lossyScale.x + relativeFixedPosition;
                 }
 
-                Debug.Log("Relative fixed: " + relativeFixedPosition + ", RelativeEnd: " + relativeMovablePosition);
-                Debug.Log("Relative first rail: " + relativeRailWaypoints[0] + ", Relative last rail: " + relativeRailWaypoints[relativeRailWaypoints.Length - 1]);
+                //Debug.Log("Relative fixed: " + relativeFixedPosition + ", RelativeEnd: " + relativeMovablePosition);
+                //Debug.Log("Relative first rail: " + relativeRailWaypoints[0] + ", Relative last rail: " + relativeRailWaypoints[relativeRailWaypoints.Length - 1]);
             }
             
             trackModel.GetComponent<VertexBender>().Bend(relativeFixedPosition, relativeMovablePosition, relativeTargetPosition, relativeTargetDirection, ref relativeRailWaypoints);
@@ -373,16 +401,54 @@ public class TrackSectionShapeController : MonoBehaviour {
 
     public void SetEndPoint(Vector3 point)
     {
+        //Debug.Log("In SetEndPoint");
+
         if (point != m_endPoint)
         {
-            /*
-            if (m_startTrackLink.GetLinkCount() == 1 && m_endTrackLink.GetLinkCount() == 1)
-                m_mode = Mode.Straight;
-            else
-                m_mode = Mode.Curved;
-            */
+            //Debug.Log("Point != EndPoint");
             m_endPoint = point;
 
+
+            // ideally, all cases will be considered a compound curve and be handled correctly
+            if (m_startTrackLink != null && m_endTrackLink != null)
+            {
+                if (m_startTrackLink.GetLinkCount() == 1 && m_endTrackLink.GetLinkCount() == 1)
+                {
+                    SetStraight();
+                }
+                else
+                {
+                    if (m_startTrackLink.GetLinkCount() > 1)
+                    {
+                        Vector3 forward = m_startTrackLink.GetRotation(gameObject) * Vector3.right;
+                        if (TrainsMath.AreApproximatelyEqual(Vector3.Dot(point - transform.position, forward), (point - transform.position).magnitude))
+                        {
+                            SetStraight();
+                        }
+                        else
+                        {
+                            if (m_endTrackLink.GetLinkCount() > 1)
+                                m_mode = Mode.Compound;
+                            else
+                                m_mode = Mode.Curved;
+                        }
+                    }
+                    else // m_endTrackLink.GetLinkCount() > 1
+                    {
+                        Vector3 rearward = m_endTrackLink.GetRotation(gameObject) * Vector3.right;
+                        if (TrainsMath.AreApproximatelyEqual(Vector3.Dot(transform.position - point, rearward), (transform.position - point).magnitude))
+                        {
+                            SetStraight();
+                        }
+                        else
+                        {
+                            m_mode = Mode.Curved;
+                        }
+                    }
+                }
+            }
+
+            //Debug.Log("Setting #" + GetComponent<SaveLoad>().UID + " from " + transform.position + " to " + point + "; " + m_mode);
             switch (m_mode)
             {
                 case (Mode.Straight):
@@ -400,7 +466,7 @@ public class TrackSectionShapeController : MonoBehaviour {
                         float length, angle;
                         Vector3 rotationAxis;
                         VertexBender.GetBentLengthAndRotation(transform.right, point - transform.position, out length, out rotationAxis, out angle);
-                        Debug.Log("end bauble rotation axis: " + rotationAxis + " angle (radians): " + angle);
+                        //Debug.Log("end bauble rotation axis: " + rotationAxis + " angle (radians): " + angle);
 
                         if (angle > Mathf.PI / 2) //We're asking to bend behind us; just turn the section around
                         {
@@ -411,8 +477,8 @@ public class TrackSectionShapeController : MonoBehaviour {
 
                         m_endRotation = transform.rotation * Quaternion.AngleAxis(angle * 2 * Mathf.Rad2Deg, rotationAxis);
 
-                        Debug.Log("end bauble rotation axis: " + rotationAxis + " angle (radians): " + angle);
-                        Debug.Log("endRotation = " + m_endRotation);
+                        //Debug.Log("end bauble rotation axis: " + rotationAxis + " angle (radians): " + angle);
+                        //Debug.Log("endRotation = " + m_endRotation);
 
                         RestoreTrackSections();
 
@@ -432,10 +498,10 @@ public class TrackSectionShapeController : MonoBehaviour {
                         if (m_startTrackLink != null)
                             transform.rotation = m_startTrackLink.GetRotation(gameObject);
 
-                        Debug.Log("renewed section rotation: " + transform.rotation);
+                        //Debug.Log("renewed section rotation: " + transform.rotation);
 
                         length = VertexBenderLogic.GetLengthOfCompoundCurve(transform.position, m_endPoint, transform.right, m_endRotation * Vector3.right);
-                        Debug.Log("Found length of " + length);
+                        //Debug.Log("Found length of " + length);
                         
                         if (length < 0) return;
 
@@ -465,7 +531,7 @@ public class TrackSectionShapeController : MonoBehaviour {
     {
         if (m_mode == Mode.Straight)
         {
-            Debug.Log("Calculating straight section rail");
+            //Debug.Log("Calculating straight section rail");
 
             m_rail = new Vector3[2];
             m_rail[0] = transform.position;
@@ -473,7 +539,7 @@ public class TrackSectionShapeController : MonoBehaviour {
         }
         else
         {
-            Debug.Log("Calculating curved/compound section rail");
+            //Debug.Log("Calculating curved/compound section rail");
 
             m_rail = new Vector3[Mathf.CeilToInt(Quaternion.Angle(transform.rotation, m_endRotation) / 5f * m_currentLength) + 2]; // approximate to be fairly large?
             for (int i = 0; i < m_rail.Length; i++)
@@ -509,7 +575,7 @@ public class TrackSectionShapeController : MonoBehaviour {
 
             GameObject boxColliderChild = (GameObject)GameObject.Instantiate(colliderObjectReference);
             boxColliderChild.transform.parent = transform;
-            boxColliderChild.transform.position = (m_rail[i-1] + m_rail[i]) / 2f + Vector3.down * averageTrackHeight / 2f;
+            boxColliderChild.transform.position = (m_rail[i-1] + m_rail[i]) / 2f + Vector3.down * averageTrackHeight / 2f + Vector3.up * trackColliderHeight;
             boxColliderChild.transform.rotation = Quaternion.LookRotation(m_rail[i] - m_rail[i-1]);
             boxColliderChild.transform.localScale = Vector3.one;
 
@@ -525,7 +591,6 @@ public class TrackSectionShapeController : MonoBehaviour {
     // reverse anything that FinalizeShape() did. Doesn't undo SetBallast though.
     public void Unfinalize()
     {
-        m_rail = null;
         Collider[] colliders = GetComponentsInChildren<Collider>();
         foreach (Collider c in colliders)
         {
@@ -588,5 +653,39 @@ public class TrackSectionShapeController : MonoBehaviour {
         if (m_endTrackLink.gameObject == bauble) return m_startTrackLink.gameObject;
 
         return null;
+    }
+
+    // finds the real-world co-ordinates of the middle of the track closest to location
+    public void FindTrackCenter(Vector3 location, out Vector3 centre, out Quaternion direction)
+    {
+        //Use rails as an approximation of track curvature.
+
+        float minimumDistance = float.MaxValue;
+        int minimumDistanceIndex = 0;
+
+        float firstDistance = (location - m_rail[0]).magnitude;
+        for (int i = 1; i < m_rail.Length; i++)
+        {
+            float secondDistance = (location - m_rail[i]).magnitude;
+            if (firstDistance + secondDistance < minimumDistance)
+            {
+                minimumDistance = firstDistance + secondDistance;
+                minimumDistanceIndex = i;
+            }
+            firstDistance = secondDistance;
+        }
+
+        Vector3 rail1 = m_rail[minimumDistanceIndex - 1];
+        Vector3 rail2 = m_rail[minimumDistanceIndex];
+        Vector3 line1to2 = rail2 - rail1;
+        Vector3 line1toL = location - rail1;
+
+        float d = Vector3.Dot(line1toL, line1to2) / line1to2.sqrMagnitude;
+        if (d < 0) d = 0;
+        if (d > 1) d = 1;
+
+        centre = rail1 + d * line1to2;
+
+        direction = Quaternion.LookRotation(line1to2, transform.up);
     }
 }

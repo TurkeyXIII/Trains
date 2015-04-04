@@ -19,6 +19,8 @@ public class BaubleController : MonoBehaviour {
 
     private LinkedList<TrackLink> m_tracks;
 
+    public bool fixedRotation { set; private get; }
+
     private GameObject m_bufferStop;
 
     void Awake()
@@ -63,23 +65,23 @@ public class BaubleController : MonoBehaviour {
 
     public void RemoveLink(GameObject go)
     {
-        //Debug.Log("RemoveLink searching for #" + go.GetComponent<TrackUID>().UID + " in " + GetLinkCount() + " links");
+        Debug.Log("RemoveLink in " + GetComponent<SaveLoad>().UID + " searching for #" + go.GetComponent<SaveLoad>().UID + " in " + GetLinkCount() + " links");
         if (m_tracks == null) return;
 
         LinkedListNode<TrackLink> node = m_tracks.First;
         while (node != null)
         {
-            //Debug.Log("Found #" + node.Value.track.GetComponent<TrackUID>().UID);
+            Debug.Log("Found #" + node.Value.track.GetComponent<SaveLoad>().UID);
             if (node.Value.track == go)
             {
                 m_tracks.Remove(node);
-                //Debug.Log("Link removed; count = " + m_tracks.Count);
+                Debug.Log("Link removed; count = " + m_tracks.Count);
                 return;
             }
             node = node.Next;
         }
 
-        //Debug.Log("Remove link failed - not found");
+        Debug.Log("Remove link failed - not found");
     }
 
     public void AddLink(GameObject go)
@@ -91,7 +93,7 @@ public class BaubleController : MonoBehaviour {
         
         m_tracks.AddLast(tl);
 
-//        Debug.Log("Link added; count = " + m_tracks.Count);
+        Debug.Log(GetComponent<SaveLoad>().UID + " added link " + go.GetComponent<SaveLoad>().UID + "; count = " + m_tracks.Count);
     }
 
     public void RecalculateDirections(GameObject trackSection)
@@ -112,7 +114,7 @@ public class BaubleController : MonoBehaviour {
 
     private void RecalculateDirections(ref TrackLink trackLink)
     {
-        Debug.Log("Calculating directions...");
+        //Debug.Log("Calculating directions...");
         GameObject otherBauble = trackLink.track.GetComponent<TrackSectionShapeController>().GetOtherBauble(gameObject);
         if (otherBauble == null)
         {
@@ -122,24 +124,24 @@ public class BaubleController : MonoBehaviour {
         {
             Vector3 otherEnd = otherBauble.transform.position;
 
-            Debug.Log("Vector to other end: " + (otherEnd - transform.position));
+            //Debug.Log("Vector to other end: " + (otherEnd - transform.position));
 
             Vector3 endDirection = (otherEnd - transform.position).normalized;
 
             float dotProduct = Vector3.Dot(endDirection, transform.right);
             if (dotProduct > 1) dotProduct = 1;
             if (dotProduct < -1) dotProduct = -1;
-            Debug.Log("Dot Product: " + dotProduct);
+            //Debug.Log("Dot Product: " + dotProduct);
 
             float angle = Mathf.Rad2Deg * Mathf.Acos(dotProduct);
 
             if (Vector3.Dot(endDirection, -transform.forward) < 0)
             {
-                Debug.Log("Inverting angle");
+                //Debug.Log("Inverting angle");
                 angle = -angle;
             }
 
-            Debug.Log("Track angle found to be " + angle);
+            //Debug.Log("Track angle found to be " + angle);
 
             trackLink.angle = angle;
         }
@@ -187,7 +189,7 @@ public class BaubleController : MonoBehaviour {
             Debug.Log("Link found: #" + tl.track.GetComponent<TrackUID>().UID);
         }
         */
-        return m_tracks.Count + (m_bufferStop == null ? 0 : 1);
+        return m_tracks.Count + (m_bufferStop == null ? 0 : 1) + (fixedRotation ? 2 : 0);
     }
 
     public void AddBufferStop(GameObject bufferStop)
@@ -214,7 +216,7 @@ public class BaubleController : MonoBehaviour {
         if (m_tracks.Count != 1) return transform.rotation;
 
         float angle = m_tracks.First.Value.angle;
-        Debug.Log("Angle = " + angle);
+        //Debug.Log("Angle = " + angle);
         if (angle > 90 || angle < -90)
             return transform.rotation;
         else

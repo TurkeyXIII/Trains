@@ -16,6 +16,7 @@ public class Tool : MonoBehaviour
 
     public virtual void OnDeselect()
     {
+        Control.GetControl().DestroyCursorLight();
     }
 
 

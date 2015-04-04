@@ -7,12 +7,15 @@ public abstract class SaveLoad : MonoBehaviour
 {
     private static int UIDcounter = 0;
 
-    public int UID { get; private set; }
+    public int publicID;
+
+    public int UID {get; private set;}
 
     // subclasses must call base.Awake() from their awake function
     public void Awake()
     {
         UID = UIDcounter++;
+        publicID = UID;
         Control.GetControl().AddToLists(this);
     }
 

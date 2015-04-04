@@ -12,12 +12,15 @@ public class Control : MonoBehaviour {
     private LinkedList<GameObject> m_trackSections;
     private LinkedList<GameObject> m_bufferStops;
     private LinkedList<GameObject> m_baubles;
+    
+    private GameObject m_cursorLight;
 
     internal TrackPlacementTool trackPlacer;
 
     public GameObject prefabTrackSection;
     public GameObject prefabBufferStop;
     public GameObject prefabBauble;
+    public GameObject prefabCursorLight;
 
     void Awake()
     {
@@ -43,6 +46,11 @@ public class Control : MonoBehaviour {
     void Start()
     {
         OnLevelWasLoaded(Application.loadedLevel);
+    }
+
+    void Update()
+    {
+        if (m_cursorLight != null) AdjustCursorLight();
     }
 
     void OnLevelWasLoaded(int level)
@@ -128,5 +136,42 @@ public class Control : MonoBehaviour {
     public IEnumerable<GameObject> GetTrackSections()
     {
         return InstantiatedList(ref m_trackSections);
+    }
+
+    public void CreateCursorLight(float size = 0.2f)
+    {
+        if (m_cursorLight == null)
+        {
+            m_cursorLight = (GameObject)Instantiate(prefabCursorLight);
+            Light l = m_cursorLight.GetComponent<Light>();
+            l.range = size;
+
+            AdjustCursorLight();
+        }
+
+    }
+
+    public void DestroyCursorLight()
+    {
+        if (m_cursorLight != null)
+        {
+            Destroy(m_cursorLight);
+            m_cursorLight = null;
+        }
+    }
+
+    public void SnapCursorLight(Vector3 position)
+    {
+        if (m_cursorLight != null)
+        {
+            m_cursorLight.transform.position = position + 0.1f * Vector3.up;
+        }
+    }
+
+    private void AdjustCursorLight()
+    {
+        Vector3 mousePosition;
+        if (CameraController.GetMouseHitTerrainLocation(out mousePosition))
+            m_cursorLight.transform.position = mousePosition + 0.1f * Vector3.up;
     }
 }

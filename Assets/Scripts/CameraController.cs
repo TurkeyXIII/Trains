@@ -1,8 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-//TODO: LERP camera movements for smoothness
-
 public class CameraController : MonoBehaviour , ICameraView
 {
 

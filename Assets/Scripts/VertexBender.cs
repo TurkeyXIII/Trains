@@ -143,7 +143,7 @@ public class VertexBenderLogic
     {
         movableEndPosition -= fixedPosition;
         targetPosition -= fixedPosition;
-
+        if (creasePositions == null) creasePositions = new Vector3[0];
         for (int i = 0; i < creasePositions.Length; i++)
         {
             creasePositions[i] -= fixedPosition;
@@ -426,6 +426,7 @@ public class VertexBenderLogic
 
     private void recursiveCreases(ref float[] creases, ref bool[] done, int i, ref int n, Vector3[] creasePositions, float L1, float A1, float A2, int lastDifference, ref float[] creaseLs)
     {
+        if (creaseLs.Length <= i) return;
         if (creasePositions[i].x <= L1 / A1) //we are in L1 territory
         {
             creaseLs[i] = creasePositions[i].x * A1;
@@ -435,7 +436,7 @@ public class VertexBenderLogic
             creaseLs[i] = L1 + ((creasePositions[i].x - L1/A1) * A2);
         }
 
-        Debug.Log("CreasePosition: " + creasePositions[i] + ", creaseL: " + creaseLs[i]);
+        // Debug.Log("CreasePosition: " + creasePositions[i] + ", creaseL: " + creaseLs[i]);
 
         creases[n] = creaseLs[i];         
         done[i] = true;
