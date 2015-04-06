@@ -27,6 +27,11 @@ public static class TrainsMath {
 
         return false;
     }
+
+    public static bool AreApproximatelyEqual(Vector3 a, Vector3 b)
+    {
+        return AreApproximatelyEqual(a, b, c_fudgeFactor);
+    }
 }
 
 

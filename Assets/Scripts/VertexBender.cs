@@ -30,9 +30,19 @@ public class VertexBender : MonoBehaviour, IMeshOwner
         c_bender.Bend(fixedPosition, movableEndPosition, targetPostion);
     }
 
-    public void Bend(Vector3 fixedPosition, Vector3 movableEndPosition, Vector3 targetPostion, Vector3 targetDirection, ref Vector3[] creasePositions)
+    public void Bend(float L1, float L2, float A1, float A2, float theta1, float theta2,
+                    Vector3 fixedPosition, 
+                    Vector3 movableEndPosition, 
+                    Vector3 targetPostion, 
+                    Vector3 targetDirection, 
+                    ref Vector3[] creasePositions)
     {
-        c_bender.Bend(fixedPosition, movableEndPosition, targetPostion, targetDirection, ref creasePositions);
+        c_bender.Bend(L1, L2, A1, A2, theta1, theta2,
+                    fixedPosition, 
+                    movableEndPosition, 
+                    targetPostion, 
+                    targetDirection, 
+                    ref creasePositions);
     }
 
     public void GetMeshInfo(out Vector3[] verts, out Vector2[] uv, out int[] triangles)
@@ -139,7 +149,12 @@ public class VertexBenderLogic
     }
 
     //this has the precondition that the start direction (movableEndPosition - fixedPosition) is positive x.
-    public void Bend(Vector3 fixedPosition, Vector3 movableEndPosition, Vector3 targetPosition, Vector3 targetDirection, ref Vector3[] creasePositions)
+    public void Bend(float L1, float L2, float A1, float A2, float theta1, float theta2,
+                    Vector3 fixedPosition, 
+                    Vector3 movableEndPosition, 
+                    Vector3 targetPosition, 
+                    Vector3 targetDirection, 
+                    ref Vector3[] creasePositions)
     {
         movableEndPosition -= fixedPosition;
         targetPosition -= fixedPosition;
@@ -149,29 +164,15 @@ public class VertexBenderLogic
             creasePositions[i] -= fixedPosition;
         }
 
-        //properties of the two curve sections
-        float A1, L1, A2, L2;
-        float theta1, theta2;
+
 //        Debug.Log("TargetPosition: " + targetPosition + ", TargetDirection: " + targetDirection);
-        FresnelMath.FindTheta(out theta1, out theta2, Vector3.zero, targetPosition, Vector3.right, -targetDirection);
-        if (theta1 < 0) return;
 
         float phi = theta1 + theta2;
-
-        A2 = FresnelMath.A2(theta1, phi, targetPosition.x);
-        A1 = FresnelMath.A1(A2, theta1, phi);
-
-        L1 = Mathf.Sqrt(theta1);
-        L2 = Mathf.Sqrt(theta2);
-
-//        Debug.Log("Bending with lengths " + L1/A1 + " and " + L2/A2);
-
-//        Debug.Log("theta1 = " + theta1 + ", theta2 = " + theta2);
 
         // orthogonal unit vectors describing the x and y directions of a co-ordinate system where x is the original direction and y is the lateral movement
         Vector3 unitXdash = new Vector3(1,0,0);
         Vector3 unitYdash = targetPosition - unitXdash * targetPosition.x;
-        unitYdash /= unitYdash.magnitude;
+        unitYdash.Normalize();
 
         // orthogonal unit vectors describing x and y directions of co-ordinate system where x is direction away from target point along straigh line and y is lateral movement to origin
         Vector3 rotationAxis = Vector3.Cross(unitXdash, unitYdash);

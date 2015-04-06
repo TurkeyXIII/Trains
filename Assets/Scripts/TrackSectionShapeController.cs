@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Collections;
 using System;
 
-public class TrackSectionShapeController : MonoBehaviour {
+public class TrackSectionShapeController : MonoBehaviour
+{
 
     public GameObject trackModel;
     public GameObject colliderObjectReference;
@@ -17,11 +18,17 @@ public class TrackSectionShapeController : MonoBehaviour {
     public float ballastWidth = 0.1f;
     public float trackColliderHeight = 0.05f;
 
+    public float maxRailAngle;
+
     private Stack<GameObject> m_currentModels;
 
     private BaubleController m_startTrackLink, m_endTrackLink;
 
     private Vector3[] m_rail;
+
+    //Curve Parameters
+    private float m_L1, m_L2, m_A1, m_A2;
+    private float m_theta1, m_theta2;
 
     private enum Mode
     {
@@ -356,6 +363,13 @@ public class TrackSectionShapeController : MonoBehaviour {
 
     public void Curve()
     {
+        if (!CalculateParameters()) return;
+
+        float length = m_L1 / m_A1 + m_L2 / m_A2;
+
+        RestoreTrackSections();
+        SetLength(length);
+
         foreach (GameObject trackModel in m_currentModels)
         {
             Vector3 relativeMovablePosition = new Vector3(m_currentLength/transform.localScale.x - trackModel.transform.localPosition.x, 0, 0) * trackModel.transform.localScale.x;
@@ -390,13 +404,45 @@ public class TrackSectionShapeController : MonoBehaviour {
                 //Debug.Log("Relative first rail: " + relativeRailWaypoints[0] + ", Relative last rail: " + relativeRailWaypoints[relativeRailWaypoints.Length - 1]);
             }
             
-            trackModel.GetComponent<VertexBender>().Bend(relativeFixedPosition, relativeMovablePosition, relativeTargetPosition, relativeTargetDirection, ref relativeRailWaypoints);
+            trackModel.GetComponent<VertexBender>().Bend(m_L1, m_L2, m_A1 * trackModel.transform.lossyScale.x, m_A2 * trackModel.transform.lossyScale.x, m_theta1, m_theta2,
+                                                        relativeFixedPosition, 
+                                                        relativeMovablePosition,  
+                                                        relativeTargetPosition, 
+                                                        relativeTargetDirection, 
+                                                        ref relativeRailWaypoints);
 
             for (int i = 0; i < relativeRailWaypoints.Length; i++)
             {
-                m_rail[first+i] = trackModel.transform.TransformPoint(relativeRailWaypoints[i] + relativeFixedPosition) - m_verticalOffset * Vector3.up;
+                m_rail[i + first] = trackModel.transform.TransformPoint(relativeRailWaypoints[i] + relativeFixedPosition) - m_verticalOffset * Vector3.up;
             }
         }
+    }
+
+    // this function assigns values to L1, L2 etc assuming m_endPoint, m_endRotation etc are fixed. 
+    // Returns false if params can't be found
+    private bool CalculateParameters()
+    {
+        Vector3 startPosition, targetPosition, startDirection, targetDirection;
+
+        startPosition = transform.position;
+        targetPosition = m_endPoint;
+        startDirection = transform.rotation * Vector3.right;
+        targetDirection = m_endRotation * Vector3.right;
+
+        FresnelMath.FindTheta(out m_theta1, out m_theta2, startPosition, targetPosition, startDirection, -targetDirection);
+        if (m_theta1 < 0) return false;
+
+        float x = Vector3.Dot((targetPosition - startPosition), startDirection.normalized);
+
+        float phi = m_theta1 + m_theta2;
+
+        m_A2 = FresnelMath.A2(m_theta1, phi, x);
+        m_A1 = FresnelMath.A1(m_A2, m_theta1, phi);
+
+        m_L1 = Mathf.Sqrt(m_theta1);
+        m_L2 = Mathf.Sqrt(m_theta2);
+
+        return true;
     }
 
     public void SetEndPoint(Vector3 point)
@@ -480,37 +526,13 @@ public class TrackSectionShapeController : MonoBehaviour {
                         //Debug.Log("end bauble rotation axis: " + rotationAxis + " angle (radians): " + angle);
                         //Debug.Log("endRotation = " + m_endRotation);
 
-                        RestoreTrackSections();
-
-                        SetLength(length);
-
                         Curve();
 
                         break;
                     }
                 case (Mode.Compound):
                     {
-                        float length;
-
-                        if (m_endTrackLink != null)
-                            m_endRotation = m_endTrackLink.GetRotation(gameObject) * Quaternion.AngleAxis(180, m_endTrackLink.transform.up);
-
-                        if (m_startTrackLink != null)
-                            transform.rotation = m_startTrackLink.GetRotation(gameObject);
-
-                        //Debug.Log("renewed section rotation: " + transform.rotation);
-
-                        length = VertexBenderLogic.GetLengthOfCompoundCurve(transform.position, m_endPoint, transform.right, m_endRotation * Vector3.right);
-                        //Debug.Log("Found length of " + length);
-                        
-                        if (length < 0) return;
-
-                        RestoreTrackSections();
-
-                        SetLength(length);
-
                         Curve();
-                        
                         break;
                     }
             }
@@ -539,23 +561,7 @@ public class TrackSectionShapeController : MonoBehaviour {
         }
         else
         {
-            //Debug.Log("Calculating curved/compound section rail");
-
-            m_rail = new Vector3[Mathf.CeilToInt(Quaternion.Angle(transform.rotation, m_endRotation) / 5f * m_currentLength) + 2]; // approximate to be fairly large?
-            for (int i = 0; i < m_rail.Length; i++)
-            {
-                m_rail[i] = new Vector3((float)(i * m_currentLength) / (float)(m_rail.Length - 1), 0, 0);
-            }
-
-            // this is now handled by the Curve() function
-            /*
-            VertexBenderLogic.BendVectors(temp, out m_rail, new Vector3(m_currentLength, 0, 0), transform.InverseTransformPoint(m_endPoint));
-
-            for (int i = 0; i < m_rail.Length; i++)
-            {
-                m_rail[i] = transform.TransformPoint(m_rail[i]);
-            }
-            */
+            m_rail = RailVectorCreator.CreateRailVectors(m_L1, m_L2, m_A1, m_A2, m_theta1, m_theta2, transform.position, m_endPoint, maxRailAngle);
         }
     }
 
@@ -688,4 +694,59 @@ public class TrackSectionShapeController : MonoBehaviour {
 
         direction = Quaternion.LookRotation(line1to2, transform.up);
     }
+}
+
+public static class RailVectorCreator
+{
+    // this function
+    public static Vector3[] CreateRailVectors(float L1, float L2, float A1, float A2, float theta1, float theta2, 
+                                            Vector3 startPosition, 
+                                            Vector3 endPosition,
+                                            float maxAngleDeg)
+    {
+        Vector3[] rails;
+
+        if (L1 == 0)
+        {
+            rails = new Vector3[2];
+            rails[0] = startPosition;
+            rails[1] = endPosition;
+            return rails;
+        }
+
+        float length = L1/A1 + L2/A2;
+        float maxAngle = maxAngleDeg * Mathf.Deg2Rad;
+
+        float phi = theta1 + theta2;
+        int nVectors = Mathf.FloorToInt(phi / maxAngle) + 2;
+
+        rails = new Vector3[nVectors];
+
+        /*
+        rails[0] = Vector3.zero;
+        rails[nVectors - 1] = new Vector3(length, 0, 0);
+        */
+        float anglePerSection = phi / (nVectors - 1);
+
+        for (int i = 0; i < rails.Length; i++)
+        {
+            float angleForVector = i * anglePerSection;
+            float distanceAlongLength;
+
+            if (angleForVector < theta1)
+            {
+                distanceAlongLength = Mathf.Sqrt(angleForVector) / A1;
+            }
+            else
+            {
+                distanceAlongLength = length - Mathf.Sqrt(phi - angleForVector) / A2;
+            }
+
+            rails[i] = new Vector3(distanceAlongLength, 0, 0);
+//            rails[i] = new Vector3((float)(i * length) / (float)(rails.Length - 1), 0, 0);
+        }
+
+        return rails;
+    }
+
 }
