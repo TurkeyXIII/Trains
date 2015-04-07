@@ -43,6 +43,7 @@ MonoBehaviour:
   prefabTrackSection: {fileID: 100000, guid: 79cbad5af96af234f9711ce78698904f, type: 2}
   prefabBufferStop: {fileID: 100002, guid: 2031124de59465546ac1e45f99eebf6e, type: 2}
   prefabBauble: {fileID: 100000, guid: 841d3fe9ac05b2b4da0bb4504c1c5266, type: 2}
+  prefabLocomotive: {fileID: 100000, guid: a89b03a5334b851458ce15ba97d1501b, type: 2}
   prefabCursorLight: {fileID: 190878, guid: a48fd9d7a6d617d42b8baad137deeaed, type: 2}
 --- !u!114 &11400004
 MonoBehaviour:

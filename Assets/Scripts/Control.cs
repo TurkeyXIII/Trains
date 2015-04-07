@@ -12,6 +12,7 @@ public class Control : MonoBehaviour {
     private LinkedList<GameObject> m_trackSections;
     private LinkedList<GameObject> m_bufferStops;
     private LinkedList<GameObject> m_baubles;
+    private LinkedList<GameObject> m_Locomotives;
     
     private GameObject m_cursorLight;
 
@@ -20,6 +21,7 @@ public class Control : MonoBehaviour {
     public GameObject prefabTrackSection;
     public GameObject prefabBufferStop;
     public GameObject prefabBauble;
+    public GameObject prefabLocomotive;
     public GameObject prefabCursorLight;
 
     void Awake()

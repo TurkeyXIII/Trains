@@ -3,6 +3,8 @@ using System.Collections;
 
 public class Tool : MonoBehaviour
 {
+    // these virtual functions provide default behaviour
+    // overrides do not need to call base.
     public virtual Effect GetDefaultEffect()
     {
         return Effect.None;
@@ -10,15 +12,12 @@ public class Tool : MonoBehaviour
 
     public virtual void UpdateWhenSelected()
     {
-        // do nothing
     }
-
 
     public virtual void OnDeselect()
     {
         Control.GetControl().DestroyCursorLight();
     }
-
 
     public virtual void OnSelect()
     {

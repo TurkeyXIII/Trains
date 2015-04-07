@@ -23,7 +23,6 @@ public class FileHandler : MonoBehaviour {
             c_terrainSaveLoad = GameObject.FindGameObjectWithTag("Terrain").GetComponent<TerrainSaveLoad>();
             Debug.Log("Assigning Terrain loader");
 
-            //saveLoad.InitialiseTerrain();
             levelHasChanged = false;
             filename = null;
         }

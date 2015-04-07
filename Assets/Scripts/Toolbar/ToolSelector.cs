@@ -10,7 +10,8 @@ public enum Effect
     Medium,
     Large,
     Track,
-    BufferStop
+    BufferStop,
+    Locomotive
 }
 
 public class ToolSelector : MonoBehaviour
@@ -23,7 +24,8 @@ public class ToolSelector : MonoBehaviour
         "Medium Brush",
         "Large Brush",
         "Track",
-        "Buffer Stop"
+        "Buffer Stop",
+        "Locomotive"
     };
 
     public Texture2D[] toolCursors;
@@ -84,6 +86,11 @@ public class ToolSelector : MonoBehaviour
         OnToolSelect<TrackPlacementTool>();
     }
 
+    public void OnSelectTrain()
+    {
+        OnToolSelect<TrainPlacementTool>();
+    }
+
     public void OnSelectSmall()
     {
         OnEffectSelect(Effect.Small);
@@ -107,6 +114,11 @@ public class ToolSelector : MonoBehaviour
     public void OnSelectBufferStop()
     {
         OnEffectSelect(Effect.BufferStop);
+    }
+
+    public void OnSelectLocomotive()
+    {
+        OnEffectSelect(Effect.Locomotive);
     }
 
     public Effect GetEffect()
