@@ -34,6 +34,7 @@ public abstract class SaveLoad : MonoBehaviour
         UID = data.UID;
         if (UID + 1 > UIDcounter)
             UIDcounter = UID + 1;
+        publicID = UID;
     }
 
     public abstract IDataObject GetDataObject();

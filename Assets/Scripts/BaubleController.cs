@@ -17,6 +17,8 @@ public class BaubleController : MonoBehaviour {
         public float angle; // direction that the track leaves this node relative to this node's orientation. -180 < angle < 180.
     }
 
+    private Vector3 m_lastPosition;
+
     private LinkedList<TrackLink> m_tracks;
 
     public bool fixedRotation { set; private get; }
@@ -30,6 +32,7 @@ public class BaubleController : MonoBehaviour {
         m_normalMaterial = gameObject.GetComponent<Renderer>().material;
 
         m_tracks = new LinkedList<TrackLink>();
+        m_lastPosition = transform.position;
     }
 
     void Update()
@@ -49,6 +52,36 @@ public class BaubleController : MonoBehaviour {
         }
 
         m_mouseIsOver = false;
+
+        if (transform.position != m_lastPosition)
+        {
+            if (m_bufferStop != null) m_bufferStop.transform.position = transform.position;
+
+            bool trackUpdateFailed = false;
+            foreach (TrackLink tl in m_tracks)
+            {
+                trackUpdateFailed = !(tl.track.GetComponent<TrackSectionShapeController>().ShapeTrack());
+                if (trackUpdateFailed) break;
+            }
+
+            // Reverting bauble position doesn't do anything as the bauble position is immediately moved back in LateUpdate()
+            // Require different behaviour to indicate error
+            /*
+            if (trackUpdateFailed)
+            {
+                Debug.Log("Track update failed");
+                transform.position = m_lastPosition;
+                foreach (TrackLink tl in m_tracks)
+                {
+                    tl.track.GetComponent<TrackSectionShapeController>().ShapeTrack();
+                }
+            }
+            else
+            {
+                m_lastPosition = transform.position;
+            }
+            */
+        }
     }
 
     public void OnMouseover()
@@ -65,23 +98,23 @@ public class BaubleController : MonoBehaviour {
 
     public void RemoveLink(GameObject go)
     {
-        Debug.Log("RemoveLink in " + GetComponent<SaveLoad>().UID + " searching for #" + go.GetComponent<SaveLoad>().UID + " in " + GetLinkCount() + " links");
+        //Debug.Log("RemoveLink in " + GetComponent<SaveLoad>().UID + " searching for #" + go.GetComponent<SaveLoad>().UID + " in " + GetLinkCount() + " links");
         if (m_tracks == null) return;
 
         LinkedListNode<TrackLink> node = m_tracks.First;
         while (node != null)
         {
-            Debug.Log("Found #" + node.Value.track.GetComponent<SaveLoad>().UID);
+            //Debug.Log("Found #" + node.Value.track.GetComponent<SaveLoad>().UID);
             if (node.Value.track == go)
             {
                 m_tracks.Remove(node);
-                Debug.Log("Link removed; count = " + m_tracks.Count);
+                //Debug.Log("Link removed; count = " + m_tracks.Count);
                 return;
             }
             node = node.Next;
         }
 
-        Debug.Log("Remove link failed - not found");
+        //Debug.Log("Remove link failed - not found");
     }
 
     public void AddLink(GameObject go)
@@ -93,7 +126,7 @@ public class BaubleController : MonoBehaviour {
         
         m_tracks.AddLast(tl);
 
-        Debug.Log(GetComponent<SaveLoad>().UID + " added link " + go.GetComponent<SaveLoad>().UID + "; count = " + m_tracks.Count);
+        //Debug.Log(GetComponent<SaveLoad>().UID + " added link " + go.GetComponent<SaveLoad>().UID + "; count = " + m_tracks.Count);
     }
 
     public void RecalculateDirections(GameObject trackSection)
@@ -189,7 +222,14 @@ public class BaubleController : MonoBehaviour {
             Debug.Log("Link found: #" + tl.track.GetComponent<TrackUID>().UID);
         }
         */
-        return m_tracks.Count + (m_bufferStop == null ? 0 : 1) + (fixedRotation ? 2 : 0);
+        return m_tracks.Count;
+    }
+
+    public bool CanRotate()
+    {
+        if (m_bufferStop != null) return false;
+        if (fixedRotation) return false;
+        return (m_tracks.Count <= 1);
     }
 
     public void AddBufferStop(GameObject bufferStop)

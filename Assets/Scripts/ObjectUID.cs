@@ -1,7 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class ObjectUID : MonoBehaviour {
+// This functionality is now a part of the SaveLoad abstract class
+/*
+internal class ObjectUID : MonoBehaviour {
 
 	private static int UIDcounter = 0;
 
@@ -19,3 +21,4 @@ public class ObjectUID : MonoBehaviour {
             UIDcounter = UID + 1;
     }
 }
+*/

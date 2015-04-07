@@ -19,7 +19,7 @@ public class BaubleSaveLoad : SaveLoad
     {
         BaubleData data = new BaubleData();
 
-        data.UID = GetComponent<ObjectUID>().UID;
+        data.UID = UID;
 
         data.positionX = transform.position.x;
         data.positionY = transform.position.y;
@@ -40,7 +40,7 @@ public class BaubleSaveLoad : SaveLoad
         transform.position = new Vector3(bData.positionX, bData.positionY, bData.positionZ);
         transform.rotation = new Quaternion(bData.rotationX, bData.rotationY, bData.rotationZ, bData.rotationW);
 
-        GetComponent<ObjectUID>().LoadFromDataObject(bData);
+        base.LoadFromDataObject(bData);
     }
 }
 

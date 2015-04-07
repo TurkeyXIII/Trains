@@ -22,6 +22,6 @@ public class BufferStopController : MonoBehaviour {
 
     public int GetBaubleUID()
     {
-        return m_bauble.GetComponent<ObjectUID>().UID;
+        return m_bauble.GetComponent<SaveLoad>().UID;
     }
 }

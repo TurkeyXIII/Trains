@@ -20,7 +20,7 @@ public class BufferStopSaveLoad : SaveLoad
     {
         BufferStopData data = new BufferStopData();
 
-        data.UID = GetComponent<ObjectUID>().UID;
+        data.UID = UID;
 
         data.positionX = transform.position.x;
         data.positionY = transform.position.y;
@@ -45,7 +45,7 @@ public class BufferStopSaveLoad : SaveLoad
 
         m_baubleUID = bsData.baubleUID;
 
-        GetComponent<ObjectUID>().LoadFromDataObject(bsData);
+        base.LoadFromDataObject(bsData);
     }
 
     public int GetBaubleUID()

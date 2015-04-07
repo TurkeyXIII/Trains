@@ -244,23 +244,27 @@ public class FileHandler : MonoBehaviour {
 
             foreach (GameObject bauble in Control.GetControl().GetBaubles())
             {
-                int uid = bauble.GetComponent<ObjectUID>().UID;
+                int uid = bauble.GetComponent<SaveLoad>().UID;
                 if (uid == startUID)
                 {
-                    tssc.LinkStart(bauble, false);
+                    Debug.Log("Linking start of #" + tssl.UID + " to #" + uid);
+                    tssc.LinkStart(bauble);
                     startUID = -1;
                 }
                 else if (uid == endUID)
                 {
-                    tssc.LinkEnd(bauble, false);
+                    Debug.Log("Linking end of #" + tssl.UID + " to #" + uid);
+                    tssc.LinkEnd(bauble);
                     endUID = -1;
                 }
 
                 if (startUID < 0 && endUID < 0) break;
             }
 
-            Debug.Log("After linking, my endpoint is " + tssc.GetEndPoint());
-            Debug.Log("After linking, my rotation is " + trackSection.transform.rotation);
+            //Debug.Log("After linking, my endpoint is " + tssc.GetEndPoint());
+            //Debug.Log("After linking, my rotation is " + trackSection.transform.rotation);
+
+            tssc.FinalizeShape();
         }
 
         foreach (GameObject bufferStop in Control.GetControl().GetBufferStops())
@@ -269,7 +273,7 @@ public class FileHandler : MonoBehaviour {
 
             foreach (GameObject bauble in Control.GetControl().GetBaubles())
             {
-                int uid = bauble.GetComponent<ObjectUID>().UID;
+                int uid = bauble.GetComponent<SaveLoad>().UID;
                 if (uid == targetUID)
                 {
                     bufferStop.GetComponent<BufferStopController>().Link(bauble);

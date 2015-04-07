@@ -40,6 +40,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 772386c64ecac0744a071f08d7589489, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  publicID: 0
 --- !u!114 &11400002
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -56,6 +57,8 @@ MonoBehaviour:
     type: 2}
   ballastWidth: .100000001
   trackColliderHeight: .0299999993
+  maxRailAngle: 8
+  minLength: .100000001
 --- !u!1001 &100100000
 Prefab:
   m_ObjectHideFlags: 1
