@@ -183,6 +183,11 @@ public class BaubleController : MonoBehaviour {
     public Quaternion GetRotation(GameObject track)
     {
         TrackLink tl = GetTrackLink(track);
+        return GetRotation(tl);
+    }
+
+    private Quaternion GetRotation(TrackLink tl)
+    {
         float angleToRotate = (tl.angle > 90 || tl.angle < -90) ? 180 : 0;
         return transform.rotation * Quaternion.AngleAxis(angleToRotate, transform.up);
     }
@@ -192,6 +197,23 @@ public class BaubleController : MonoBehaviour {
         TrackLink tl = GetTrackLink(track);
 
         return tl.angle;
+    }
+
+    // will be dependent on points but just use first valid connection for now
+    public TrackSectionShapeController GetTrack(Quaternion direction)
+    {
+        LinkedListNode<TrackLink> node = m_tracks.First;
+        while (node != null)
+        {
+            if (Quaternion.Angle(direction, GetRotation(node.Value)) < 90)
+            {
+                return node.Value.track.GetComponent<TrackSectionShapeController>();
+            }
+
+            node = node.Next;
+        }
+
+        return null;
     }
 
     private TrackLink GetTrackLink(GameObject track)
@@ -262,4 +284,24 @@ public class BaubleController : MonoBehaviour {
         else
             return transform.rotation * Quaternion.AngleAxis(180, transform.up);
     }
+
+    /*
+    public TrackSectionShapeController GetConnectedTrackSection(GameObject go)
+    {
+        TrackLink fromTrackLink = GetTrackLink(go);
+        bool requiresRotation = (fromTrackLink.angle >= -90 && fromTrackLink.angle <= 90);
+
+        LinkedListNode<TrackLink> node = m_tracks.First;
+        while (node != null)
+        {
+            bool isRotated = (node.Value.angle > 90 || node.Value.angle < -90);
+            if ((isRotated && requiresRotation) || !(isRotated || requiresRotation))
+            {
+                return node.Value.track.GetComponent<TrackSectionShapeController>();
+            }
+        }
+
+        return null;
+    }
+    */
 }

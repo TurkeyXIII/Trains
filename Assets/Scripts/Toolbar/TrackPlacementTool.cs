@@ -59,7 +59,7 @@ public class TrackPlacementTool : Tool
                 {
                     if (hoveringTrackSectionController.IsStraight())
                     {
-                        hoveringTrackSectionController.FindTrackCenter(hitLocation, out actionLocation, out actionRotation);
+                        hoveringTrackSectionController.FindTrackCentre(hitLocation, out actionLocation, out actionRotation);
                         Control.GetControl().SnapCursorLight(actionLocation);
                     }
                     else
@@ -249,7 +249,7 @@ public class TrackPlacementTool : Tool
                                 if (m_baubleCursor.transform.position != actionLocation)
                                 {
                                     m_baubleCursor.transform.position = actionLocation;
-                                    m_baubleCursor.transform.rotation = actionRotation * Quaternion.Euler(0, -90, 0);
+                                    m_baubleCursor.transform.rotation = actionRotation;
 
                                     Debug.Log("Action rotation: " + actionRotation.eulerAngles);
                                 }

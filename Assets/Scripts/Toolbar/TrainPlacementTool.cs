@@ -3,8 +3,9 @@ using System.Collections;
 
 public class TrainPlacementTool : Tool
 {
-    private GameObject m_currentTrainCar;
+    private GameObject m_currentTrackVehicle;
     private bool m_isDragging;
+    private TrackSectionShapeController m_trackSection;
 
     public float minDragDistance;
 
@@ -31,45 +32,50 @@ public class TrainPlacementTool : Tool
         {
             if (hitObject != null)
             {
-                TrackSectionShapeController hoveringtssc = hitObject.GetComponent<TrackSectionShapeController>();
-                if (hoveringtssc != null)
+                m_trackSection = hitObject.GetComponent<TrackSectionShapeController>();
+                if (m_trackSection != null)
                 {
-                    hoveringtssc.FindTrackCenter(hitLocation, out actionLocation, out actionRotation);
+                    m_trackSection.FindTrackCentre(hitLocation, out actionLocation, out actionRotation);
                     Control.GetControl().CreateCursorLight();
                     Control.GetControl().SnapCursorLight(actionLocation);
 
-                    if (m_currentTrainCar == null)
+                    if (m_currentTrackVehicle == null)
                     {
-                        m_currentTrainCar = (GameObject)Instantiate(Control.GetControl().prefabLocomotive);
+                        m_currentTrackVehicle = (GameObject)Instantiate(Control.GetControl().prefabLocomotive);
+                        m_currentTrackVehicle.GetComponent<TrackVehicleController>().DisablePhysics();
                     }
 
-                    m_currentTrainCar.transform.position = actionLocation;
-                    m_currentTrainCar.transform.rotation = actionRotation * Quaternion.Euler(0, -90, 0);
+                    m_currentTrackVehicle.transform.position = actionLocation;
+                    m_currentTrackVehicle.transform.rotation = actionRotation;
 
                     if (Input.GetMouseButtonDown(0)) m_isDragging = true;
-                    
                 }
                 else
                 {
                     Control.GetControl().DestroyCursorLight();
-                    if (m_currentTrainCar != null) Destroy(m_currentTrainCar);
+                    if (m_currentTrackVehicle != null) Destroy(m_currentTrackVehicle);
                 }
             }
-            
         }
         else
         {
-            Vector3 dragDirection = hitLocation - m_currentTrainCar.transform.position;
-            if (dragDirection.magnitude > minDragDistance && Vector3.Dot(m_currentTrainCar.transform.right, dragDirection) < 0)
+            Vector3 dragDirection = hitLocation - m_currentTrackVehicle.transform.position;
+            if (dragDirection.magnitude > minDragDistance && Vector3.Dot(m_currentTrackVehicle.transform.right, dragDirection) < 0)
             {
-                m_currentTrainCar.transform.rotation *= Quaternion.AngleAxis(180, m_currentTrainCar.transform.up);
+                m_currentTrackVehicle.transform.rotation *= Quaternion.AngleAxis(180, m_currentTrackVehicle.transform.up);
             }
 
             if (Input.GetMouseButtonUp(0))
             {
                 m_isDragging = false;
-                // finalisationg of train car should be done here
-                m_currentTrainCar = null;
+                
+                LocomotiveController lc = m_currentTrackVehicle.GetComponent<LocomotiveController>();
+
+                lc.currentTrackSection = m_trackSection;
+                lc.BeginSimulation();
+                lc.EnablePhysics();
+
+                m_currentTrackVehicle = null;
             }
         }
     }

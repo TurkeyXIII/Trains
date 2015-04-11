@@ -9,6 +9,7 @@ public class TrackSectionShapeController : MonoBehaviour
     public GameObject trackModel;
     public GameObject colliderObjectReference;
 
+    private float m_railLength;
 	private float m_currentLength;
     private Vector3 m_endPoint;
     private Quaternion m_endRotation;
@@ -307,7 +308,10 @@ public class TrackSectionShapeController : MonoBehaviour
             {
                 m_rail[i + first] = trackModel.transform.TransformPoint(relativeRailWaypoints[i] + relativeFixedPosition) - m_verticalOffset * Vector3.up;
             }
+
         }
+
+        
     }
 
     // this function assigns values to L1, L2 etc assuming m_endPoint, m_endRotation etc are fixed. 
@@ -469,6 +473,13 @@ public class TrackSectionShapeController : MonoBehaviour
             ShapeTrack();
         }
 
+        // traverse the rail to see how long it is; should be slightly shorter than m_currentLength
+        m_railLength = 0;
+        for (int i = 1; i < m_rail.Length; i++)
+        {
+            m_railLength += (m_rail[i] - m_rail[i - 1]).magnitude;
+        }
+
         // create colliders for the section
         for (int i = 1; i < m_rail.Length; i++)
         {
@@ -510,14 +521,75 @@ public class TrackSectionShapeController : MonoBehaviour
         }
     }
 
-    public Vector3 GetPositionFromTravelDistance(float distance)
+    public void Traverse(ref float distanceAlong, ref float distanceToTravel, out BaubleController reachedBauble)
     {
-        throw new NotImplementedException();
+        distanceAlong += distanceToTravel;
+
+        if (distanceAlong < 0)
+        {
+            reachedBauble = m_startTrackLink;
+            distanceToTravel = distanceAlong;
+        }
+        else if (distanceAlong > m_railLength)
+        {
+            reachedBauble = m_endTrackLink;
+            distanceToTravel = distanceAlong - m_railLength;
+        }
+        else
+        {
+            reachedBauble = null;
+            distanceToTravel = 0;
+        }
+        distanceAlong -= distanceToTravel;
+    }
+
+    public void GetPositionFromTravelDistance(float distance, out Vector3 position, out Quaternion rotation)
+    {
+        if (distance <= 0)
+        {
+            position = transform.position;
+            rotation = transform.rotation;
+            return;
+        }
+
+        if (distance >= m_railLength)
+        {
+            position = m_endPoint;
+            rotation = m_endRotation;
+            return;
+        }
+
+        for (int i = 1; i < m_rail.Length; i++)
+        {
+            Vector3 rail = m_rail[i] - m_rail[i-1];
+            float railSize = rail.magnitude;
+            if (distance > railSize)
+            {
+                distance -= railSize;
+            }
+            else
+            {
+                float d = distance / railSize;
+
+                position = m_rail[i-1] + d * rail;
+
+                rotation = Quaternion.LookRotation(rail, transform.up) * Quaternion.AngleAxis(-90, transform.up);
+
+                return;
+            }
+        }
+        
+        throw new Exception("Should not be here");
     }
 
     public void SetStartRotation(Quaternion rotation)
     {
         transform.rotation = rotation;
+    }
+
+    public float GetRailLength()
+    {
+        return m_railLength;
     }
 
     public Vector3 GetEndPoint()
@@ -561,10 +633,40 @@ public class TrackSectionShapeController : MonoBehaviour
     }
 
     // finds the real-world co-ordinates of the middle of the track closest to location
-    public void FindTrackCenter(Vector3 location, out Vector3 centre, out Quaternion direction)
+    public void FindTrackCentre(Vector3 location, out Vector3 centre, out Quaternion direction)
     {
-        //Use rails as an approximation of track curvature.
+        int firstRailIndex;
+        float d;
+        GetRailVectorsFromLocation(location, out firstRailIndex, out d);
 
+        Vector3 rail1 = m_rail[firstRailIndex];
+        Vector3 line1to2 = m_rail[firstRailIndex+1] - rail1;
+
+        centre = rail1 + d * line1to2;
+
+        direction = Quaternion.LookRotation(line1to2, transform.up) * Quaternion.AngleAxis(-90, transform.up);
+
+    }
+
+    public float GetTravelDistance(Vector3 location)
+    {
+        int firstRailIndex;
+        float d;
+        GetRailVectorsFromLocation(location, out firstRailIndex, out d);
+
+        float distance = 0;
+        for (int i = 1; i <= firstRailIndex; i++)
+        {
+            distance += (m_rail[i] - m_rail[i-1]).magnitude;
+        }
+
+        distance += (m_rail[firstRailIndex] - m_rail[firstRailIndex+1]).magnitude * d;
+
+        return distance;
+    }
+
+    private void GetRailVectorsFromLocation(Vector3 location, out int firstRailIndex, out float fractionAlongRail)
+    {
         float minimumDistance = float.MaxValue;
         int minimumDistanceIndex = 0;
 
@@ -587,11 +689,11 @@ public class TrackSectionShapeController : MonoBehaviour
 
         float d = Vector3.Dot(line1toL, line1to2) / line1to2.sqrMagnitude;
         if (d < 0) d = 0;
+
         if (d > 1) d = 1;
 
-        centre = rail1 + d * line1to2;
-
-        direction = Quaternion.LookRotation(line1to2, transform.up);
+        firstRailIndex = minimumDistanceIndex - 1;
+        fractionAlongRail = d;
     }
 }
 
