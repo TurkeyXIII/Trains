@@ -4,7 +4,8 @@ using System.Collections;
 public class LocomotiveController : TrackVehicleController
 {
     [Range(-1f, 1f)]
-    public float powerPercentage;
+    public float powerFraction;
+
     public float maxPower;
     public float drag;
 
@@ -19,12 +20,17 @@ public class LocomotiveController : TrackVehicleController
     {
         if (m_isSimulating)
         {
-            float acceleration = maxPower * powerPercentage - drag * m_velocity;
+            float acceleration = maxPower * powerFraction - drag * m_velocity;
 
             m_velocity += acceleration * Time.deltaTime;
 
             TraverseTrack();
         }
+    }
+
+    public void ResumeSimulation()
+    {
+        m_isSimulating = true;
     }
 
     public void BeginSimulation()

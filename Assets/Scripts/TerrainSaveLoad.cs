@@ -68,6 +68,7 @@ public class TerrainSaveLoad : SaveLoad
 
     public override void LoadFromDataObject(IDataObject data)
     {
+        Debug.Log("Loading terrain");
         SerializableTerrainData std = (SerializableTerrainData) data;
 
         terrainData.SetHeights(0, 0, std.heightmap);

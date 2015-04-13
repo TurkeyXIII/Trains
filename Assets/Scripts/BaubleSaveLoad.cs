@@ -35,12 +35,15 @@ public class BaubleSaveLoad : SaveLoad
 
     public override void LoadFromDataObject(IDataObject data)
     {
+        Debug.Log("Loading a Bauble");
         BaubleData bData = (BaubleData) data;
 
         transform.position = new Vector3(bData.positionX, bData.positionY, bData.positionZ);
         transform.rotation = new Quaternion(bData.rotationX, bData.rotationY, bData.rotationZ, bData.rotationW);
 
-        base.LoadFromDataObject(bData);
+        LoadUID(bData);
+
+        gameObject.SetActive(false);
     }
 }
 
@@ -53,5 +56,10 @@ public class BaubleData : DataObjectWithUID
     public override Type GetLoaderType()
     {
         return typeof(BaubleSaveLoad);
+    }
+
+    public override GameObject GetPrefab()
+    {
+        return Control.GetControl().prefabBauble;
     }
 }

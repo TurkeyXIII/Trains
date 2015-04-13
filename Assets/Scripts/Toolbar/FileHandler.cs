@@ -105,61 +105,51 @@ public class FileHandler : MonoBehaviour {
         dialog.AddExtension = true;
         dialog.ShowDialog();
 
-        /*
-        try
+        if (dialog.FileName != null)
         {
-        */
-            if (dialog.FileName != null)
-                file = (FileStream)dialog.OpenFile();
-
-            if (file != null)
+            try
             {
-                DeleteSavables();
-
-                while (file.Position < file.Length)
-                {
-                    IDataObject dataObject = formatter.Deserialize(file) as IDataObject;
-                    System.Type type = dataObject.GetLoaderType();
-
-                    Debug.Log("found a " + dataObject.GetLoaderType());
-
-                    if (type == typeof(TerrainSaveLoad))
-                    {
-                        if (c_terrainSaveLoad == null)
-                        {
-                            Debug.Log("SaveLoad == NULL!!!!");
-                        }
-                        c_terrainSaveLoad.LoadFromDataObject(dataObject);
-                    }
-                    else if (type == typeof(TrackSectionSaveLoad))
-                    {
-                        InstantiateTrackSection(dataObject);
-                    }
-                    else if (type == typeof(BaubleSaveLoad))
-                    {
-                        InstantiateBauble(dataObject);
-                    }
-                    else if (type == typeof(BufferStopSaveLoad))
-                    {
-                        InstantiateBufferStop(dataObject);
-                    }
-                }
-
-                filename = file.Name;
-
-                file.Close();
-
-                LinkBaublesFromUIDs();
-
-                levelHasChanged = false;
+                file = (FileStream)dialog.OpenFile();
             }
-        /*
+            catch (Exception e)
+            {
+                Debug.Log("dialog.OpenFile() failed with exception " + e.Message);
+            }
         }
-        catch (Exception e)
+
+        if (file != null)
         {
-            Debug.Log("Caught exception loading file: " + e.Message);
+            DeleteSavables();
+
+            while (file.Position < file.Length)
+            {
+                IDataObject dataObject = formatter.Deserialize(file) as IDataObject;
+                System.Type type = dataObject.GetLoaderType();
+
+                Debug.Log("found a " + dataObject.GetLoaderType());
+
+                if (type == typeof(TerrainSaveLoad))
+                {
+                    if (c_terrainSaveLoad == null)
+                    {
+                        Debug.Log("SaveLoad == NULL!!!!");
+                    }
+                    c_terrainSaveLoad.LoadFromDataObject(dataObject);
+                }
+                else
+                {
+                    InstantiateObject(dataObject as DataObjectWithUID);
+                }
+            }
+
+            filename = file.Name;
+
+            file.Close();
+
+            LinkBaublesFromUIDs();
+
+            levelHasChanged = false;
         }
-        */
     }
 
     public void OnSelectQuit()
@@ -241,9 +231,14 @@ public class FileHandler : MonoBehaviour {
             int startUID = tssl.GetStartBaubleUID();
             int endUID = tssl.GetEndBaubleUID();
 
+            //Debug.Log("Finding links for track section #" + tssl.UID + ": " + startUID + ", " + endUID);
+
             foreach (GameObject bauble in Control.GetControl().GetBaubles())
             {
                 int uid = bauble.GetComponent<SaveLoad>().UID;
+
+                //Debug.Log("Checking bauble #" + uid);
+
                 if (uid == startUID)
                 {
                     Debug.Log("Linking start of #" + tssl.UID + " to #" + uid);
@@ -280,25 +275,34 @@ public class FileHandler : MonoBehaviour {
                 }
             }
         }
+
+
+        foreach (GameObject locomotive in Control.GetControl().GetLocomotives())
+        {
+            int targetUID = locomotive.GetComponent<LocomotiveSaveLoad>().GetTrackUID();
+
+            Debug.Log("Locomotive #" + locomotive.GetComponent<SaveLoad>().UID + " searching for track #" + targetUID);
+
+            foreach (GameObject trackSection in Control.GetControl().GetTrackSections())
+            {
+                int uid = trackSection.GetComponent<SaveLoad>().UID;
+                if (uid == targetUID)
+                {
+                    Debug.Log("#" + targetUID + " found");
+                    LocomotiveController lc = locomotive.GetComponent<LocomotiveController>();
+                    lc.currentTrackSection = trackSection.GetComponent<TrackSectionShapeController>();
+                    lc.ResumeSimulation();
+                    break;
+                }
+            }
+        }
     }
 
-    private void InstantiateBauble(IDataObject bData)
+    private void InstantiateObject(DataObjectWithUID data)
     {
-        GameObject bauble = (GameObject)Instantiate(Control.GetControl().prefabBauble);
-        bauble.GetComponent<BaubleSaveLoad>().LoadFromDataObject(bData);
-        bauble.SetActive(false);
-    }
-
-    private void InstantiateBufferStop(IDataObject bsData)
-    {
-        GameObject bufferStop = (GameObject)Instantiate(Control.GetControl().prefabBufferStop);
-        bufferStop.GetComponent<BufferStopSaveLoad>().LoadFromDataObject(bsData);
-    }
-
-    private void InstantiateTrackSection(IDataObject tsData)
-    {
-        GameObject trackSection = (GameObject)Instantiate(Control.GetControl().prefabTrackSection);
-        trackSection.GetComponent<TrackSectionSaveLoad>().LoadFromDataObject(tsData);
+        GameObject newObject = (GameObject)Instantiate(data.GetPrefab());
+        SaveLoad sl = newObject.GetComponent(data.GetLoaderType()) as SaveLoad;
+        sl.LoadFromDataObject(data);
     }
 }
 

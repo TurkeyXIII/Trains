@@ -33,9 +33,10 @@ public class TrackSectionSaveLoad : SaveLoad
 
     public override void LoadFromDataObject(IDataObject data)
     {
+        Debug.Log("Loading a Track Section");
         TrackSectionData tsData = (TrackSectionData)data;
         
-        base.LoadFromDataObject(tsData);
+        base.LoadUID(tsData);
 
         startBaubleUID = tsData.startBaubleUID;
         endBaubleUID = tsData.endBaubleUID;
@@ -61,5 +62,10 @@ public class TrackSectionData : DataObjectWithUID
     public override Type GetLoaderType()
     {
         return typeof(TrackSectionSaveLoad);
+    }
+
+    public override GameObject GetPrefab()
+    {
+        return Control.GetControl().prefabTrackSection;
     }
 }

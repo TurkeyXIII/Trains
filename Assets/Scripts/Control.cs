@@ -114,6 +114,7 @@ public class Control : MonoBehaviour {
         if (type == typeof(TrackSectionSaveLoad)) return InstantiatedList(ref m_trackSections);
         if (type == typeof(BaubleSaveLoad)) return InstantiatedList(ref m_baubles);
         if (type == typeof(BufferStopSaveLoad)) return InstantiatedList(ref m_bufferStops);
+        if (type == typeof(LocomotiveSaveLoad)) return InstantiatedList(ref m_Locomotives);
 
         return null;
     }
@@ -140,6 +141,11 @@ public class Control : MonoBehaviour {
         return InstantiatedList(ref m_trackSections);
     }
 
+    public IEnumerable<GameObject> GetLocomotives()
+    {
+        return InstantiatedList(ref m_Locomotives);
+    }
+
     public void CreateCursorLight(float size = 0.2f)
     {
         if (m_cursorLight == null)
@@ -150,7 +156,6 @@ public class Control : MonoBehaviour {
 
             AdjustCursorLight();
         }
-
     }
 
     public void DestroyCursorLight()

@@ -38,6 +38,7 @@ public class BufferStopSaveLoad : SaveLoad
 
     public override void LoadFromDataObject(IDataObject data)
     {
+        Debug.Log("Loading a Buffer Stop");
         BufferStopData bsData = (BufferStopData)data;
 
         transform.position = new Vector3(bsData.positionX, bsData.positionY, bsData.positionZ);
@@ -45,7 +46,7 @@ public class BufferStopSaveLoad : SaveLoad
 
         m_baubleUID = bsData.baubleUID;
 
-        base.LoadFromDataObject(bsData);
+        base.LoadUID(bsData);
     }
 
     public int GetBaubleUID()
@@ -57,6 +58,7 @@ public class BufferStopSaveLoad : SaveLoad
 [Serializable()]
 public class BufferStopData : DataObjectWithUID
 {
+    // position data should be redundant as it's stored in the bauble
     public float positionX, positionY, positionZ;
     public float rotationX, rotationY, rotationZ, rotationW;
 
@@ -65,5 +67,10 @@ public class BufferStopData : DataObjectWithUID
     public override Type GetLoaderType()
     {
         return typeof(BufferStopSaveLoad);
+    }
+
+    public override GameObject GetPrefab()
+    {
+        return Control.GetControl().prefabBufferStop;
     }
 }

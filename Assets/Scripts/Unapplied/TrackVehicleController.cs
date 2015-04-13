@@ -82,4 +82,20 @@ public class TrackVehicleController : MonoBehaviour {
         GetComponent<Rigidbody>().useGravity = true;
         GetComponent<Collider>().enabled = true;
     }
+
+    internal void FillTrackVehicleData(ref TrackVehicleData tvd)
+    {
+        tvd.distanceAlongTrack = m_distanceAlongTrack;
+        tvd.isForward = m_isForward;
+        tvd.velocity = m_velocity;
+
+        Debug.Log("VC: distance = " + tvd.distanceAlongTrack);
+    }
+
+    internal void RestoreFromTrackVehicleData(TrackVehicleData tvd)
+    {
+        m_distanceAlongTrack = tvd.distanceAlongTrack;
+        m_isForward = tvd.isForward;
+        m_velocity = tvd.velocity;
+    }
 }

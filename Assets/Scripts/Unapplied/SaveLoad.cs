@@ -11,6 +11,7 @@ public abstract class SaveLoad : MonoBehaviour
 
     public int UID {get; private set;}
 
+
     // subclasses must call base.Awake() from their awake function
     public void Awake()
     {
@@ -29,7 +30,7 @@ public abstract class SaveLoad : MonoBehaviour
         }
     }
 
-    public void LoadFromDataObject(DataObjectWithUID data)
+    protected void LoadUID(DataObjectWithUID data)
     {
         UID = data.UID;
         if (UID + 1 > UIDcounter)
@@ -43,7 +44,7 @@ public abstract class SaveLoad : MonoBehaviour
 
 public interface IDataObject
 {
-    System.Type GetLoaderType();
+    Type GetLoaderType();
 }
 
 [Serializable()]
@@ -51,5 +52,6 @@ public abstract class DataObjectWithUID : IDataObject
 {
     public int UID;
 
-    public abstract Type GetLoaderType();
+    public abstract Type GetLoaderType(); // Type must inherit from SaveLoad. Force that somehow?
+    public abstract GameObject GetPrefab();
 }

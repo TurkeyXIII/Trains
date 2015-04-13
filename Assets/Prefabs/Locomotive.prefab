@@ -11,6 +11,7 @@ GameObject:
   - 114: {fileID: 11493826}
   - 54: {fileID: 5473762}
   - 65: {fileID: 6512252}
+  - 114: {fileID: 11477724}
   m_Layer: 0
   m_Name: Locomotive
   m_TagString: Untagged
@@ -235,6 +236,18 @@ BoxCollider:
   serializedVersion: 2
   m_Size: {x: 11.5, y: 4.0999999, z: 2.70000005}
   m_Center: {x: 0, y: 2.51999998, z: 0}
+--- !u!114 &11477724
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 153bfac5a567dac47b2b1a4b5aecb8be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  publicID: 0
 --- !u!114 &11493826
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -247,7 +260,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   currentTrackSection: {fileID: 0}
-  powerPercentage: 0
+  powerFraction: 0
   maxPower: .0799999982
   drag: 2
 --- !u!1001 &100100000
