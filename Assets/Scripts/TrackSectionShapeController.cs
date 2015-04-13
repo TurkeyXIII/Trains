@@ -9,7 +9,6 @@ public class TrackSectionShapeController : MonoBehaviour
     public GameObject trackModel;
     public GameObject colliderObjectReference;
 
-    private float m_railLength;
 	private float m_currentLength;
     private Vector3 m_endPoint;
     private Quaternion m_endRotation;
@@ -61,7 +60,7 @@ public class TrackSectionShapeController : MonoBehaviour
     public bool IsStraight()
     {
         Vector3 forward = m_endPoint - transform.position;
-        return TrainsMath.AreApproximatelyEqual(Vector3.Dot(forward, transform.right), forward.magnitude);
+        return TrainsMath.AreApproximatelyEqual(Vector3.Dot(forward, transform.right), forward.magnitude, 0.000001f);
     }
 
     public bool IsCurved()
@@ -473,13 +472,6 @@ public class TrackSectionShapeController : MonoBehaviour
             ShapeTrack();
         }
 
-        // traverse the rail to see how long it is; should be slightly shorter than m_currentLength
-        m_railLength = 0;
-        for (int i = 1; i < m_rail.Length; i++)
-        {
-            m_railLength += (m_rail[i] - m_rail[i - 1]).magnitude;
-        }
-
         // create colliders for the section
         for (int i = 1; i < m_rail.Length; i++)
         {
@@ -530,10 +522,10 @@ public class TrackSectionShapeController : MonoBehaviour
             reachedBauble = m_startTrackLink;
             distanceToTravel = distanceAlong;
         }
-        else if (distanceAlong > m_railLength)
+        else if (distanceAlong > m_currentLength)
         {
             reachedBauble = m_endTrackLink;
-            distanceToTravel = distanceAlong - m_railLength;
+            distanceToTravel = distanceAlong - m_currentLength;
         }
         else
         {
@@ -552,34 +544,60 @@ public class TrackSectionShapeController : MonoBehaviour
             return;
         }
 
-        if (distance >= m_railLength)
+        if (distance >= m_currentLength)
         {
             position = m_endPoint;
             rotation = m_endRotation;
             return;
         }
 
-        for (int i = 1; i < m_rail.Length; i++)
+        if (m_L1 == 0)
         {
-            Vector3 rail = m_rail[i] - m_rail[i-1];
-            float railSize = rail.magnitude;
-            if (distance > railSize)
-            {
-                distance -= railSize;
-            }
-            else
-            {
-                float d = distance / railSize;
-
-                position = m_rail[i-1] + d * rail;
-
-                rotation = Quaternion.LookRotation(rail, transform.up) * Quaternion.AngleAxis(-90, transform.up);
-
-                return;
-            }
+            position = transform.position + transform.right * distance;
+            rotation = transform.rotation;
+            return;
         }
-        
-        throw new Exception("Should not be here");
+
+        float normalisedLength;
+        Vector3 unitForward;
+        Vector3 unitSideways;
+        Vector3 startPosition;
+        Vector3 rotationAxis;
+        float A;
+
+
+        unitForward = transform.right;
+        Vector3 toEndPoint = m_endPoint - transform.position;
+        unitSideways = (toEndPoint - Vector3.Dot(toEndPoint, unitForward) * unitForward).normalized;
+
+        if (distance < m_L1 / m_A1)
+        {
+            // transition in
+            normalisedLength = distance * m_A1;
+            startPosition = transform.position;
+            A = m_A1;
+            rotationAxis = Vector3.Cross(unitForward, unitSideways);
+        }
+        else
+        {
+            // transition out
+            normalisedLength = (m_currentLength - distance) * m_A2;
+            startPosition = m_endPoint;
+            A = m_A2;
+
+            Vector3 startingUnitForward = unitForward;
+            Vector3 startingUnitSideways = unitSideways;
+
+            VertexBenderLogic.UnitVectorsFromRotation(m_theta1+m_theta2, startingUnitForward, startingUnitSideways, out rotationAxis, out unitForward, out unitSideways);
+        }
+
+        position = startPosition + (unitForward * (FresnelMath.FresnelC(normalisedLength) / A)) + (unitSideways * (FresnelMath.FresnelS(normalisedLength) / A));
+
+        Vector3 positionForward, PositionSideways;
+        VertexBenderLogic.UnitVectorsFromRotation(normalisedLength * normalisedLength, unitForward, unitSideways, out positionForward, out PositionSideways);
+        rotation = Quaternion.LookRotation(positionForward, transform.up) * Quaternion.AngleAxis(90, transform.up);
+
+        if (distance > m_L1 / m_A1) rotation *= Quaternion.AngleAxis(180, transform.up);
     }
 
     public void SetStartRotation(Quaternion rotation)
@@ -587,29 +605,15 @@ public class TrackSectionShapeController : MonoBehaviour
         transform.rotation = rotation;
     }
 
-    public float GetRailLength()
-    {
-        return m_railLength;
-    }
-
     public Vector3 GetEndPoint()
     {
         return m_endPoint;
     }
 
-    /*
-    public void SelectBaubleForEditing(GameObject bauble)
+    public float GetLength()
     {
-        if (bauble == m_startTrackLink.gameObject)
-        {
-            BaubleController otherBaubleController = m_endTrackLink;
-            //Debug.Log("Shape controller returning end track link");
-
-            LinkEnd(m_startTrackLink);
-            LinkStart(otherBaubleController);
-        }
+        return m_currentLength;
     }
-    */
 
     public Quaternion GetEndRotation()
     {
@@ -635,34 +639,116 @@ public class TrackSectionShapeController : MonoBehaviour
     // finds the real-world co-ordinates of the middle of the track closest to location
     public void FindTrackCentre(Vector3 location, out Vector3 centre, out Quaternion direction)
     {
-        int firstRailIndex;
-        float d;
-        GetRailVectorsFromLocation(location, out firstRailIndex, out d);
-
-        Vector3 rail1 = m_rail[firstRailIndex];
-        Vector3 line1to2 = m_rail[firstRailIndex+1] - rail1;
-
-        centre = rail1 + d * line1to2;
-
-        direction = Quaternion.LookRotation(line1to2, transform.up) * Quaternion.AngleAxis(-90, transform.up);
-
+        GetPositionFromTravelDistance(GetTravelDistance(location), out centre, out direction);
     }
 
+    // returns the real-world distance along the track for an object on the track nearest location
     public float GetTravelDistance(Vector3 location)
     {
-        int firstRailIndex;
-        float d;
-        GetRailVectorsFromLocation(location, out firstRailIndex, out d);
+        Vector3 unitForward = transform.rotation * Vector3.right;
+        
 
-        float distance = 0;
-        for (int i = 1; i <= firstRailIndex; i++)
+        // for straight track the equation is simple
+        if (m_L1 == 0)
         {
-            distance += (m_rail[i] - m_rail[i-1]).magnitude;
+            float d = Vector3.Dot((location - transform.position), unitForward);
+            return d;
         }
 
-        distance += (m_rail[firstRailIndex] - m_rail[firstRailIndex+1]).magnitude * d;
+        // first translate the location such that the curve is starting at zero and beginning in the +ve x direction
+        Vector3 translatedLocation = transform.InverseTransformPoint(location);
+        translatedLocation *= m_A1 * transform.lossyScale.x;
 
-        return distance;
+        unitForward = Vector3.right;
+        Vector3 toEndPoint = transform.InverseTransformPoint(m_endPoint);
+        Vector3 unitSideways = (toEndPoint - Vector3.Dot(toEndPoint, unitForward) * unitForward).normalized;
+
+        float xl = Vector3.Dot(translatedLocation, unitForward);
+        float yl = Vector3.Dot(translatedLocation, unitSideways);
+
+        Debug.Log("Beginning Newton-Raphson for (xl, yl) = (" + xl + ", " + yl + ")");
+
+        float distance = xl; // this first guess will be pretty accurate for low theta and not too far off otherwise
+        float theta = distance * distance;
+
+        int maxIterations = 3;
+        float maxError = 0.001f;
+
+        for (int i = 0; i < maxIterations; i++)
+        {
+            float sinTheta = Mathf.Sin(theta);
+            float cosTheta = Mathf.Cos(theta);
+            float CRtTheta = FresnelMath.FresnelC(distance);
+            float SRtTheta = FresnelMath.FresnelS(distance);
+   
+            float f = cosTheta * (xl - CRtTheta) + sinTheta * (yl - SRtTheta);
+            float dfdt = -1 - (xl - CRtTheta) * sinTheta + (yl - SRtTheta) * cosTheta;
+
+            float error = f / dfdt;
+
+            theta -= error;
+            
+            if (theta > m_theta1) theta = m_theta1;
+            if (theta < 0) theta = 0;
+            
+
+            distance = Mathf.Sqrt(theta);
+
+            if (error < maxError && error > -maxError) break;
+        }
+
+        if (distance < m_L1 && distance > 0)
+        {
+            Debug.Log("theta of " + theta + " matches for (" + FresnelMath.FresnelC(distance) + ", " + FresnelMath.FresnelS(distance) + ")");
+            return distance / m_A1;
+        }
+
+        // if that didn't work, we're in the second half of the track.
+        // translate and scale (xl, yl) and do it again
+        translatedLocation = transform.InverseTransformPoint(location) - transform.InverseTransformPoint(m_endPoint);
+        translatedLocation *= m_A2 * transform.lossyScale.x;
+
+        VertexBenderLogic.UnitVectorsFromRotation(m_theta1+m_theta2, unitForward, unitSideways, out unitForward, out unitSideways);
+
+        xl = Vector3.Dot(translatedLocation, unitForward);
+        yl = Vector3.Dot(translatedLocation, unitSideways);
+
+        Debug.Log("Beginning Newton-Raphson for (xl, yl) = (" + xl + ", " + yl + ")");
+
+        distance = xl; // this first guess will be pretty accurate for low theta and not too far off otherwise
+        theta = distance * distance;
+
+        for (int i = 0; i < maxIterations; i++)
+        {
+            float sinTheta = Mathf.Sin(theta);
+            float cosTheta = Mathf.Cos(theta);
+            float CRtTheta = FresnelMath.FresnelC(distance);
+            float SRtTheta = FresnelMath.FresnelS(distance);
+
+            float f = cosTheta * (xl - CRtTheta) + sinTheta * (yl - SRtTheta);
+            float dfdt = -1 - (xl - CRtTheta) * sinTheta + (yl - SRtTheta) * cosTheta;
+
+            float error = f / dfdt;
+
+            theta -= error;
+
+            if (theta > m_theta2) theta = m_theta2;
+            if (theta < 0) theta = 0;
+
+
+            distance = Mathf.Sqrt(theta);
+
+            if (error < maxError && error > -maxError) break;
+        }
+
+        if (distance < m_L2 && distance > 0)
+        {
+            Debug.Log("theta of " + theta + " matches for (" + FresnelMath.FresnelC(distance) + ", " + FresnelMath.FresnelS(distance) + ")");
+            return m_currentLength - (distance / m_A2);
+        }
+        
+        Debug.Log("Returning end of track");
+        return m_currentLength;
     }
 
     private void GetRailVectorsFromLocation(Vector3 location, out int firstRailIndex, out float fractionAlongRail)

@@ -164,7 +164,6 @@ public class VertexBenderLogic
             creasePositions[i] -= fixedPosition;
         }
 
-
 //        Debug.Log("TargetPosition: " + targetPosition + ", TargetDirection: " + targetDirection);
 
         float phi = theta1 + theta2;
@@ -174,15 +173,10 @@ public class VertexBenderLogic
         Vector3 unitYdash = targetPosition - unitXdash * targetPosition.x;
         unitYdash.Normalize();
 
-        // orthogonal unit vectors describing x and y directions of co-ordinate system where x is direction away from target point along straigh line and y is lateral movement to origin
-        Vector3 rotationAxis = Vector3.Cross(unitXdash, unitYdash);
-        // Rodrigues' rotation forumla
-        Vector3 unitXdoubledash = -(Mathf.Cos(phi) * unitXdash +
-                                Mathf.Sin(phi) * Vector3.Cross(rotationAxis, unitXdash) +
-                                (1 - Mathf.Cos(phi)) * Vector3.Dot(rotationAxis, unitXdash) * rotationAxis); //rotate phi
-        Vector3 unitYdoubledash = Mathf.Cos(phi) * unitYdash +
-                                Mathf.Sin(phi) * Vector3.Cross(rotationAxis, unitYdash) +
-                                (1 - Mathf.Cos(phi)) * Vector3.Dot(rotationAxis, unitYdash) * rotationAxis; //rotate phi
+        Vector3 rotationAxis;
+        Vector3 unitXdoubledash;
+        Vector3 unitYdoubledash;
+        UnitVectorsFromRotation(phi, unitXdash, unitYdash, out rotationAxis, out unitXdoubledash, out unitYdoubledash);
 
         Vector3[] verts;
         Vector2[] uvs;
@@ -423,6 +417,25 @@ public class VertexBenderLogic
                 creasePositions[i] = targetPosition + xvdoubledash * unitXdoubledash + yvdoubledash * unitYdoubledash;
             }
         }
+    }
+
+    internal static void UnitVectorsFromRotation(float phi, Vector3 unitXdash, Vector3 unitYdash, out Vector3 unitXdoubledash, out Vector3 unitYdoubledash)
+    {
+        Vector3 dummyAxis;
+        UnitVectorsFromRotation(phi, unitXdash, unitYdash, out dummyAxis, out unitXdoubledash, out unitYdoubledash);
+    }
+
+    internal static void UnitVectorsFromRotation(float phi, Vector3 unitXdash, Vector3 unitYdash, out Vector3 rotationAxis, out Vector3 unitXdoubledash, out Vector3 unitYdoubledash)
+    {
+        // orthogonal unit vectors describing x and y directions of co-ordinate system where x is direction away from target point along straigh line and y is lateral movement to origin
+        rotationAxis = Vector3.Cross(unitXdash, unitYdash);
+        // Rodrigues' rotation forumla
+        unitXdoubledash = -(Mathf.Cos(phi) * unitXdash +
+                                Mathf.Sin(phi) * Vector3.Cross(rotationAxis, unitXdash) +
+                                (1 - Mathf.Cos(phi)) * Vector3.Dot(rotationAxis, unitXdash) * rotationAxis); //rotate phi
+        unitYdoubledash = Mathf.Cos(phi) * unitYdash +
+                Mathf.Sin(phi) * Vector3.Cross(rotationAxis, unitYdash) +
+                (1 - Mathf.Cos(phi)) * Vector3.Dot(rotationAxis, unitYdash) * rotationAxis; //rotate phi
     }
 
     private void recursiveCreases(ref float[] creases, ref bool[] done, int i, ref int n, Vector3[] creasePositions, float L1, float A1, float A2, int lastDifference, ref float[] creaseLs)

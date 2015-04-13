@@ -79,4 +79,15 @@ public class TrainPlacementTool : Tool
             }
         }
     }
+
+    public override void OnDeselect()
+    {
+        Control.GetControl().DestroyCursorLight();
+        if (m_currentTrackVehicle != null) Destroy(m_currentTrackVehicle);
+    }
+
+    public override void OnEffectChange()
+    {
+        OnDeselect();
+    }
 }

@@ -52,7 +52,7 @@ public class TrackVehicleController : MonoBehaviour {
                     m_isForward = (m_velocity < 0);
                     if (travelDistance > 0) travelDistance = -travelDistance;
 
-                    m_distanceAlongTrack = currentTrackSection.GetRailLength();
+                    m_distanceAlongTrack = currentTrackSection.GetLength();
                 }
                 else
                 {
