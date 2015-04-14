@@ -65,7 +65,6 @@ public class TerrainSaveLoad : SaveLoad
         return std as IDataObject;
     }
 
-
     public override void LoadFromDataObject(IDataObject data)
     {
         Debug.Log("Loading terrain");
@@ -81,9 +80,4 @@ internal class SerializableTerrainData : IDataObject
 {
     public float[,] heightmap;
     public float[, ,] alphamap;
-
-    public System.Type GetLoaderType()
-    {
-        return typeof(TerrainSaveLoad);
-    }
 }

@@ -62,11 +62,6 @@ public class LocomotiveData : TrackVehicleData
 {
     public float power;
 
-    public override System.Type GetLoaderType()
-    {
-        return typeof(LocomotiveSaveLoad);
-    }
-
     public override GameObject GetPrefab()
     {
         return Control.GetControl().prefabLocomotive;

@@ -53,11 +53,6 @@ public class BaubleData : DataObjectWithUID
     public float positionX, positionY, positionZ;
     public float rotationX, rotationY, rotationZ, rotationW;
 
-    public override Type GetLoaderType()
-    {
-        return typeof(BaubleSaveLoad);
-    }
-
     public override GameObject GetPrefab()
     {
         return Control.GetControl().prefabBauble;

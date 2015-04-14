@@ -64,11 +64,6 @@ public class BufferStopData : DataObjectWithUID
 
     public int baubleUID;
 
-    public override Type GetLoaderType()
-    {
-        return typeof(BufferStopSaveLoad);
-    }
-
     public override GameObject GetPrefab()
     {
         return Control.GetControl().prefabBufferStop;

@@ -44,7 +44,6 @@ public abstract class SaveLoad : MonoBehaviour
 
 public interface IDataObject
 {
-    Type GetLoaderType();
 }
 
 [Serializable()]
@@ -52,6 +51,5 @@ public abstract class DataObjectWithUID : IDataObject
 {
     public int UID;
 
-    public abstract Type GetLoaderType(); // Type must inherit from SaveLoad. Force that somehow?
     public abstract GameObject GetPrefab();
 }

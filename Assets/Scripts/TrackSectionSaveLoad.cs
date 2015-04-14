@@ -59,11 +59,6 @@ public class TrackSectionData : DataObjectWithUID
     public int startBaubleUID;
     public int endBaubleUID;
 
-    public override Type GetLoaderType()
-    {
-        return typeof(TrackSectionSaveLoad);
-    }
-
     public override GameObject GetPrefab()
     {
         return Control.GetControl().prefabTrackSection;

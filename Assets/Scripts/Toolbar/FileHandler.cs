@@ -124,11 +124,11 @@ public class FileHandler : MonoBehaviour {
             while (file.Position < file.Length)
             {
                 IDataObject dataObject = formatter.Deserialize(file) as IDataObject;
-                System.Type type = dataObject.GetLoaderType();
+                System.Type type = dataObject.GetType();
 
-                Debug.Log("found a " + dataObject.GetLoaderType());
+                Debug.Log("found a " + dataObject.GetType());
 
-                if (type == typeof(TerrainSaveLoad))
+                if (type == typeof(SerializableTerrainData))
                 {
                     if (c_terrainSaveLoad == null)
                     {
@@ -301,7 +301,7 @@ public class FileHandler : MonoBehaviour {
     private void InstantiateObject(DataObjectWithUID data)
     {
         GameObject newObject = (GameObject)Instantiate(data.GetPrefab());
-        SaveLoad sl = newObject.GetComponent(data.GetLoaderType()) as SaveLoad;
+        SaveLoad sl = newObject.GetComponent<SaveLoad>();
         sl.LoadFromDataObject(data);
     }
 }
