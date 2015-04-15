@@ -5,9 +5,9 @@ PhysicMaterial:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
-  m_Name: TrainsAndTracks
-  dynamicFriction: .0599999987
-  staticFriction: .100000001
+  m_Name: Terrain
+  dynamicFriction: .300000012
+  staticFriction: .5
   bounciness: 0
   frictionCombine: 0
   bounceCombine: 0

@@ -261,7 +261,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   currentTrackSection: {fileID: 0}
   powerFraction: 0
-  maxPower: .0799999982
+  maxPower: 2.5
   drag: 2
 --- !u!1001 &100100000
 Prefab:

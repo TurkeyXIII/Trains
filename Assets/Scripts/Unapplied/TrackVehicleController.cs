@@ -19,9 +19,9 @@ public class TrackVehicleController : MonoBehaviour {
         if (currentTrackSection != null)
         {
             if (m_isForward)
-                travelDistance = m_velocity;
+                travelDistance = m_velocity * Time.deltaTime;
             else
-                travelDistance = -m_velocity;
+                travelDistance = -m_velocity * Time.deltaTime;
 
             while (travelDistance != 0)
             {
@@ -49,9 +49,7 @@ public class TrackVehicleController : MonoBehaviour {
 
                     if (currentTrackSection == null)
                     {
-                        Debug.Log("velocity on derailment: " + GetComponent<Rigidbody>().velocity);
-                        GetComponent<Rigidbody>().velocity = new Vector3(0, 1, 0);//m_velocity * transform.forward;
-                        Debug.Log("velocity after correction: " + GetComponent<Rigidbody>().velocity);
+                        GetComponent<Rigidbody>().velocity = m_velocity * transform.right;
                         break;
                     }
 

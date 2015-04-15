@@ -2613,7 +2613,7 @@ MonoBehaviour:
   zoomSmoothing: 8
   maxCameraTilt: 80
   minCameraTilt: 20
-  visibilityAroundTable: -1
+  visibilityAroundTable: 0
   minHeightAboveTerrain: .300000012
 --- !u!1 &912085686
 GameObject:
@@ -4868,10 +4868,10 @@ TerrainCollider:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1833970653}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: be89d98aaf2cbe64fbbd405de0127c6b, type: 2}
   m_Enabled: 1
   m_TerrainData: {fileID: 15600000, guid: cfcac8e85a6a17b43b7ef97077a5e0a5, type: 2}
-  m_EnableTreeColliders: 1
+  m_EnableTreeColliders: 0
 --- !u!218 &1833970655
 Terrain:
   m_ObjectHideFlags: 0

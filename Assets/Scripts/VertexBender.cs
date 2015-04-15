@@ -417,6 +417,11 @@ public class VertexBenderLogic
                 creasePositions[i] = targetPosition + xvdoubledash * unitXdoubledash + yvdoubledash * unitYdoubledash;
             }
         }
+
+        for (int i = 0; i < creasePositions.Length; i++)
+        {
+            creasePositions[i] += fixedPosition;
+        }
     }
 
     internal static void UnitVectorsFromRotation(float phi, Vector3 unitXdash, Vector3 unitYdash, out Vector3 unitXdoubledash, out Vector3 unitYdoubledash)
@@ -450,7 +455,7 @@ public class VertexBenderLogic
             creaseLs[i] = L1 + ((creasePositions[i].x - L1/A1) * A2);
         }
 
-        // Debug.Log("CreasePosition: " + creasePositions[i] + ", creaseL: " + creaseLs[i]);
+        Debug.Log("i: " + i + ", CreasePosition: " + creasePositions[i] + ", creaseL: " + creaseLs[i]);
 
         creases[n] = creaseLs[i];         
         done[i] = true;

@@ -33,6 +33,8 @@ public class TrainPlacementTool : Tool
             if (hitObject != null)
             {
                 m_trackSection = hitObject.GetComponent<TrackSectionShapeController>();
+                TrackVehicleController tvc = hitObject.GetComponent<TrackVehicleController>();
+
                 if (m_trackSection != null)
                 {
                     m_trackSection.FindTrackCentre(hitLocation, out actionLocation, out actionRotation);
@@ -50,6 +52,15 @@ public class TrainPlacementTool : Tool
 
                     if (Input.GetMouseButtonDown(0)) m_isDragging = true;
                 }
+                else if (tvc != null)
+                {
+                    if (m_currentTrackVehicle != null) Destroy(m_currentTrackVehicle);
+
+                    Control.GetControl().CreateCursorLight();
+                    Control.GetControl().SnapCursorLight(tvc.transform.position);
+
+                    if (Input.GetMouseButton(1)) Destroy(tvc.gameObject);
+                }
                 else
                 {
                     Control.GetControl().DestroyCursorLight();
@@ -57,7 +68,7 @@ public class TrainPlacementTool : Tool
                 }
             }
         }
-        else
+        else // (m_isDragging)
         {
             Vector3 dragDirection = hitLocation - m_currentTrackVehicle.transform.position;
             if (dragDirection.magnitude > minDragDistance && Vector3.Dot(m_currentTrackVehicle.transform.right, dragDirection) < 0)

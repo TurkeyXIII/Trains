@@ -262,6 +262,12 @@ public class TrackSectionShapeController : MonoBehaviour
 
     private void Curve()
     {
+        Vector3[] straightRail = new Vector3[m_rail.Length];
+        for (int i = 0; i < m_rail.Length; i++)
+        {
+            straightRail[i] = m_rail[i];
+        }
+
         foreach (GameObject trackModel in m_currentModels)
         {
             Vector3 relativeMovablePosition = new Vector3(m_currentLength/transform.localScale.x - trackModel.transform.localPosition.x, 0, 0) * trackModel.transform.localScale.x;
@@ -271,10 +277,10 @@ public class TrackSectionShapeController : MonoBehaviour
 
             Vector3[] relativeRailWaypoints = null;
             // pick out the waypoints that are within this model's influence
-            int first = m_rail.Length, last = 0;
-            for (int i = 0; i < m_rail.Length; i++)
+            int first = straightRail.Length, last = 0;
+            for (int i = 0; i < straightRail.Length; i++)
             {
-                Vector3 v = m_rail[i];
+                Vector3 v = straightRail[i];
                 if (v.x >= (trackModel.transform.localPosition.x - 5) * transform.localScale.x && v.x < (trackModel.transform.localPosition.x + 5) * transform.localScale.x)
                 {
                     if (i < first) first = i;
@@ -289,7 +295,7 @@ public class TrackSectionShapeController : MonoBehaviour
                 relativeRailWaypoints = new Vector3[(last - first + 1)];
                 for (int i = first; i <= last; i++)
                 {
-                    relativeRailWaypoints[i - first] = m_rail[i] / trackModel.transform.lossyScale.x + relativeFixedPosition;
+                    relativeRailWaypoints[i - first] = straightRail[i] / trackModel.transform.lossyScale.x + relativeFixedPosition;
                 }
 
                 //Debug.Log("Relative fixed: " + relativeFixedPosition + ", RelativeEnd: " + relativeMovablePosition);
@@ -305,12 +311,10 @@ public class TrackSectionShapeController : MonoBehaviour
 
             for (int i = 0; i < relativeRailWaypoints.Length; i++)
             {
-                m_rail[i + first] = trackModel.transform.TransformPoint(relativeRailWaypoints[i] + relativeFixedPosition) - m_verticalOffset * Vector3.up;
+                m_rail[i + first] = trackModel.transform.TransformPoint(relativeRailWaypoints[i]) - m_verticalOffset * Vector3.up;
             }
 
         }
-
-        
     }
 
     // this function assigns values to L1, L2 etc assuming m_endPoint, m_endRotation etc are fixed. 
@@ -600,11 +604,6 @@ public class TrackSectionShapeController : MonoBehaviour
         if (distance > m_L1 / m_A1) rotation *= Quaternion.AngleAxis(180, transform.up);
     }
 
-    public void SetStartRotation(Quaternion rotation)
-    {
-        transform.rotation = rotation;
-    }
-
     public Vector3 GetEndPoint()
     {
         return m_endPoint;
@@ -618,11 +617,6 @@ public class TrackSectionShapeController : MonoBehaviour
     public Quaternion GetEndRotation()
     {
         return m_endRotation;
-    }
-
-    public void SetEndRotation(Quaternion endRotation)
-    {
-        m_endRotation = endRotation;
     }
 
     public GameObject GetOtherBauble(GameObject bauble)
@@ -666,7 +660,7 @@ public class TrackSectionShapeController : MonoBehaviour
         float xl = Vector3.Dot(translatedLocation, unitForward);
         float yl = Vector3.Dot(translatedLocation, unitSideways);
 
-        Debug.Log("Beginning Newton-Raphson for (xl, yl) = (" + xl + ", " + yl + ")");
+        //Debug.Log("Beginning Newton-Raphson for (xl, yl) = (" + xl + ", " + yl + ")");
 
         float distance = xl; // this first guess will be pretty accurate for low theta and not too far off otherwise
         float theta = distance * distance;
@@ -699,7 +693,7 @@ public class TrackSectionShapeController : MonoBehaviour
 
         if (distance < m_L1 && distance > 0)
         {
-            Debug.Log("theta of " + theta + " matches for (" + FresnelMath.FresnelC(distance) + ", " + FresnelMath.FresnelS(distance) + ")");
+            //Debug.Log("theta of " + theta + " matches for (" + FresnelMath.FresnelC(distance) + ", " + FresnelMath.FresnelS(distance) + ")");
             return distance / m_A1;
         }
 
@@ -713,7 +707,7 @@ public class TrackSectionShapeController : MonoBehaviour
         xl = Vector3.Dot(translatedLocation, unitForward);
         yl = Vector3.Dot(translatedLocation, unitSideways);
 
-        Debug.Log("Beginning Newton-Raphson for (xl, yl) = (" + xl + ", " + yl + ")");
+        //Debug.Log("Beginning Newton-Raphson for (xl, yl) = (" + xl + ", " + yl + ")");
 
         distance = xl; // this first guess will be pretty accurate for low theta and not too far off otherwise
         theta = distance * distance;
@@ -743,11 +737,11 @@ public class TrackSectionShapeController : MonoBehaviour
 
         if (distance < m_L2 && distance > 0)
         {
-            Debug.Log("theta of " + theta + " matches for (" + FresnelMath.FresnelC(distance) + ", " + FresnelMath.FresnelS(distance) + ")");
+            //Debug.Log("theta of " + theta + " matches for (" + FresnelMath.FresnelC(distance) + ", " + FresnelMath.FresnelS(distance) + ")");
             return m_currentLength - (distance / m_A2);
         }
         
-        Debug.Log("Returning end of track");
+        //Debug.Log("Returning end of track");
         return m_currentLength;
     }
 
@@ -785,7 +779,6 @@ public class TrackSectionShapeController : MonoBehaviour
 
 public static class RailVectorCreator
 {
-    // this function
     public static Vector3[] CreateRailVectors(float L1, float L2, float A1, float A2, float theta1, float theta2, 
                                             Vector3 startPosition, 
                                             Vector3 endPosition,
@@ -809,10 +802,6 @@ public static class RailVectorCreator
 
         rails = new Vector3[nVectors];
 
-        /*
-        rails[0] = Vector3.zero;
-        rails[nVectors - 1] = new Vector3(length, 0, 0);
-        */
         float anglePerSection = phi / (nVectors - 1);
 
         for (int i = 0; i < rails.Length; i++)
@@ -833,7 +822,6 @@ public static class RailVectorCreator
             }
 
             rails[i] = new Vector3(distanceAlongLength, 0, 0);
-//            rails[i] = new Vector3((float)(i * length) / (float)(rails.Length - 1), 0, 0);
         }
 
         return rails;
