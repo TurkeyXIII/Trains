@@ -358,7 +358,6 @@ public class TrackSectionShapeController : MonoBehaviour
 
     public bool ShapeTrack()
     {
-        //Debug.Log("In SetEndPoint");
         Vector3 end = m_endTrackLink.transform.position;
         Vector3 start = m_startTrackLink.transform.position;
 
@@ -421,9 +420,6 @@ public class TrackSectionShapeController : MonoBehaviour
                     }
                 }
             }
-
-            //m_startTrackLink.RecalculateDirections(gameObject);
-            //m_endTrackLink.RecalculateDirections(gameObject);
 
             if (!CalculateParameters()) return false;
 

@@ -22,6 +22,7 @@ public class BaubleController : MonoBehaviour {
     private LinkedList<TrackLink> m_tracks;
 
     public bool fixedRotation { set; private get; }
+    public float reciprocalCurvatureRadius;
 
     private GameObject m_bufferStop;
 

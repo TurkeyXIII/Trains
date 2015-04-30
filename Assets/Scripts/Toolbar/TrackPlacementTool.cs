@@ -4,6 +4,7 @@ using System.Collections.Generic;
 public class TrackPlacementTool : Tool
 {
     public float verticalOffset;
+    public float radiusScale;
 
     private GameObject m_currentTrackSection;
     private TrackSectionShapeController m_shapeController;
@@ -74,6 +75,15 @@ public class TrackPlacementTool : Tool
         {
             case Effect.Track:
                 {
+                    if (m_baubleCursor != null)
+                    {
+                        float radiusChange = Input.GetAxis("Radius");
+                        if (radiusChange != 0)
+                        {
+                            m_baubleCursor.GetComponent<BaubleController>().reciprocalCurvatureRadius -= radiusScale * radiusChange;
+                        }
+                    }
+
                     if (Input.GetMouseButtonDown(0))
                     {
                         if (m_currentTrackSection == null)
@@ -222,7 +232,7 @@ public class TrackPlacementTool : Tool
                         }
                     }
 
-                    else // no mouse button down
+                    else // no button down
                     {
                         if (m_currentTrackSection == null)
                         {

@@ -1765,6 +1765,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   verticalOffset: .00999999978
+  radiusScale: .00999999978
 --- !u!1 &569194645
 GameObject:
   m_ObjectHideFlags: 0

@@ -3,7 +3,7 @@ using System.Collections;
 
 public static class TrainsMath {
 
-    private const float c_fudgeFactor = 0.0001f;
+    private const float c_fudgeFactor = 0.000001f;
 
     public static bool AreApproximatelyEqual(float a, float b)
     {
@@ -37,7 +37,7 @@ public static class TrainsMath {
 
 public static class FresnelMath
 {
-    private const float c_errorMargin = 0.0001f;
+    private const float c_errorMargin = 0.000001f;
 
     public static float FresnelS(float x)
     {
@@ -216,5 +216,173 @@ public static class FresnelMath
         // failed to converge
         theta1 = -1;
         theta2 = -1;
+    }
+
+    public static void FindAForPartialTransitionOut(out float a, out float theta, float R, float xp, float yp)
+    {
+        FindAForSingleTransition(out a, out theta, R, xp, yp);
+        if (a > 0) return;
+
+        // if R -> infinity compared to the scale of the curve, consider it a full transition
+        // this may not be used; the check for curvature will likely happen before this function is called
+        if (R > (xp + yp) / c_errorMargin)
+        {
+            theta = Mathf.Atan2(yp, xp);
+
+            float CRootTheta = FresnelC(Mathf.Sqrt(theta));
+
+            a = (CRootTheta + CRootTheta * Mathf.Cos(2 * theta) + FresnelS(Mathf.Sqrt(theta)) * Mathf.Sin(2 * theta)) / xp;
+            return;
+        }
+
+        // if we haven't returned yet, we're somewhere in the middle of the out transition
+        // the following is a false position method numerical analysis to find a
+
+        // find upper and lower bounds for A
+        // these are very broad
+        float aUpper = 2 * 0.97745f / xp;
+        float aLower = 0.1f / xp; // corresponds to an angle less than 1 degree
+        if (aLower < 1 / (2 * R * 1.535f)) aLower = 1 / (2 * R * 1.535f);
+        
+
+        Debug.Log("aUpper: " + aUpper + ", aLower: " + aLower);
+
+        int maxIterations = 15;
+
+        float fUpper = FunctionOfAForPartialTransition(aUpper, R, xp, yp);
+        float fLower = FunctionOfAForPartialTransition(aLower, R, xp, yp);
+
+        if (Mathf.Sign(fUpper) == Mathf.Sign(fLower))
+        {
+            Debug.Log("Require different sign for fUpper: " + fUpper + ", fLower: " + fLower);
+            a = -1;
+            theta = -1;
+            return;
+        }
+
+        float upperInARow = 0;
+        float lowerInARow = 0;
+
+        for (int i = 0; i < maxIterations; i++)
+        {
+            Debug.Log("aUpper: " + aUpper + ", aLower: " + aLower + ", fUpper: " + fUpper + ", fLower: " + fLower);
+
+            float aFalse;
+
+            // the Illonois algorithm is modified to increase weighting for longer periods of one-sidedness. This converges faster.
+            if (upperInARow > 1)
+                aFalse = (fUpper * aLower - Mathf.Pow(3f, -upperInARow) * fLower * aUpper) / (fUpper - Mathf.Pow(3f, -upperInARow) * fLower);
+            else if (lowerInARow > 1)
+                aFalse = (Mathf.Pow(3f, -lowerInARow) * fUpper * aLower - fLower * aUpper) / (Mathf.Pow(3f, -lowerInARow) * fUpper - fLower);
+            else
+                aFalse = (fUpper * aLower - fLower * aUpper) / (fUpper - fLower);
+
+            float fFalse = FunctionOfAForPartialTransition(aFalse, R, xp, yp);
+
+            if (TrainsMath.AreApproximatelyEqual(0, fFalse))
+            {
+                a = aFalse;
+                float yq = FresnelS(1 / (2 * a * R)) / a;
+                float xq = FresnelC(1 / (2 * a * R)) / a;
+
+                theta = Mathf.Atan2(yp - yq, xp - xq);
+
+                Debug.Log("Solution found in " + i + " iterations: a = " + a + ", theta = " + theta);
+
+                return;
+            }
+
+            if (Mathf.Sign(fFalse) == Mathf.Sign(fUpper))
+            {
+                aUpper = aFalse;
+                fUpper = fFalse;
+                upperInARow++;
+                lowerInARow = 0;
+            }
+            else if (Mathf.Sign(fFalse) == Mathf.Sign(fLower))
+            {
+                aLower = aFalse;
+                fLower = fFalse;
+                lowerInARow++;
+                upperInARow = 0;
+            }
+            else
+                Debug.Log("Shouldn't be here!");
+        }
+
+        a = -1;
+        theta = -1;
+    }
+
+    private static float FunctionOfAForPartialTransition(float a, float r, float xp, float yp)
+    {
+        float f;
+
+        float C1on2ar = FresnelC(1/(2*a*r));
+        float S1on2ar = FresnelS(1/(2*a*r));
+
+//        Debug.Log("a = " + a + ", r = " + r + ", 1/2ar = " + (1/(2*a*r)) + ", C1on2ar = " + C1on2ar + ", S1on2ar = " + S1on2ar);
+
+        float xq = C1on2ar / a;
+        float yq = S1on2ar / a;
+       
+//        Debug.Log("yp - yq: " + (yp - yq) + ", xp - xq: " + ( xp - xq));
+
+        float theta = Mathf.Atan2((yp - yq), (xp - xq));
+
+//        Debug.Log("theta = " + theta);
+
+        if (theta < 0) theta = 0;
+
+        float x1 = FresnelC(Mathf.Sqrt(theta))/a;
+        float y1 = FresnelS(Mathf.Sqrt(theta))/a;
+        
+        Vector2 mp = new Vector2(xp - x1, yp - y1);
+        Vector2 qm = new Vector2(x1 - xq, y1 - yq);
+
+        f = mp.magnitude - qm.magnitude;
+
+        return f;
+    }
+
+    public static void FindAForSingleTransition(out float a, out float theta, float R, float xp, float yp)
+    {
+        //intial guess
+        theta = 2 * Mathf.Atan(yp/xp);
+        a = FresnelC(Mathf.Sqrt(theta)) / xp;
+        Debug.Log("Initial guess: " + a);
+        // Newton-Raphson method again
+        int maxIterations = 10;
+        float L;
+        for (int i = 0; i < maxIterations; i++)
+        {
+            
+            L = 1 / (2 * a * R);
+
+            float f = FresnelC(L) - (xp / yp) * FresnelS(L);
+            float dfda = (xp / yp) * Mathf.Pow(Mathf.Sin(L), 2) / (2 * a * a * R) - Mathf.Pow(Mathf.Cos(L), 2) / (2 * a * a * R);
+
+            float difference = f / dfda;
+
+            a -= difference;
+            theta = 1 / (4 * a * a * R * R);
+
+            Debug.Log("Diff: " + difference + ", a: " + a + ", theta: " + theta);
+            if (difference < c_errorMargin && difference > -c_errorMargin) break;
+#pragma warning disable
+            if (difference != difference) break; // check for NaN
+#pragma warning enable
+            if (theta < 0 || theta > Mathf.PI / 2) break;
+        }
+
+        // check if the found solution is valid
+        L = Mathf.Sqrt(theta);
+        if (TrainsMath.AreApproximatelyEqual(xp, FresnelC(L) / a, 0.0001f) && TrainsMath.AreApproximatelyEqual(yp, FresnelS(L) / a, 0.0001f))
+        {
+            // all is well
+            return;
+        }
+        a = -1;
+        theta = -1;
     }
 }

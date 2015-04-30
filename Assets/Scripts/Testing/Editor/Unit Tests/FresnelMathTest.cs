@@ -282,4 +282,124 @@ namespace UnitTest
             Assert.That(theta1 + theta2, Is.EqualTo(Mathf.Acos(Vector3.Dot(startDirection, endDirection) / (startDirection.magnitude * endDirection.magnitude))).Within(0.001f));
         }
     }
+
+    [Category("Partial Transitions")]
+    internal class PartialCurveCalculationTests
+    {
+        [Test]
+        public void TestSingleTransitionNormalised30Degrees()
+        {
+            float theta, a;
+
+            FresnelMath.FindAForSingleTransition(out a, out theta, 0.691f, 0.704f, 0.12384f);
+
+            Assert.That(a, Is.EqualTo(1).Within(0.0001f));
+            Assert.That(theta, Is.EqualTo(Mathf.PI/6).Within(0.0001f));
+        }
+
+        [Test]
+        public void TestSingleTransitionScaled30Degrees()
+        {
+            float theta, a;
+
+            FresnelMath.FindAForSingleTransition(out a, out theta, 2.3033f, 2.34667f, 0.4128f);
+
+            Assert.That(a, Is.EqualTo(0.3f).Within(0.0001f));
+            Assert.That(theta, Is.EqualTo(Mathf.PI / 6).Within(0.0001f));
+        }
+
+        [Test]
+        public void TestSingleTransitionInvalid()
+        {
+            float theta, a;
+
+            FresnelMath.FindAForSingleTransition(out a, out theta, 2.4f, 2.34667f, 0.4128f);
+
+            Assert.Less(a, 0);
+        }
+
+        [Test]
+        public void TestFullTransition45Degrees()
+        {
+            float theta, a;
+
+            FresnelMath.FindAForPartialTransitionOut(out a, out theta, float.PositiveInfinity, 2.11f, 2.11f);
+
+            Assert.That(a, Is.EqualTo(0.5f).Within(0.0001f));
+            Assert.That(theta, Is.EqualTo(Mathf.PI/4).Within(0.0001f));
+        }
+
+        [Test]
+        public void TestFullTransition30Degrees()
+        {
+            float theta, a;
+
+            FresnelMath.FindAForPartialTransitionOut(out a, out theta, float.PositiveInfinity, 1.163245f, 0.6716f);
+
+            Assert.That(a, Is.EqualTo(1f).Within(0.0001f));
+            Assert.That(theta, Is.EqualTo(Mathf.PI / 6).Within(0.0001f));
+        }
+
+        [Test]
+        public void TestPartialTransitionNormalised30Degrees()
+        {
+            TestPartialTransition(1, Mathf.PI / 6, 0.5f);
+        }
+
+        [Test]
+        public void TestPartialTransitionScaled30Degrees()
+        {
+            TestPartialTransition(12, Mathf.PI / 6, 0.5f);
+        }
+
+        [Test]
+        public void TestPartialTransitionNearMidpoint30Degrees()
+        {
+            TestPartialTransition(1, Mathf.PI / 6, 0.99f);
+        }
+
+        [Test]
+        public void TestPartialTransitionNearEnd30Degrees()
+        {
+            TestPartialTransition(1, Mathf.PI / 6, 0.01f);
+        }
+
+        [Test]
+        public void TestPartialTransitionScaled60Degrees()
+        {
+            TestPartialTransition(7, Mathf.PI / 3, 0.5f);
+        }
+
+        [Test]
+        public void TestPartialTransitionNearMidpoint1Degree()
+        {
+            TestPartialTransition(1, Mathf.PI/180, 0.99f);
+        }
+
+        private void TestPartialTransition(float targetA, float targetTheta, float fractionFromEnd)
+        {
+            float theta, a;
+
+            float xp, yp, radius;
+
+            float rootTheta = Mathf.Sqrt(targetTheta);
+
+            radius = 1 / (2 * rootTheta * targetA * fractionFromEnd);
+
+            float xFull = FresnelMath.FresnelC(rootTheta) / targetA;
+            float yFull = FresnelMath.FresnelS(rootTheta) / targetA;
+            float xHalf = FresnelMath.FresnelC(fractionFromEnd * rootTheta) / targetA;
+            float yHalf = FresnelMath.FresnelS(fractionFromEnd * rootTheta) / targetA;
+
+            xp = xFull + Mathf.Cos(targetTheta * 2) * (xFull - xHalf) + Mathf.Sin(targetTheta * 2) * (yFull - yHalf);
+            yp = yFull + Mathf.Sin(targetTheta * 2) * (xFull - xHalf) - Mathf.Cos(targetTheta * 2) * (yFull - yHalf);
+
+            Debug.Log("xp = " + xp + ", yp = " + yp + ", radius = " + radius);
+
+            FresnelMath.FindAForPartialTransitionOut(out a, out theta, radius, xp, yp);
+
+            Assert.That(a, Is.EqualTo(targetA).Within(0.01f).Percent);
+            Assert.That(theta, Is.EqualTo(targetTheta).Within(0.01f).Percent);
+        }
+    }
 }
