@@ -455,7 +455,7 @@ public class VertexBenderLogic
             creaseLs[i] = L1 + ((creasePositions[i].x - L1/A1) * A2);
         }
 
-        Debug.Log("i: " + i + ", CreasePosition: " + creasePositions[i] + ", creaseL: " + creaseLs[i]);
+        //Debug.Log("i: " + i + ", CreasePosition: " + creasePositions[i] + ", creaseL: " + creaseLs[i]);
 
         creases[n] = creaseLs[i];         
         done[i] = true;

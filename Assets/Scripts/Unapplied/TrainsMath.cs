@@ -220,8 +220,18 @@ public static class FresnelMath
 
     public static void FindAForPartialTransitionOut(out float a, out float theta, float R, float xp, float yp)
     {
+        float dummy;
+        FindAForPartialTransitionOut(out a, out theta, out dummy, R, xp, yp);
+    }
+
+    public static void FindAForPartialTransitionOut(out float a, out float theta, out float fractionOut, float R, float xp, float yp)
+    {
         FindAForSingleTransition(out a, out theta, R, xp, yp);
-        if (a > 0) return;
+        if (a > 0)
+        {
+            fractionOut = 0;
+            return;
+        }
 
         // if R -> infinity compared to the scale of the curve, consider it a full transition
         // this may not be used; the check for curvature will likely happen before this function is called
@@ -232,6 +242,7 @@ public static class FresnelMath
             float CRootTheta = FresnelC(Mathf.Sqrt(theta));
 
             a = (CRootTheta + CRootTheta * Mathf.Cos(2 * theta) + FresnelS(Mathf.Sqrt(theta)) * Mathf.Sin(2 * theta)) / xp;
+            fractionOut = 1;
             return;
         }
 
@@ -245,7 +256,7 @@ public static class FresnelMath
         if (aLower < 1 / (2 * R * 1.535f)) aLower = 1 / (2 * R * 1.535f);
         
 
-        Debug.Log("aUpper: " + aUpper + ", aLower: " + aLower);
+//        Debug.Log("aUpper: " + aUpper + ", aLower: " + aLower);
 
         int maxIterations = 15;
 
@@ -257,6 +268,7 @@ public static class FresnelMath
             Debug.Log("Require different sign for fUpper: " + fUpper + ", fLower: " + fLower);
             a = -1;
             theta = -1;
+            fractionOut = -1;
             return;
         }
 
@@ -265,7 +277,7 @@ public static class FresnelMath
 
         for (int i = 0; i < maxIterations; i++)
         {
-            Debug.Log("aUpper: " + aUpper + ", aLower: " + aLower + ", fUpper: " + fUpper + ", fLower: " + fLower);
+//            Debug.Log("aUpper: " + aUpper + ", aLower: " + aLower + ", fUpper: " + fUpper + ", fLower: " + fLower);
 
             float aFalse;
 
@@ -287,7 +299,9 @@ public static class FresnelMath
 
                 theta = Mathf.Atan2(yp - yq, xp - xq);
 
-                Debug.Log("Solution found in " + i + " iterations: a = " + a + ", theta = " + theta);
+//                Debug.Log("Solution found in " + i + " iterations: a = " + a + ", theta = " + theta);
+
+                fractionOut = 1 - (1/(2*a*R) / Mathf.Sqrt(theta));
 
                 return;
             }
@@ -312,6 +326,7 @@ public static class FresnelMath
 
         a = -1;
         theta = -1;
+        fractionOut = -1;
     }
 
     private static float FunctionOfAForPartialTransition(float a, float r, float xp, float yp)
@@ -350,7 +365,7 @@ public static class FresnelMath
         //intial guess
         theta = 2 * Mathf.Atan(yp/xp);
         a = FresnelC(Mathf.Sqrt(theta)) / xp;
-        Debug.Log("Initial guess: " + a);
+        //Debug.Log("Initial guess: " + a);
         // Newton-Raphson method again
         int maxIterations = 10;
         float L;
@@ -367,7 +382,7 @@ public static class FresnelMath
             a -= difference;
             theta = 1 / (4 * a * a * R * R);
 
-            Debug.Log("Diff: " + difference + ", a: " + a + ", theta: " + theta);
+            //Debug.Log("Diff: " + difference + ", a: " + a + ", theta: " + theta);
             if (difference < c_errorMargin && difference > -c_errorMargin) break;
 #pragma warning disable
             if (difference != difference) break; // check for NaN

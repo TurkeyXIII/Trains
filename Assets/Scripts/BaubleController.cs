@@ -18,6 +18,7 @@ public class BaubleController : MonoBehaviour {
     }
 
     private Vector3 m_lastPosition;
+    private float m_lastCurvature;
 
     private LinkedList<TrackLink> m_tracks;
 
@@ -34,6 +35,7 @@ public class BaubleController : MonoBehaviour {
 
         m_tracks = new LinkedList<TrackLink>();
         m_lastPosition = transform.position;
+        m_lastCurvature = 0;
     }
 
     void Update()
@@ -54,7 +56,7 @@ public class BaubleController : MonoBehaviour {
 
         m_mouseIsOver = false;
 
-        if (transform.position != m_lastPosition)
+        if (transform.position != m_lastPosition || reciprocalCurvatureRadius != m_lastCurvature)
         {
             if (m_bufferStop != null) m_bufferStop.transform.position = transform.position;
 
@@ -82,6 +84,8 @@ public class BaubleController : MonoBehaviour {
                 m_lastPosition = transform.position;
             }
             */
+            m_lastPosition = transform.position;
+            m_lastCurvature = reciprocalCurvatureRadius;
         }
     }
 
