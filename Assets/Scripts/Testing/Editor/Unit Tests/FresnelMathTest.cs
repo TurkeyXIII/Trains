@@ -319,6 +319,49 @@ namespace UnitTest
         }
 
         [Test]
+        public void TestSingleTransitionFromDistNormalised30Degrees()
+        {
+            float theta, a;
+
+            FresnelMath.FindAForSingleTransition(out a, out theta, 0.691f, 0.7148f);
+
+            Assert.That(a, Is.EqualTo(1).Within(0.0001f));
+            Assert.That(theta, Is.EqualTo(Mathf.PI / 6).Within(0.0001f));
+        }
+
+        [Test]
+        public void TestSingleTransitionFromDistScaled30Degrees()
+        {
+            float theta, a;
+
+            FresnelMath.FindAForSingleTransition(out a, out theta, 2.3033f, 2.3827f);
+
+            Assert.That(a, Is.EqualTo(0.3f).Within(0.0001f));
+            Assert.That(theta, Is.EqualTo(Mathf.PI / 6).Within(0.0001f));
+        }
+
+        [Test]
+        public void TestSingleTransitionFromDistBorderlineValid()
+        {
+            float theta, a;
+
+            FresnelMath.FindAForSingleTransition(out a, out theta, 0.4f, 1.121212f);
+
+            Assert.That(a, Is.EqualTo(1).Within(0.2f));
+            Assert.Greater(theta, 4 * Mathf.PI/9);
+        }
+
+        [Test]
+        public void TestSingleTransitionFromDistBorderlineInvalid()
+        {
+            float theta, a;
+
+            FresnelMath.FindAForSingleTransition(out a, out theta, 0.39f, 1.121212f);
+
+            Assert.Less(a, 0);
+        }
+
+        [Test]
         public void TestFullTransition45Degrees()
         {
             float theta, a;

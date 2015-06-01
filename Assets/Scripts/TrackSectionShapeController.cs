@@ -278,9 +278,12 @@ public class TrackSectionShapeController : MonoBehaviour
         float virtualLength = m_L1/m_A1 + m_L2/m_A2;
 
         Vector3 actualPosition = transform.position;
+        Debug.Log("rotation from within Curve(): " + transform.rotation.eulerAngles);
         Quaternion actualRotation = transform.rotation;
         transform.position = m_virtualStartPoint;
         transform.rotation = m_virtualStartRotation;
+
+        Debug.Log("Curve starting from " + transform.position);
 
         foreach (GameObject trackModel in m_currentModels)
         {
@@ -312,6 +315,7 @@ public class TrackSectionShapeController : MonoBehaviour
             }
         }
 
+        
         Vector3[] positions = new Vector3[m_currentModels.Count];
         Quaternion[] rotations = new Quaternion[m_currentModels.Count];
         int count = 0;
@@ -324,7 +328,7 @@ public class TrackSectionShapeController : MonoBehaviour
         
         transform.position = actualPosition;
         transform.rotation = actualRotation;
-
+        
         count = 0;
         foreach (GameObject section in m_currentModels)
         {
@@ -332,11 +336,7 @@ public class TrackSectionShapeController : MonoBehaviour
             section.transform.rotation = rotations[count];
             count++;
         }
-
-        for (int i = 0; i < m_rail.Length; i++)
-        {
-            Debug.Log("rail " + i + ": " + m_rail[i]);
-        }
+        
     }
 
     // this function assigns values to L1, L2 etc assuming m_endPoint, m_endRotation etc are fixed. 
@@ -387,6 +387,8 @@ public class TrackSectionShapeController : MonoBehaviour
 
             return true;
         }
+
+        // fixed, straight -> free, radius
         if (!m_startTrackLink.CanRotate() && m_endTrackLink.CanRotate())
         {
             if (m_startTrackLink.reciprocalCurvatureRadius == 0)
@@ -439,6 +441,7 @@ public class TrackSectionShapeController : MonoBehaviour
 
         }
 
+        // free, radius -> fixed, straight
         if (m_startTrackLink.CanRotate() && !m_endTrackLink.CanRotate())
         {
             if (m_endTrackLink.reciprocalCurvatureRadius == 0)
@@ -493,27 +496,103 @@ public class TrackSectionShapeController : MonoBehaviour
                 m_startTrackLink.transform.rotation = transform.rotation;
 
                 m_virtualStartRotation = m_endRotation * Quaternion.AngleAxis(2*theta * Mathf.Rad2Deg * Mathf.Sign(m_startTrackLink.reciprocalCurvatureRadius), transform.up);
-
-                /*
-                {
-                    startDirection = m_virtualStartRotation * Vector3.right;
-                    FresnelMath.FindTheta(out m_theta1, out m_theta2, m_virtualStartPoint, targetPosition, startDirection, -targetDirection);
-
-                    if (m_theta1 < 0) return false;
-
-                    float phi = m_theta1 + m_theta2;
-
-                    m_A2 = FresnelMath.A2(m_theta1, phi, x);
-                    m_A1 = FresnelMath.A1(m_A2, m_theta1, phi);
-
-                    m_L1 = Mathf.Sqrt(m_theta1);
-                    m_L2 = Mathf.Sqrt(m_theta2);
-
-                    return true;
-                }
-                */
             }
+        }
 
+        if (m_endTrackLink.CanRotate() && m_endTrackLink.CanRotate())
+        {
+            Debug.Log("both ends free");
+            // free, straight -> free, radius
+            if (m_startTrackLink.reciprocalCurvatureRadius == 0)
+            {
+                float theta, a;
+
+                float distance = (m_endPoint - transform.position).magnitude;
+
+                float r;
+                if (m_endTrackLink.reciprocalCurvatureRadius > 0)
+                    r = 1 / m_endTrackLink.reciprocalCurvatureRadius;
+                else
+                    r = -1 / m_endTrackLink.reciprocalCurvatureRadius;
+
+
+                FresnelMath.FindAForSingleTransition(out a, out theta, r, distance);
+
+                if (a < 0) return false;
+
+                m_A1 = a;
+                m_A2 = a;
+                m_L1 = Mathf.Sqrt(theta);
+                m_L2 = m_L1;
+                m_lengthFraction1 = 1;
+                m_lengthFraction2 = 0;
+                m_theta1 = theta;
+                m_theta2 = theta;
+
+                float angle = Mathf.Acos(FresnelMath.FresnelC(m_L1) / m_A1 / distance);
+
+                Debug.Log("angle = " + (angle * Mathf.Rad2Deg) + " degrees");
+
+                transform.rotation *= Quaternion.AngleAxis(angle * Mathf.Rad2Deg * Mathf.Sign(m_endTrackLink.reciprocalCurvatureRadius), transform.up);
+                m_virtualStartRotation = transform.rotation;
+                m_startTrackLink.transform.rotation = transform.rotation;
+                Debug.Log("rotation after correction = " + transform.rotation.eulerAngles);
+                m_endRotation = transform.rotation * Quaternion.AngleAxis(theta * Mathf.Rad2Deg * -Mathf.Sign(m_endTrackLink.reciprocalCurvatureRadius), transform.up);
+                m_endTrackLink.transform.rotation = m_endRotation;
+                float kappa = Mathf.PI - 2 * (theta - angle);
+                m_virtualEndPoint = m_endPoint + TrainsMath.RotateVector(transform.position - m_endPoint, transform.up, kappa * Mathf.Sign(m_endTrackLink.reciprocalCurvatureRadius));
+
+            }
+            else if (m_endTrackLink.reciprocalCurvatureRadius == 0) // free, raduis -> free, straight
+            {
+                Debug.Log("end straight");
+                float theta, a;
+
+                float distance = (m_endPoint - transform.position).magnitude;
+
+                float r;
+                if (m_startTrackLink.reciprocalCurvatureRadius > 0)
+                    r = 1 / m_startTrackLink.reciprocalCurvatureRadius;
+                else
+                    r = -1 / m_startTrackLink.reciprocalCurvatureRadius;
+
+                FresnelMath.FindAForSingleTransition(out a, out theta, r, distance);
+
+                if (a < 0) return false;
+
+                m_A1 = a;
+                m_A2 = a;
+                m_L1 = Mathf.Sqrt(theta);
+                m_L2 = m_L1;
+                m_lengthFraction1 = 0;
+                m_lengthFraction2 = 1;
+                m_theta1 = theta;
+                m_theta2 = theta;
+
+                float angle = Mathf.Acos(FresnelMath.FresnelC(m_L1) / m_A1 / distance);
+
+                float sign = Mathf.Sign(m_startTrackLink.reciprocalCurvatureRadius);
+
+                Debug.Log("angle = " + (angle * Mathf.Rad2Deg) + " degrees; radius sign = " + sign);
+
+                m_endRotation *= Quaternion.AngleAxis(-angle * Mathf.Rad2Deg, transform.up);
+                m_endTrackLink.transform.rotation = m_endRotation;
+                transform.rotation = m_endRotation * Quaternion.AngleAxis(theta * Mathf.Rad2Deg, transform.up);
+                m_startTrackLink.transform.rotation = transform.rotation;
+                float kappa = Mathf.PI - 2 * (theta - angle);
+                m_virtualStartPoint = transform.position + TrainsMath.RotateVector(m_endPoint - transform.position, transform.up, kappa * sign);
+                m_virtualStartRotation = Quaternion.LookRotation(transform.position - m_virtualStartPoint, transform.up) * Quaternion.Euler(0, -90, 0) * Quaternion.AngleAxis(-angle * Mathf.Rad2Deg * sign, transform.up);
+
+                
+
+                GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                marker.transform.position = m_virtualStartPoint;
+                marker.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+            }
+            else // free, radius -> free, radius
+            {
+
+            }
 
         }
 
@@ -538,6 +617,8 @@ public class TrackSectionShapeController : MonoBehaviour
             {
                 transform.rotation = Quaternion.LookRotation(m_endPoint - transform.position) * Quaternion.Euler(0, -90, 0);
                 m_endRotation = transform.rotation;
+
+                Debug.Log("rotation after recalibration = " + transform.rotation.eulerAngles);
 
                 m_startTrackLink.transform.rotation = transform.rotation;
                 m_endTrackLink.transform.rotation = m_endRotation;
@@ -582,7 +663,7 @@ public class TrackSectionShapeController : MonoBehaviour
 
         
 
-        RestoreTrackSections();
+        //RestoreTrackSections();
         SetLength();
         CalculateRail();
 
@@ -974,7 +1055,7 @@ public static class RailVectorCreator
                 waypoints[i] = length - Mathf.Sqrt(phi - angleForVector) / A2;
             }
 
-            Debug.Log("rail " + i + ": " + waypoints[i]);
+            //Debug.Log("rail " + i + ": " + waypoints[i]);
         }
 
         return waypoints;

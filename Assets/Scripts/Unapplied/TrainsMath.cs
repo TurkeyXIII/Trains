@@ -32,6 +32,16 @@ public static class TrainsMath {
     {
         return AreApproximatelyEqual(a, b, c_fudgeFactor);
     }
+
+    public static Vector3 RotateVector(Vector3 vector, Vector3 axis, float angleRadians)
+    {
+        // Rodrigues' rotation forumla
+        axis.Normalize();
+        Vector3 vRot = vector * Mathf.Cos(angleRadians) 
+            + Vector3.Cross(axis, vector) * Mathf.Sin(angleRadians)
+            + axis * Vector3.Dot(axis, vector) * (1 - Mathf.Cos(angleRadians));
+        return vRot;
+    }
 }
 
 
@@ -399,5 +409,45 @@ public static class FresnelMath
         }
         a = -1;
         theta = -1;
+    }
+
+    public static void FindAForSingleTransition(out float a, out float theta, float R, float dist)
+    {
+        //initial guess
+        a = Mathf.Sqrt(1/(2 * dist * R));
+        theta = 0;
+        // Newton Raphson again
+
+        int maxIterations = 10;
+        float L;
+
+        for (int i = 0; i < maxIterations; i++)
+        {
+            L = 1 / (2 * a * R);
+            float CL = FresnelC(L);
+            float SL = FresnelS(L);
+
+            float f = CL * CL + SL * SL - (dist * a) * (dist * a);
+            float dfda = -CL * Mathf.Pow(Mathf.Cos(L), 2) / (a*R) - SL * Mathf.Pow(Mathf.Sin(L), 2) / (a*R) - 2 * dist * dist * a;
+
+            float difference = f / dfda;
+
+            a -= difference;
+            theta = 1 / (4 * a * a * R * R);
+
+            //Debug.Log("Diff: " + difference + ", a: " + a + ", theta: " + theta);
+            if (difference < c_errorMargin && difference > -c_errorMargin) break;
+#pragma warning disable
+            if (difference != difference) break; // check for NaN
+#pragma warning enable
+            if (theta < 0 || theta > Mathf.PI / 2) break;
+        }
+
+        L = Mathf.Sqrt(theta);
+        Vector2 v = new Vector2 (FresnelC(L) / a, FresnelS(L) / a);
+        if (TrainsMath.AreApproximatelyEqual(dist, v.magnitude, 0.001f)) return;
+
+        theta = -1;
+        a = -1;
     }
 }
