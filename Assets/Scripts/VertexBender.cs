@@ -434,16 +434,7 @@ public class VertexBenderLogic
     {
         // orthogonal unit vectors describing x and y directions of co-ordinate system where x is direction away from target point along straigh line and y is lateral movement to origin
         rotationAxis = Vector3.Cross(unitXdash, unitYdash);
-        /*
-        // Rodrigues' rotation forumla
-        unitXdoubledash = -(Mathf.Cos(phi) * unitXdash +
-                                Mathf.Sin(phi) * Vector3.Cross(rotationAxis, unitXdash) +
-                                (1 - Mathf.Cos(phi)) * Vector3.Dot(rotationAxis, unitXdash) * rotationAxis); //rotate phi
-        
-        unitYdoubledash = Mathf.Cos(phi) * unitYdash +
-                Mathf.Sin(phi) * Vector3.Cross(rotationAxis, unitYdash) +
-                (1 - Mathf.Cos(phi)) * Vector3.Dot(rotationAxis, unitYdash) * rotationAxis; //rotate phi
-        */
+
         unitXdoubledash = -TrainsMath.RotateVector(unitXdash, rotationAxis, phi);
         unitYdoubledash = TrainsMath.RotateVector(unitYdash, rotationAxis, phi);
     }

@@ -411,6 +411,7 @@ public static class FresnelMath
         theta = -1;
     }
 
+
     public static void FindAForSingleTransition(out float a, out float theta, float R, float dist)
     {
         //initial guess
@@ -449,5 +450,71 @@ public static class FresnelMath
 
         theta = -1;
         a = -1;
+    }
+
+
+    public static void FindAForSinglePartialTransition(out float a, out float theta, out float fraction, float dist, float rSmall, float rLarge)
+    {
+        //intial guess
+        //a = Mathf.Sqrt(1 / (2 * rSmall * dist)) * 0.72f;
+        theta = Mathf.PI / 4;
+        a = Mathf.Sqrt(theta) / dist;
+        fraction = 1;
+
+        //Debug.Log("Initial Guess: " + a);
+
+        // Newton-Raphson method again
+        int maxIterations = 200;
+        float Lq, Lp, CLp, CLq, SLp, SLq, x, y;
+        for (int i = 0; i < maxIterations; i++)
+        {
+
+            Lq = 1 / (2 * a * rSmall);
+            Lp = 1 / (2 * a * rLarge);
+
+            CLp = FresnelC(Lp);
+            CLq = FresnelC(Lq);
+            SLp = FresnelS(Lp);
+            SLq = FresnelS(Lq);
+
+            x = (CLq - CLp);
+            y = (SLq - SLp);
+
+            float f = x * x + y * y - dist * dist * a * a;
+            float dfda = 2 * x * (-Lq * Mathf.Pow(Mathf.Cos(Lq), 2) + Lp * Mathf.Pow(Mathf.Cos(Lp), 2)) + 2 * y * (-Lq * Mathf.Pow(Mathf.Sin(Lq), 2) + Lp * Mathf.Pow(Mathf.Sin(Lp), 2)) - 2 * dist * dist * a;
+
+            float difference = f / dfda;
+
+            a -= difference;
+            theta = 1 / (4 * a * a * rSmall * rSmall);
+
+            //Debug.Log("Diff: " + difference + ", a: " + a + ", theta: " + theta + ", i: " + i);
+            if (difference < c_errorMargin && difference > -c_errorMargin) break;
+#pragma warning disable
+            if (difference != difference) break; // check for NaN
+#pragma warning enable
+            if (theta < 0.001f) theta = 0.001f;
+            if (theta > Mathf.PI / 2) theta = Mathf.PI / 2;
+        }
+
+        // check if the found solution is valid
+        Lq = Mathf.Sqrt(theta);
+        Lp = 1 / (2 * a * rLarge);
+
+        CLp = FresnelC(Lp);
+        CLq = FresnelC(Lq);
+        SLp = FresnelS(Lp);
+        SLq = FresnelS(Lq);
+
+        x = (CLq - CLp);
+        y = (SLq - SLp);
+        if (TrainsMath.AreApproximatelyEqual(0, x * x + y * y - dist * dist * a * a, 0.001f) && theta <= Mathf.PI / 2)
+        {
+            // all is well
+            fraction = 1 - (Lp / Lq);
+            return;
+        }
+        a = -1;
+        theta = -1;
     }
 }

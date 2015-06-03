@@ -50,9 +50,6 @@ public class TrackSectionShapeController : MonoBehaviour
     public void Initialize()
     {
         m_currentModels = new Stack<GameObject>();
-//        m_collider = GetComponent<BoxCollider>();
-//        m_collider.center = new Vector3(0, 0.1f, 0);
-//        m_collider.size = new Vector3(10, 0.24f, 2.5f);
         m_verticalOffset = Control.GetControl().trackPlacer.verticalOffset;
         SetLength(minLength);
         m_endPoint = Vector3.zero;
@@ -585,6 +582,127 @@ public class TrackSectionShapeController : MonoBehaviour
             else // free, radius -> free, radius
             {
                 Debug.Log("both ends curved");
+
+                float theta, a;
+
+                float distance = (m_endPoint - transform.position).magnitude;
+                float sign = Mathf.Sign(m_startTrackLink.reciprocalCurvatureRadius);
+
+                if (sign == Mathf.Sign(m_endTrackLink.reciprocalCurvatureRadius))
+                {
+                    m_endTrackLink.reciprocalCurvatureRadius = 0;
+                    return CalculateParameters();
+                }
+
+                float rSmall, rLarge, rStart, rEnd;
+
+                if (sign > 0)
+                {
+                    rStart = 1 / m_startTrackLink.reciprocalCurvatureRadius;
+                    rEnd = -1 / m_endTrackLink.reciprocalCurvatureRadius;
+                }
+                else
+                {
+                    rStart = -1 / m_startTrackLink.reciprocalCurvatureRadius;
+                    rEnd = 1 / m_endTrackLink.reciprocalCurvatureRadius;
+                }
+
+                if (rStart > rEnd)
+                {
+                    rSmall = rEnd;
+                    rLarge = rStart;
+                }
+                else
+                {
+                    rSmall = rStart;
+                    rLarge = rEnd;
+                }
+
+                Debug.Log("rLarge = " + rLarge + ", rSmall = " + rSmall + ", dist = " + distance);
+
+                float fraction;
+                FresnelMath.FindAForSinglePartialTransition(out a, out theta, out fraction, distance, rSmall, rLarge);
+
+                Debug.Log("a = " + a + ", fraction = " + fraction);
+
+                if (a < 0) return false;
+
+                m_theta1 = theta;
+                m_theta2 = theta;
+                m_L1 = Mathf.Sqrt(theta);
+                m_L2 = m_L1;
+                m_A1 = a;
+                m_A2 = a;
+
+                float Lp = 1 / (2 * a * rLarge);
+
+                if (rStart > rEnd)
+                {
+                    // transition in
+                    m_lengthFraction1 = fraction;
+                    m_lengthFraction2 = 0;
+
+                    float CL = FresnelMath.FresnelC(m_L1);
+                    float SL = FresnelMath.FresnelS(m_L1);
+                    float alpha = Mathf.Asin((SL - FresnelMath.FresnelS(Lp)) / (a * distance));
+
+                    m_virtualStartRotation = transform.rotation * Quaternion.AngleAxis(alpha * Mathf.Rad2Deg * -sign, transform.up);
+                    m_virtualStartPoint = m_endPoint + m_virtualStartRotation * (Vector3.left * CL + Vector3.forward * SL * sign) / a;
+
+                    transform.rotation = m_virtualStartRotation * Quaternion.AngleAxis(Lp * Lp * Mathf.Rad2Deg * -sign, transform.up);
+                    m_endRotation = m_virtualStartRotation * Quaternion.AngleAxis(-theta * Mathf.Rad2Deg * -sign, transform.up);
+                    m_startTrackLink.transform.rotation = transform.rotation;
+                    m_endTrackLink.transform.rotation = m_endRotation;
+                    
+                    Quaternion virtualEndRotation = m_endRotation * Quaternion.AngleAxis(-theta * Mathf.Rad2Deg * -sign, transform.up);
+                    m_virtualEndPoint = m_endPoint + virtualEndRotation * (Vector3.right * CL + Vector3.forward * SL * sign) / a;
+                    
+                    /*
+                    GameObject startMarker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    startMarker.transform.position = m_virtualStartPoint;
+                    startMarker.transform.rotation = m_virtualStartRotation;
+                    startMarker.transform.localScale /= 10;
+                    
+                    GameObject endMarker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    endMarker.transform.position = m_virtualEndPoint;
+                    endMarker.transform.rotation = virtualEndRotation;
+                    endMarker.transform.localScale /= 10;
+                    */
+                }
+                else
+                {
+                    // transition out
+                    m_lengthFraction1 = 0;
+                    m_lengthFraction2 = fraction;
+
+                    float CL = FresnelMath.FresnelC(m_L1);
+                    float SL = FresnelMath.FresnelS(m_L1);
+                    float alpha = Mathf.Asin((SL - FresnelMath.FresnelS(Lp)) / (a * distance));
+                    Quaternion virtualEndRotation = transform.rotation * Quaternion.AngleAxis(-alpha * Mathf.Rad2Deg * -sign, transform.up);
+                    m_virtualEndPoint = transform.position + virtualEndRotation * (Vector3.right * CL + Vector3.forward * SL * sign) / a;
+
+                    m_endRotation = virtualEndRotation * Quaternion.AngleAxis(Lp * Lp * Mathf.Rad2Deg * -sign, transform.up);
+                    transform.rotation = virtualEndRotation * Quaternion.AngleAxis(theta * Mathf.Rad2Deg * -sign, transform.up);
+
+                    m_endTrackLink.transform.rotation = m_endRotation;
+                    m_startTrackLink.transform.rotation = transform.rotation;
+
+                    m_virtualStartRotation = transform.rotation * Quaternion.AngleAxis(theta * Mathf.Rad2Deg * -sign, transform.up);
+                    m_virtualStartPoint = transform.position + m_virtualStartRotation * (Vector3.left * CL + Vector3.forward * SL * sign) / a;
+
+                    /*
+                    GameObject startMarker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    startMarker.transform.position = m_virtualStartPoint;
+                    startMarker.transform.rotation = m_virtualStartRotation;
+                    startMarker.transform.localScale /= 10;
+                    
+                    GameObject endMarker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    endMarker.transform.position = m_virtualEndPoint;
+                    endMarker.transform.rotation = virtualEndRotation;
+                    endMarker.transform.localScale /= 10;
+                    */
+                }
+
             }
 
         }
@@ -794,15 +912,17 @@ public class TrackSectionShapeController : MonoBehaviour
         float A;
 
 
-        unitForward = transform.right;
-        Vector3 toEndPoint = m_endPoint - transform.position;
+        unitForward = m_virtualStartRotation * Vector3.right;
+        Vector3 toEndPoint = m_endPoint - m_virtualStartPoint;
         unitSideways = (toEndPoint - Vector3.Dot(toEndPoint, unitForward) * unitForward).normalized;
 
-        if (distance < m_L1 / m_A1)
+        bool inTransitionIn = distance <= m_L1 / m_A1 * m_lengthFraction1;
+
+        if (inTransitionIn)
         {
             // transition in
             normalisedLength = distance * m_A1;
-            startPosition = transform.position;
+            startPosition = m_virtualStartPoint;
             A = m_A1;
             rotationAxis = Vector3.Cross(unitForward, unitSideways);
         }
@@ -810,7 +930,7 @@ public class TrackSectionShapeController : MonoBehaviour
         {
             float virtualLength = m_L1/m_A1 + m_L2/m_A2;
             // transition out
-            normalisedLength = (virtualLength - distance) * m_A2;
+            normalisedLength = (virtualLength - distance - (1 - m_lengthFraction1) * m_L1 / m_A1) * m_A2;
             startPosition = m_virtualEndPoint;
             A = m_A2;
 
@@ -826,7 +946,7 @@ public class TrackSectionShapeController : MonoBehaviour
         VertexBenderLogic.UnitVectorsFromRotation(normalisedLength * normalisedLength, unitForward, unitSideways, out positionForward, out PositionSideways);
         rotation = Quaternion.LookRotation(positionForward, transform.up) * Quaternion.AngleAxis(90, transform.up);
 
-        if (distance > m_L1 / m_A1) rotation *= Quaternion.AngleAxis(180, transform.up);
+        if (!inTransitionIn) rotation *= Quaternion.AngleAxis(180, transform.up);
     }
 
     public Vector3 GetEndPoint()

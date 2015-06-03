@@ -444,5 +444,73 @@ namespace UnitTest
             Assert.That(a, Is.EqualTo(targetA).Within(0.01f).Percent);
             Assert.That(theta, Is.EqualTo(targetTheta).Within(0.01f).Percent);
         }
+
+        [Test]
+        public void TestSinglePartialTransition30DegMidpointNormalised()
+        {
+            TestSinglePartialTransition(1, Mathf.PI / 6, 0.5f);
+        }
+
+        [Test]
+        public void TestSinglePartialTransition30DegMidpointScaled()
+        {
+            TestSinglePartialTransition(0.02f, Mathf.PI / 6, 0.5f);
+        }
+
+        [Test]
+        public void TestSinglePartialTransition89DegMidpointNormalised()
+        {
+            TestSinglePartialTransition(1, 89*Mathf.PI / 180, 0.5f);
+        }
+
+        [Test]
+        public void TestSinglePartialTransition1DegMidpointNormalised()
+        {
+            TestSinglePartialTransition(1, Mathf.PI / 180, 0.5f);
+        }
+
+        [Test]
+        public void TestSinglePartialTransition45DegNearEndNormalised()
+        {
+            TestSinglePartialTransition(1, Mathf.PI / 4, 0.01f);
+        }
+
+        [Test]
+        public void TestSinglePartialTransition45DegNearStartNormalised()
+        {
+            TestSinglePartialTransition(1, Mathf.PI / 4, 0.99f);
+        }
+
+        private void TestSinglePartialTransition(float targetA, float targetTheta, float fractionFromEnd)
+        {
+            float L = Mathf.Sqrt(targetTheta);
+
+            float rSmall = 1 / (2 * targetA * L);
+
+            float Lp = (1 - fractionFromEnd) * L;
+
+            float rLarge = 1 / (2 * targetA * Lp);
+
+            float x = (FresnelMath.FresnelC(L) - FresnelMath.FresnelC(Lp)) / targetA;
+            float y = (FresnelMath.FresnelS(L) - FresnelMath.FresnelS(Lp)) / targetA;
+
+            float dist = Mathf.Sqrt(x*x + y*y);
+
+            float a, theta, fraction;
+            FresnelMath.FindAForSinglePartialTransition(out a, out theta, out fraction, dist, rSmall, rLarge);
+
+            Assert.That(a, Is.EqualTo(targetA).Within(0.01f).Percent);
+            Assert.That(theta, Is.EqualTo(targetTheta).Within(0.01f).Percent);
+            Assert.That(fraction, Is.EqualTo(fractionFromEnd).Within(0.01f).Percent);
+        }
+
+        [Test]
+        public void TestSinglePartialTransitionInvalid()
+        {
+            float a, theta, fraction;
+            FresnelMath.FindAForSinglePartialTransition(out a, out theta, out fraction, 1.713f, 1.39f, 1.966f);
+
+            Assert.Less(a, 0);
+        }
     }
 }
