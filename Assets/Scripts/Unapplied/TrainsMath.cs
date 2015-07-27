@@ -339,6 +339,87 @@ public static class FresnelMath
         fractionOut = -1;
     }
 
+    public static void FindAForPartialTransitionIn(out float a, out float theta, out float fractionIn, float R, float xp, float yp)
+    {
+        // intial guesses
+        a = 1 / Mathf.Sqrt(xp * xp + yp * yp);
+        theta = Mathf.Atan2(yp, xp);
+
+        int maxIterations = 15;
+
+        // this is the Newton-Raphson algorithm in two dimensions
+        for (int i = 0; i < maxIterations; i++)
+        {
+            float thetap = 1 / (4 * a * a * R * R);
+            theta = Mathf.Min(Mathf.PI / 2, Mathf.Max(thetap, theta));
+
+            float rtTheta = Mathf.Sqrt(theta);
+
+            float sRtTheta = FresnelS(rtTheta);
+            float cRtTheta = FresnelC(rtTheta);
+
+
+            float sRtThetap = FresnelS(Mathf.Sqrt(thetap));
+            float cRtThetap = FresnelC(Mathf.Sqrt(thetap));
+
+            float sin2Theta = Mathf.Sin(2 * theta - thetap);
+            float cos2Theta = Mathf.Cos(2 * theta - thetap);
+
+            float sinThetap = Mathf.Sin(thetap);
+            float cosThetap = Mathf.Cos(thetap);
+
+            // The evaluation of each equation with the current guess
+            float f0 = sRtTheta * sin2Theta + cRtTheta * cos2Theta
+                    + (sRtTheta - sRtThetap) * sinThetap + (cRtTheta - cRtThetap) * cosThetap - a * xp;
+            float g0 = -sRtTheta * cos2Theta + cRtTheta * sin2Theta
+                    + (sRtTheta - sRtThetap) * cosThetap - (cRtTheta - cRtThetap) * sinThetap - a * yp;
+
+            float sinSqRtTheta = Mathf.Pow(Mathf.Sin(rtTheta), 2);
+            float cosSqRtTheta = Mathf.Pow(Mathf.Cos(rtTheta), 2);
+
+            // the evaluation of each derivative wrt theta with the current guess
+            float ftheta = 2 * sRtTheta * cos2Theta + sin2Theta * sinSqRtTheta / rtTheta
+                    - 2 * cRtTheta * sin2Theta + cos2Theta * cosSqRtTheta / rtTheta
+                    + sinSqRtTheta * sinThetap / rtTheta
+                    + cosSqRtTheta * cosThetap / rtTheta;
+
+            float gtheta = 2 * sRtTheta * sin2Theta - cos2Theta * sinSqRtTheta / rtTheta
+                    + 2 * cRtTheta * cos2Theta + sin2Theta * cosSqRtTheta / rtTheta
+                    + sinSqRtTheta * cosThetap / rtTheta
+                    - cosSqRtTheta * sinThetap / rtTheta;
+
+            float aCubed = 2 * Mathf.Pow(R, 2) * Mathf.Pow(a, 3);
+            float aSq = 2 * R * a * a;
+            float sinSqRtThetap = Mathf.Pow(Mathf.Sin(Mathf.Sqrt(thetap)), 2);
+            float cosSqRtThetap = Mathf.Pow(Mathf.Cos(Mathf.Sqrt(thetap)), 2);
+
+            // the evaluation of each derivative wrt a with the current guess
+            float fa = sRtTheta * cos2Theta / aCubed
+                    - cRtTheta * sin2Theta / aCubed
+                    - (sRtTheta - sRtThetap) * cosThetap / aCubed + sinSqRtThetap * sinThetap / aSq
+                    + (cRtTheta - cRtThetap) * sinThetap / aCubed + cosSqRtThetap * cosThetap / aSq
+                    - xp;
+
+            float ga = sRtTheta * sin2Theta / aCubed
+                    + cRtTheta * cos2Theta / aCubed
+                    + (sRtTheta - sRtThetap) * sinThetap / aCubed + sinSqRtThetap * cosThetap / aSq
+                    + (cRtTheta - cRtThetap) * cosThetap / aCubed - cosSqRtThetap * sinThetap / aSq
+                    - yp;
+
+            float fk = f0 - ftheta * theta - fa * a;
+            float gk = g0 - gtheta * theta - ga * a;
+
+            a = (fk * gtheta - ftheta * gk) / (ftheta * ga - fa * gtheta);
+            theta = (-fa * a - fk) / ftheta;
+
+            float error = Mathf.Sqrt(f0 * f0 + g0 * g0);
+
+            if (error < c_errorMargin) break;
+        }
+
+        fractionIn = 1 - 1/(2 * a * R * Mathf.Sqrt(theta));
+    }
+
     private static float FunctionOfAForPartialTransition(float a, float r, float xp, float yp)
     {
         float f;

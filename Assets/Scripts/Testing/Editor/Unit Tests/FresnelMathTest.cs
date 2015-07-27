@@ -512,5 +512,46 @@ namespace UnitTest
 
             Assert.Less(a, 0);
         }
+
+        [Test]
+        public void TestPartialTransitionInNormalised30DegMidpoint()
+        {
+            TestPartialTransitionIn(1, Mathf.PI/6, 0.5f);
+        }
+
+        private void TestPartialTransitionIn(float targetA, float targetTheta, float fractionFromStart)
+        {
+            float R, xp, yp;
+
+            R = 1 / (2 * targetA * (1 - fractionFromStart) * Mathf.Sqrt(targetTheta));
+            float thetap = 1 / (4 * targetA * targetA * R * R);
+
+            //Debug.Log("thetap = " + thetap);
+
+            float SRtTheta = FresnelMath.FresnelS(Mathf.Sqrt(targetTheta));
+            float SRtThetap = FresnelMath.FresnelS(Mathf.Sqrt(thetap));
+            float CRtTheta = FresnelMath.FresnelC(Mathf.Sqrt(targetTheta));
+            float CRtThetap = FresnelMath.FresnelC(Mathf.Sqrt(thetap));
+
+            float Mx = (SRtTheta - SRtThetap) * Mathf.Sin(thetap) + (CRtTheta - CRtThetap) * Mathf.Cos(thetap);
+            float My = (SRtTheta - SRtThetap) * Mathf.Cos(thetap) - (CRtTheta - CRtThetap) * Mathf.Sin(thetap);
+
+            //Debug.Log("Mx = " + Mx + "; My = " + My);
+
+            xp = Mx + SRtTheta * Mathf.Sin(2 * targetTheta - thetap) + CRtTheta * Mathf.Cos(2 * targetTheta - thetap);
+            yp = My - SRtTheta * Mathf.Cos(2 * targetTheta - thetap) + CRtTheta * Mathf.Sin(2 * targetTheta - thetap);
+
+            xp /= targetA;
+            yp /= targetA;
+
+            //Debug.Log("xp = " + xp + "; yp = " + yp);
+
+            float a, theta, fraction;
+            FresnelMath.FindAForPartialTransitionIn(out a, out theta, out fraction, R, xp, yp);
+
+            Assert.That(a, Is.EqualTo(targetA).Within(0.01f).Percent);
+            Assert.That(theta, Is.EqualTo(targetTheta).Within(0.01f).Percent);
+            Assert.That(fraction, Is.EqualTo(fractionFromStart).Within(0.01f).Percent);
+        }
     }
 }
