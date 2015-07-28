@@ -1,5 +1,5 @@
 // #define IMITATE_BATCH_MODE //uncomment if you want to imitate batch mode behaviour in non-batch mode mode run
-
+#if UNITY_EDITOR
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -451,3 +451,4 @@ namespace UnityTest
         }
     }
 }
+#endif

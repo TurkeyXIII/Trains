@@ -17,6 +17,15 @@ public abstract class SaveLoad : MonoBehaviour
     {
         UID = UIDcounter++;
         publicID = UID;
+        StartCoroutine(AddThisToControlLists());
+    }
+
+    private IEnumerator AddThisToControlLists()
+    {
+        Control control = Control.GetControl();
+
+        if (control == null) yield return new WaitForFixedUpdate();
+        
         Control.GetControl().AddToLists(this);
     }
 

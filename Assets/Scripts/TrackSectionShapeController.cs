@@ -593,12 +593,11 @@ public class TrackSectionShapeController : MonoBehaviour
                 float sin = Mathf.Sin(2 * theta);
                 float cos = Mathf.Cos(2 * theta);
                 m_virtualEndPoint = transform.position + xDir.normalized * (C + cos * C + sin * S) / a + yDir.normalized * (S + sin * C - cos * S) / a;
-                
+                /*
                 GameObject marker = (GameObject)GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 marker.transform.position = m_virtualEndPoint;
                 marker.transform.localScale /= 10;
-                
-                //m_virtualEndRotation = transform.rotation * Quaternion.AngleAxis(thetap * Mathf.Rad2Deg * Mathf.Sign(m_startTrackLink.reciprocalCurvatureRadius), transform.up);
+                */
             }
         }
 

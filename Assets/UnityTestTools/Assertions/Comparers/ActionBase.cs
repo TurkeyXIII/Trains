@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -119,3 +120,4 @@ namespace UnityTest
         protected override bool UseCache { get { return true; } }
     }
 }
+#endif
