@@ -346,6 +346,7 @@ public static class FresnelMath
         theta = Mathf.Atan2(yp, xp);
 
         int maxIterations = 15;
+        bool errorMinimised = false;
 
         // this is the Newton-Raphson algorithm in two dimensions
         for (int i = 0; i < maxIterations; i++)
@@ -414,10 +415,24 @@ public static class FresnelMath
 
             float error = Mathf.Sqrt(f0 * f0 + g0 * g0);
 
-            if (error < c_errorMargin) break;
+            if (error < c_errorMargin)
+            {
+                errorMinimised = true;
+                break;
+            }
         }
 
-        fractionIn = 1 - 1/(2 * a * R * Mathf.Sqrt(theta));
+        // check the solution is valid
+        float finalThetap = 1 / (4 * a * a * R * R);
+        if (errorMinimised && theta > finalThetap && theta < Mathf.PI / 2)
+        {
+            fractionIn = 1 - 1 / (2 * a * R * Mathf.Sqrt(theta));
+            return;
+        }
+
+        a = -1;
+        theta = -1;
+        fractionIn = -1;
     }
 
     private static float FunctionOfAForPartialTransition(float a, float r, float xp, float yp)

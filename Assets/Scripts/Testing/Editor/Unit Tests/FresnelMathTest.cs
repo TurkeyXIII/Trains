@@ -519,6 +519,42 @@ namespace UnitTest
             TestPartialTransitionIn(1, Mathf.PI/6, 0.5f);
         }
 
+        [Test]
+        public void TestPartialTransitionInNormalised85DegMidpoint()
+        {
+            TestPartialTransitionIn(1, 85 * Mathf.PI / 180, 0.5f);
+        }
+
+        [Test]
+        public void TestPartialTransitionInNormalised1DegMidpoint()
+        {
+            TestPartialTransitionIn(1, Mathf.PI / 180, 0.5f);
+        }
+
+        [Test]
+        public void TestPartialTransitionInScaledUp60DegMidpoint()
+        {
+            TestPartialTransitionIn(0.1f, Mathf.PI / 3, 0.5f);
+        }
+
+        [Test]
+        public void TestPartialTransitionInScaledDown60DegMidpoint()
+        {
+            TestPartialTransitionIn(10f, Mathf.PI / 3, 0.5f);
+        }
+
+        [Test]
+        public void TestPartialTransitionInScaledUp60DegNearStart()
+        {
+            TestPartialTransitionIn(0.1f, Mathf.PI / 3, 0.99f);
+        }
+
+        [Test]
+        public void TestPartialTransitionInScaledUp60DegNearMid()
+        {
+            TestPartialTransitionIn(0.1f, Mathf.PI / 3, 0.01f);
+        }
+
         private void TestPartialTransitionIn(float targetA, float targetTheta, float fractionFromStart)
         {
             float R, xp, yp;

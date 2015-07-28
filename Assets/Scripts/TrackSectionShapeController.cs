@@ -436,6 +436,59 @@ public class TrackSectionShapeController : MonoBehaviour
                 m_endTrackLink.transform.rotation = m_endRotation;
             }
 
+            // fixed, radius -> free, straight
+            else if (m_endTrackLink.reciprocalCurvatureRadius == 0)
+            {
+                Debug.Log("fixed, radius -> free, straight");
+                float a, theta, fractionIn;
+
+                float x = Vector3.Dot(targetPosition - startPosition, startDirection.normalized);
+                float y = ((targetPosition - startPosition) - x * startDirection).magnitude;
+
+                float r;
+                if (Vector3.Dot(transform.forward, (targetPosition - startPosition)) > 0)
+                    r = 1 / m_startTrackLink.reciprocalCurvatureRadius;
+                else
+                    r = -1 / m_startTrackLink.reciprocalCurvatureRadius;
+
+                if (r < 0)
+                {
+                    return false;
+                }
+
+                FresnelMath.FindAForPartialTransitionIn(out a, out theta, out fractionIn, r, x, y);
+                if (a < 0) return false;
+
+                m_A1 = a;
+                m_A2 = a;
+                m_theta1 = theta;
+                m_theta2 = theta;
+
+                m_L1 = Mathf.Sqrt(theta);
+                m_L2 = m_L1;
+
+                float thetap = 1 / (4 * a * a * r * r);
+
+                m_lengthFraction1 = fractionIn;
+                float angle = (2 * theta - thetap) * -Mathf.Sign(m_startTrackLink.reciprocalCurvatureRadius);
+                m_endRotation = transform.rotation * Quaternion.AngleAxis(angle * Mathf.Rad2Deg, transform.up);
+                m_endTrackLink.transform.rotation = m_endRotation;
+
+                Vector3 xDir = -(m_endRotation * Vector3.right);
+                Vector3 yDir = (startPosition - targetPosition) - Vector3.Dot((startPosition - targetPosition), xDir) * xDir;
+                float S = FresnelMath.FresnelS(m_L1);
+                float C = FresnelMath.FresnelC(m_L2);
+                float sin = Mathf.Sin(2 * theta);
+                float cos = Mathf.Cos(2 * theta);
+                m_virtualStartPoint = m_endPoint + xDir.normalized * (C + cos * C + sin * S) / a + yDir.normalized * (S + sin * C - cos * S) / a;
+                /*
+                GameObject marker = (GameObject)GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                marker.transform.position = m_virtualStartPoint;
+                marker.transform.localScale /= 10;
+                */
+                m_virtualStartRotation = transform.rotation * Quaternion.AngleAxis(thetap * Mathf.Rad2Deg * Mathf.Sign(m_startTrackLink.reciprocalCurvatureRadius), transform.up);
+            }
+
         }
 
         
@@ -491,6 +544,61 @@ public class TrackSectionShapeController : MonoBehaviour
                 m_startTrackLink.transform.rotation = transform.rotation;
 
                 m_virtualStartRotation = m_endRotation * Quaternion.AngleAxis(2*theta * Mathf.Rad2Deg * sign, transform.up);
+            }
+
+            // free, straight -> fixed, radius
+            else if (m_startTrackLink.reciprocalCurvatureRadius == 0)
+            {
+                Debug.Log("free, straight -> fixed, radius");
+
+                float a, theta, fractionIn;
+
+                float x = Vector3.Dot(startPosition - targetPosition, -targetDirection.normalized);
+                float y = ((startPosition - targetPosition) - x * -targetDirection).magnitude;
+
+                float r;
+                if (Vector3.Dot(transform.forward, (startPosition - targetPosition)) > 0)
+                    r = 1 / m_endTrackLink.reciprocalCurvatureRadius;
+                else
+                    r = -1 / m_endTrackLink.reciprocalCurvatureRadius;
+
+                if (r < 0)
+                {
+                    return false;
+                }
+
+                FresnelMath.FindAForPartialTransitionIn(out a, out theta, out fractionIn, r, x, y);
+                if (a < 0) return false;
+
+                m_A1 = a;
+                m_A2 = a;
+                m_theta1 = theta;
+                m_theta2 = theta;
+
+                m_L1 = Mathf.Sqrt(theta);
+                m_L2 = m_L1;
+
+                float thetap = 1 / (4 * a * a * r * r);
+
+                m_lengthFraction2 = fractionIn;
+                float angle = (2 * theta - thetap) * -Mathf.Sign(m_endTrackLink.reciprocalCurvatureRadius);
+                transform.rotation = m_endRotation * Quaternion.AngleAxis(angle * Mathf.Rad2Deg, transform.up);
+                m_startTrackLink.transform.rotation = transform.rotation;
+                m_virtualStartRotation = transform.rotation;
+
+                Vector3 xDir = transform.rotation * Vector3.right;
+                Vector3 yDir = (targetPosition - startPosition) - Vector3.Dot((targetPosition - startPosition), xDir) * xDir;
+                float S = FresnelMath.FresnelS(m_L1);
+                float C = FresnelMath.FresnelC(m_L2);
+                float sin = Mathf.Sin(2 * theta);
+                float cos = Mathf.Cos(2 * theta);
+                m_virtualEndPoint = transform.position + xDir.normalized * (C + cos * C + sin * S) / a + yDir.normalized * (S + sin * C - cos * S) / a;
+                
+                GameObject marker = (GameObject)GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                marker.transform.position = m_virtualEndPoint;
+                marker.transform.localScale /= 10;
+                
+                //m_virtualEndRotation = transform.rotation * Quaternion.AngleAxis(thetap * Mathf.Rad2Deg * Mathf.Sign(m_startTrackLink.reciprocalCurvatureRadius), transform.up);
             }
         }
 
@@ -921,7 +1029,7 @@ public class TrackSectionShapeController : MonoBehaviour
         if (inTransitionIn)
         {
             // transition in
-            normalisedLength = distance * m_A1;
+            normalisedLength = distance * m_A1 + (1 - m_lengthFraction1) * m_L1;
             startPosition = m_virtualStartPoint;
             A = m_A1;
             rotationAxis = Vector3.Cross(unitForward, unitSideways);
