@@ -14,7 +14,7 @@ public class BaubleController : MonoBehaviour {
     private struct TrackLink
     {
         public GameObject track;
-        public float angle; // direction that the track leaves this node relative to this node's orientation. -180 < angle < 180.
+        public float angle; // direction in degrees that the track leaves this node relative to this node's orientation. -180 < angle < 180.
     }
 
     private Vector3 m_lastPosition;
@@ -99,6 +99,22 @@ public class BaubleController : MonoBehaviour {
         if (m_tracks.Count == 0) return null;
 
         return m_tracks.Last.Value.track;
+    }
+
+    // returns two arrays both as long as there are many tracks connected to this bauble
+    // tracks is the list of tracks
+    // positions is the position of baubles at the other end of each track
+    public void GetBranchPositions(out Vector3[] positions, out GameObject[] tracks)
+    {
+        positions = new Vector3[m_tracks.Count];
+        tracks = new GameObject[m_tracks.Count];
+        int i = 0;
+        foreach (TrackLink tl in m_tracks)
+        {
+            positions[i] = tl.track.GetComponent<TrackSectionShapeController>().GetOtherBauble(gameObject).transform.position;
+            tracks[i] = tl.track;
+            i++;
+        }
     }
 
     public void RemoveLink(GameObject go)
