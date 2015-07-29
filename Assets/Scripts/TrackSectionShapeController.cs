@@ -5,10 +5,15 @@ using System;
 
 public class TrackSectionShapeController : MonoBehaviour
 {
-    private enum ErrorState
+    private enum ShapeResult
     {
         OK,
-        POSITIONINVALID
+        ENDWRONGANGLE,
+        CANNOTBENDTORADIUS,
+        CANNOTBENDFROMRADIUS,
+        RADIUSTOOSHARP,
+        RADIUSMISMATCH,
+        ERROR
     }
 
 
@@ -18,6 +23,7 @@ public class TrackSectionShapeController : MonoBehaviour
 	private float m_currentLength;
     public Vector3 m_endPoint;
     private Quaternion m_endRotation;
+    private bool m_endCanRotate;
 
     private float m_verticalOffset;
     
@@ -32,7 +38,7 @@ public class TrackSectionShapeController : MonoBehaviour
 
     private BaubleController m_startTrackLink, m_endTrackLink;
 
-    private ErrorState m_errorState;
+    private ShapeResult m_shapeResult;
 
     private Vector3[] m_rail;
     private float[] m_waypoints;
@@ -346,7 +352,7 @@ public class TrackSectionShapeController : MonoBehaviour
 
     // this function assigns values to L1, L2 etc assuming m_endPoint, m_endRotation etc are fixed. 
     // Returns false if params can't be found
-    private bool CalculateParameters()
+    private ShapeResult CalculateParameters()
     {
         m_virtualEndPoint = m_endPoint;
         m_virtualStartPoint = transform.position;
@@ -364,7 +370,7 @@ public class TrackSectionShapeController : MonoBehaviour
             m_A2 = 0;
             m_theta1 = 0;
             m_theta2 = 0;
-            return true;
+            return ShapeResult.OK;
         }
 
         Vector3 startPosition, targetPosition, startDirection, targetDirection;
@@ -378,7 +384,7 @@ public class TrackSectionShapeController : MonoBehaviour
         if (m_endTrackLink.reciprocalCurvatureRadius == 0 && m_startTrackLink.reciprocalCurvatureRadius == 0)
         {
             FresnelMath.FindTheta(out m_theta1, out m_theta2, startPosition, targetPosition, startDirection, -targetDirection);
-            if (m_theta1 < 0) return false;
+            if (m_theta1 < 0) return ShapeResult.ENDWRONGANGLE;
 
             float x = Vector3.Dot((targetPosition - startPosition), startDirection.normalized);
 
@@ -390,11 +396,11 @@ public class TrackSectionShapeController : MonoBehaviour
             m_L1 = Mathf.Sqrt(m_theta1);
             m_L2 = Mathf.Sqrt(m_theta2);
 
-            return true;
+            return ShapeResult.OK;
         }
 
         
-        if (!m_startTrackLink.CanRotate() && m_endTrackLink.CanRotate())
+        if (!m_startTrackLink.CanRotate() && m_endCanRotate)
         {
             // fixed, straight -> free, radius
             if (m_startTrackLink.reciprocalCurvatureRadius == 0)
@@ -420,7 +426,7 @@ public class TrackSectionShapeController : MonoBehaviour
 
                 FresnelMath.FindAForPartialTransitionOut(out a, out theta, out fractionOut, r, x, y);
 
-                if (a < 0) return false;
+                if (a < 0) return ShapeResult.CANNOTBENDTORADIUS;
 
                 m_A1 = a;
                 m_A2 = a;
@@ -461,11 +467,11 @@ public class TrackSectionShapeController : MonoBehaviour
 
                 if (r < 0)
                 {
-                    return false;
+                    return ShapeResult.ERROR;
                 }
 
                 FresnelMath.FindAForPartialTransitionIn(out a, out theta, out fractionIn, r, x, y);
-                if (a < 0) return false;
+                if (a < 0) return ShapeResult.CANNOTBENDFROMRADIUS;
 
                 m_A1 = a;
                 m_A2 = a;
@@ -500,7 +506,7 @@ public class TrackSectionShapeController : MonoBehaviour
         }
 
         
-        if (m_startTrackLink.CanRotate() && !m_endTrackLink.CanRotate())
+        if (m_startTrackLink.CanRotate() && !m_endCanRotate)
         {
             // free, radius -> fixed, straight
             if (m_endTrackLink.reciprocalCurvatureRadius == 0)
@@ -526,7 +532,7 @@ public class TrackSectionShapeController : MonoBehaviour
 
                 FresnelMath.FindAForPartialTransitionOut(out a, out theta, out fractionOut, r, x, y);
 
-                if (a < 0) return false;
+                if (a < 0) return ShapeResult.ENDWRONGANGLE;
 
                 m_A1 = a;
                 m_A2 = a;
@@ -572,11 +578,11 @@ public class TrackSectionShapeController : MonoBehaviour
 
                 if (r < 0)
                 {
-                    return false;
+                    return ShapeResult.ENDWRONGANGLE;
                 }
 
                 FresnelMath.FindAForPartialTransitionIn(out a, out theta, out fractionIn, r, x, y);
-                if (a < 0) return false;
+                if (a < 0) return ShapeResult.ENDWRONGANGLE;
 
                 m_A1 = a;
                 m_A2 = a;
@@ -609,7 +615,7 @@ public class TrackSectionShapeController : MonoBehaviour
             }
         }
 
-        if (m_endTrackLink.CanRotate() && m_startTrackLink.CanRotate())
+        if (m_endCanRotate && m_startTrackLink.CanRotate())
         {
             Debug.Log("both ends free");
             // free, straight -> free, radius
@@ -629,7 +635,7 @@ public class TrackSectionShapeController : MonoBehaviour
 
                 FresnelMath.FindAForSingleTransition(out a, out theta, r, distance);
 
-                if (a < 0) return false;
+                if (a < 0) return ShapeResult.RADIUSTOOSHARP;
 
                 m_A1 = a;
                 m_A2 = a;
@@ -669,7 +675,7 @@ public class TrackSectionShapeController : MonoBehaviour
 
                 FresnelMath.FindAForSingleTransition(out a, out theta, r, distance);
 
-                if (a < 0) return false;
+                if (a < 0) return ShapeResult.RADIUSTOOSHARP;
 
                 m_A1 = a;
                 m_A2 = a;
@@ -740,7 +746,7 @@ public class TrackSectionShapeController : MonoBehaviour
 
                 Debug.Log("a = " + a + ", fraction = " + fraction);
 
-                if (a < 0) return false;
+                if (a < 0) return ShapeResult.RADIUSMISMATCH;
 
                 m_theta1 = theta;
                 m_theta2 = theta;
@@ -823,7 +829,7 @@ public class TrackSectionShapeController : MonoBehaviour
         }
         
 
-        return true;
+        return ShapeResult.OK;
     }
 
     public bool ShapeTrack()
@@ -840,6 +846,7 @@ public class TrackSectionShapeController : MonoBehaviour
 
         if (m_startTrackLink != null && m_endTrackLink != null)
         {
+            m_endCanRotate = m_endTrackLink.CanRotate();
             if (m_startTrackLink.CanRotate() && m_endTrackLink.CanRotate())
             {
                 transform.rotation = Quaternion.LookRotation(m_endPoint - transform.position) * Quaternion.Euler(0, -90, 0);
@@ -854,48 +861,64 @@ public class TrackSectionShapeController : MonoBehaviour
             {
                 if (m_startTrackLink.CanRotate())
                 {
-                    float angle = Vector3.Angle(m_endRotation * Vector3.right, m_endPoint - transform.position);
-                    Vector3 rotationAxis = Vector3.Cross(m_endRotation * Vector3.right, m_endPoint - transform.position).normalized;
-
-                    transform.rotation = m_endRotation * Quaternion.AngleAxis(angle * 2, rotationAxis);
-
-                    if (angle > 90)
-                    {
-                        m_endRotation *= Quaternion.AngleAxis(180, rotationAxis);
-                        transform.rotation = m_endRotation * Quaternion.AngleAxis(angle * 2, rotationAxis);
-                    }
+                    Quaternion startRotation = transform.rotation;
+                    FindEndRotationForSimpleTransition(transform.position, m_endPoint, ref m_endRotation, ref startRotation);
+                    transform.rotation = startRotation;
 
                     m_startTrackLink.transform.rotation = transform.rotation;
                 }
                 else if (m_endTrackLink.CanRotate())
                 {
-                    float angle = Vector3.Angle(transform.rotation * Vector3.right, m_endPoint - transform.position);
-                    Vector3 rotationAxis = Vector3.Cross(transform.rotation * Vector3.right, m_endPoint - transform.position).normalized;
-
-                    m_endRotation = transform.rotation * Quaternion.AngleAxis(angle * 2, rotationAxis);
-
-                    if (angle > 90)
-                    {
-                        transform.rotation *= Quaternion.AngleAxis(180, rotationAxis);
-                        m_endRotation = transform.rotation * Quaternion.AngleAxis(angle * 2, rotationAxis);
-                    }
+                    Quaternion startRotation = transform.rotation;
+                    FindEndRotationForSimpleTransition(transform.position, m_endPoint, ref startRotation, ref m_endRotation);
+                    transform.rotation = startRotation;
 
                     m_endTrackLink.transform.rotation = m_endRotation;
-                    m_endTrackLink.transform.position = m_endPoint;
                 }
             }
         }
 
-        if (!CalculateParameters())
+        m_shapeResult = CalculateParameters();
+        if (m_shapeResult != ShapeResult.OK)
         {
-            SetErrorState(ErrorState.POSITIONINVALID);
-            return false;
-        }
+            Debug.Log("In if block: shapeResult = " + m_shapeResult);
+            ShapeResult shapeRedo = m_shapeResult;
+            switch (m_shapeResult)
+            {
+                case ShapeResult.ENDWRONGANGLE:
+                    {
+                        Quaternion actualEndRotation = m_endRotation;
+                        m_endCanRotate = true;
 
-        SetErrorState(ErrorState.OK);
+                        if (m_startTrackLink.reciprocalCurvatureRadius == 0 && m_endTrackLink.reciprocalCurvatureRadius == 0)
+                        {
+                            Debug.Log("Rotating start- and end-points for errored track");
+                            Quaternion startRotation = transform.rotation;
+                            FindEndRotationForSimpleTransition(transform.position, m_endPoint, ref startRotation, ref m_endRotation);
+                            transform.rotation = startRotation;
+                        }
+
+                        shapeRedo = CalculateParameters();
+                        Debug.Log("Recalculating parameters after error; returned " + shapeRedo);
+
+                        m_endRotation = actualEndRotation;
+                        m_endTrackLink.transform.rotation = m_endRotation;
+                        m_endCanRotate = m_endTrackLink.CanRotate();
+                        break;
+                    }
+            }
+
+            if (shapeRedo != ShapeResult.OK)
+            {
+                SetTrackHighlightFromShapeResult();
+                return false;
+            }
+        }
+       
 
         //RestoreTrackSections();
         SetLength();
+        SetTrackHighlightFromShapeResult();
         CalculateRail();
 
         if (m_L1 != 0 || m_L2 != 0) Curve();
@@ -905,6 +928,20 @@ public class TrackSectionShapeController : MonoBehaviour
 
 
         return true;
+    }
+
+    private void FindEndRotationForSimpleTransition(Vector3 startPoint, Vector3 endPoint, ref Quaternion startRotation, ref Quaternion endRotation)
+    {
+        float angle = Vector3.Angle(startRotation * Vector3.right, endPoint - startPoint);
+        Vector3 rotationAxis = Vector3.Cross(startRotation * Vector3.right, endPoint - startPoint).normalized;
+
+        endRotation = startRotation * Quaternion.AngleAxis(angle * 2, rotationAxis);
+
+        if (angle > 90)
+        {
+            startRotation *= Quaternion.AngleAxis(180, rotationAxis);
+            endRotation = startRotation * Quaternion.AngleAxis(angle * 2, rotationAxis);
+        }
     }
 
     // cannot be called before SetParameters()
@@ -1211,32 +1248,27 @@ public class TrackSectionShapeController : MonoBehaviour
 
     public bool NoErrors()
     {
-        return (m_errorState == ErrorState.OK);
+        return (m_shapeResult == ShapeResult.OK);
     }
 
-    private void SetErrorState(ErrorState es)
+    private void SetTrackHighlightFromShapeResult()
     {
-        if (m_errorState != es)
+
+        if (m_shapeResult == ShapeResult.OK)
         {
-            m_errorState = es;
-            if (es == ErrorState.OK)
+            foreach (GameObject track in m_currentModels)
             {
-                foreach (GameObject track in m_currentModels)
-                {
-                    track.GetComponent<Highlighter>().RemoveHighlight();
-                }
+                track.GetComponent<Highlighter>().RemoveHighlight();
             }
-            else
+        }
+        else
+        {
+            foreach (GameObject track in m_currentModels)
             {
-                foreach (GameObject track in m_currentModels)
-                {
-                    track.GetComponent<Highlighter>().Highlight(Highlighter.HighlightMaterial.InvalidRed);
-                }
+                track.GetComponent<Highlighter>().Highlight(Highlighter.HighlightMaterial.InvalidRed);
             }
         }
     }
-
-
 
     private void GetRailVectorsFromLocation(Vector3 location, out int firstRailIndex, out float fractionAlongRail)
     {
