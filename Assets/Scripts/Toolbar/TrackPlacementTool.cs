@@ -18,10 +18,12 @@ public class TrackPlacementTool : Tool
     private GameObject m_prefabBufferStop;
     private GameObject m_prefabBauble;
 
+    private BaubleController m_baubleDragged;
+
     void Awake()
     {
         m_currentTrackSection = null;
-
+        m_baubleDragged = null;
         m_trackColliders = new List<Collider>();
     }
 
@@ -199,31 +201,15 @@ public class TrackPlacementTool : Tool
                         {
                             if (hoveringBaubleController != null)
                             {
-                                // select this end of the track for editing
-                                m_currentTrackSection = hoveringBaubleController.GetLastTrackSection();
-                                m_shapeController = m_currentTrackSection.GetComponent<TrackSectionShapeController>();
-
-                                m_shapeController.DeleteColliders();
-
-                                hoveringBaubleController.fixedRotation = false;
-                                if (hoveringBaubleController.CanRotate())
+                                if (hoveringBaubleController.GetLinkCount() > 1)
                                 {
-                                    Debug.Log("selecting existing bauble for cursor");
-                                    m_baubleCursor = hoveringBaubleController.gameObject;
+                                    m_baubleDragged = hoveringBaubleController;
                                 }
                                 else
                                 {
-                                    Debug.Log("Creating new bauble for cursor");
-                                    m_baubleCursor = (GameObject)Instantiate(m_prefabBauble, hoveringBaubleController.transform.position, hoveringBaubleController.transform.rotation);
+                                    // select this end of the track for editing
+                                    SelectBaubleForEditing(hoveringBaubleController, hoveringBaubleController.GetLastTrackSection());
                                 }
-
-                                m_baubleAnchor = m_shapeController.GetOtherBauble(hoveringBaubleController.gameObject);
-                                m_shapeController.LinkStart(m_baubleAnchor);
-                                m_shapeController.LinkEnd(m_baubleCursor);
-                                m_baubleAnchor.GetComponent<Collider>().enabled = false;
-                                m_baubleCursor.GetComponent<Collider>().enabled = false;
-
-                                Debug.Log("Anchor: #" + m_baubleAnchor.GetComponent<SaveLoad>().UID + "; Cursor: #" + m_baubleCursor.GetComponent<SaveLoad>().UID);
                             }
                         }
                         else //(m_currentTrackSection != null)
@@ -231,12 +217,60 @@ public class TrackPlacementTool : Tool
                             DeleteCurrentTrackSection();
                         }
                     }
+                    else if (Input.GetMouseButtonUp(1))
+                    {
+                        if (m_baubleDragged != null)
+                        {
+                            if (hoveringBaubleController != null)
+                            {
+                                //not all the way off the bauble
+                                SelectBaubleForEditing(hoveringBaubleController, hoveringBaubleController.GetLastTrackSection());
+                                m_baubleDragged = null;
+                            }
+                            else
+                            {
+                                throw new System.Exception("Error: Finished dragging off bauble before bauble was edited");
+                            }
+                        }
+                    }
 
                     else // no button down
                     {
                         if (m_currentTrackSection == null)
                         {
+                            if (hoveringBaubleController == null && m_baubleDragged != null)
+                            {
+                                if (CameraController.GetMouseHitTerrainLocation(out actionLocation))
+                                {
+                                    // we've just dragged off a bauble; find out which track we're trying to edit
+                                    Vector3[] positions;
+                                    GameObject[] tracks;
+                                    m_baubleDragged.GetBranchPositions(out positions, out tracks);
 
+                                    // normalise all the 'other ends' so they're equidistant from the bauble being dragged on
+                                    for (int i = 0; i < positions.Length; i++)
+                                    {
+                                        positions[i] = (positions[i] - m_baubleDragged.transform.position).normalized + m_baubleDragged.transform.position;
+                                    }
+
+                                    // find the 'other end' bauble closest to the cursor
+                                    float minDistance = (actionLocation - positions[0]).magnitude;
+                                    int minIndex = 0;
+                                    for (int i = 1; i < positions.Length; i++)
+                                    {
+                                        float distance = (actionLocation - positions[i]).magnitude;
+                                        if (distance < minDistance)
+                                        {
+                                            minDistance = distance;
+                                            minIndex = i;
+                                        }
+                                    }
+
+                                    SelectBaubleForEditing(m_baubleDragged, tracks[minIndex]);
+                                }
+                                
+                                m_baubleDragged = null;
+                            }
                         }
                         else //(m_currentTrackSection != null)
                         {
@@ -376,6 +410,34 @@ public class TrackPlacementTool : Tool
         {
             bauble.SetActive(visible);
         }
+    }
+
+    private void SelectBaubleForEditing(BaubleController bc, GameObject trackSection)
+    {
+        m_currentTrackSection = trackSection;
+        m_shapeController = m_currentTrackSection.GetComponent<TrackSectionShapeController>();
+
+        m_shapeController.DeleteColliders();
+
+        bc.fixedRotation = false;
+        if (bc.CanRotate())
+        {
+            Debug.Log("selecting existing bauble for cursor");
+            m_baubleCursor = bc.gameObject;
+        }
+        else
+        {
+            Debug.Log("Creating new bauble for cursor");
+            m_baubleCursor = (GameObject)Instantiate(m_prefabBauble, bc.transform.position, bc.transform.rotation);
+        }
+
+        m_baubleAnchor = m_shapeController.GetOtherBauble(bc.gameObject);
+        m_shapeController.LinkStart(m_baubleAnchor);
+        m_shapeController.LinkEnd(m_baubleCursor);
+        m_baubleAnchor.GetComponent<Collider>().enabled = false;
+        m_baubleCursor.GetComponent<Collider>().enabled = false;
+
+        Debug.Log("Anchor: #" + m_baubleAnchor.GetComponent<SaveLoad>().UID + "; Cursor: #" + m_baubleCursor.GetComponent<SaveLoad>().UID);
     }
 
     // this function is a result of poor structure, and is also quite inefficient
