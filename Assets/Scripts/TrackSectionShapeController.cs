@@ -5,6 +5,12 @@ using System;
 
 public class TrackSectionShapeController : MonoBehaviour
 {
+    private enum ErrorState
+    {
+        OK,
+        POSITIONINVALID
+    }
+
 
     public GameObject trackModel;
     public GameObject colliderObjectReference;
@@ -25,6 +31,8 @@ public class TrackSectionShapeController : MonoBehaviour
     private Stack<GameObject> m_currentModels;
 
     private BaubleController m_startTrackLink, m_endTrackLink;
+
+    private ErrorState m_errorState;
 
     private Vector3[] m_rail;
     private float[] m_waypoints;
@@ -878,9 +886,13 @@ public class TrackSectionShapeController : MonoBehaviour
             }
         }
 
-        if (!CalculateParameters()) return false;
+        if (!CalculateParameters())
+        {
+            SetErrorState(ErrorState.POSITIONINVALID);
+            return false;
+        }
 
-        
+        SetErrorState(ErrorState.OK);
 
         //RestoreTrackSections();
         SetLength();
@@ -1196,6 +1208,35 @@ public class TrackSectionShapeController : MonoBehaviour
         //Debug.Log("Returning end of track");
         return m_currentLength;
     }
+
+    public bool NoErrors()
+    {
+        return (m_errorState == ErrorState.OK);
+    }
+
+    private void SetErrorState(ErrorState es)
+    {
+        if (m_errorState != es)
+        {
+            m_errorState = es;
+            if (es == ErrorState.OK)
+            {
+                foreach (GameObject track in m_currentModels)
+                {
+                    track.GetComponent<Highlighter>().RemoveHighlight();
+                }
+            }
+            else
+            {
+                foreach (GameObject track in m_currentModels)
+                {
+                    track.GetComponent<Highlighter>().Highlight(Highlighter.HighlightMaterial.InvalidRed);
+                }
+            }
+        }
+    }
+
+
 
     private void GetRailVectorsFromLocation(Vector3 location, out int firstRailIndex, out float fractionAlongRail)
     {

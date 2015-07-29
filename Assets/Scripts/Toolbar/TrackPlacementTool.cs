@@ -124,74 +124,79 @@ public class TrackPlacementTool : Tool
 
                         else // currentTrackSection != null
                         {
-                            m_shapeController.FinalizeShape();
-                            BoxCollider[] currentColliders = m_currentTrackSection.GetComponentsInChildren<BoxCollider>();
-                            //Debug.Log("Finalized track section has " + currentColliders.Length + " colliders");
-
-                            bool positionIsValid = true;
-                            GameObject collidedTrackSection = null;
-                            foreach (BoxCollider c in currentColliders)
+                            if (m_shapeController.NoErrors())
                             {
-                                foreach (BoxCollider d in m_trackColliders)
-                                {
-                                    if (d == null)
-                                    {
-                                        m_trackColliders.Remove(d);
-                                    }
-                                    else
-                                    {
-                                        if (c.bounds.Intersects(d.bounds))
-                                        {
-                                            if (BoxCollidersOverlap(c, d))
-                                            {
-                                                //Debug.Log("Collision found");
+                                m_shapeController.FinalizeShape();
+                                BoxCollider[] currentColliders = m_currentTrackSection.GetComponentsInChildren<BoxCollider>();
+                                //Debug.Log("Finalized track section has " + currentColliders.Length + " colliders");
 
-                                                if (!TrainsMath.AreApproximatelyEqual(c.transform.position.y, d.transform.position.y))
+                                bool positionIsValid = true;
+                                GameObject collidedTrackSection = null;
+                                foreach (BoxCollider c in currentColliders)
+                                {
+                                    foreach (BoxCollider d in m_trackColliders)
+                                    {
+                                        if (d == null)
+                                        {
+                                            m_trackColliders.Remove(d);
+                                        }
+                                        else
+                                        {
+                                            if (c.bounds.Intersects(d.bounds))
+                                            {
+                                                if (BoxCollidersOverlap(c, d))
                                                 {
-                                                    collidedTrackSection = d.transform.parent.gameObject;
-                                                    positionIsValid = false;
-                                                    break;
+                                                    //Debug.Log("Collision found");
+
+                                                    if (!TrainsMath.AreApproximatelyEqual(c.transform.position.y, d.transform.position.y))
+                                                    {
+                                                        collidedTrackSection = d.transform.parent.gameObject;
+                                                        positionIsValid = false;
+                                                        break;
+                                                    }
                                                 }
                                             }
                                         }
                                     }
                                 }
-                            }
 
-                            if (positionIsValid)
-                            {
-                                if (hoveringTrackSectionController != null)
+                                if (positionIsValid)
                                 {
-                                    hoveringTrackSectionController.Split(m_shapeController.GetEndBauble().GetComponent<BaubleController>());
+                                    if (hoveringTrackSectionController != null)
+                                    {
+                                        hoveringTrackSectionController.Split(m_shapeController.GetEndBauble().GetComponent<BaubleController>());
+                                    }
+
+                                    foreach (Collider c in currentColliders)
+                                        m_trackColliders.Add(c);
+
+                                    m_shapeController.SetBallast();
+
+                                    m_baubleAnchor.GetComponent<Collider>().enabled = true;
+                                    m_baubleCursor.GetComponent<Collider>().enabled = true;
+
+                                    if (m_baubleCursor.GetComponent<BaubleController>().GetLinkCount() == 0)
+                                    {
+                                        Destroy(m_baubleCursor);
+                                    }
+                                    //leave the current section where it is
+                                    m_currentTrackSection = null;
+                                    m_shapeController = null;
+                                    m_baubleAnchor = null;
+                                    m_baubleCursor = null;
                                 }
-
-                                foreach (Collider c in currentColliders)
-                                    m_trackColliders.Add(c);
-
-                                m_shapeController.SetBallast();
-
-                                m_baubleAnchor.GetComponent<Collider>().enabled = true;
-                                m_baubleCursor.GetComponent<Collider>().enabled = true;
-
-                                if (m_baubleCursor.GetComponent<BaubleController>().GetLinkCount() == 0)
+                                else
                                 {
-                                    Destroy(m_baubleCursor);
-                                }
-                                //leave the current section where it is
-                                m_currentTrackSection = null;
-                                m_shapeController = null;
-                                m_baubleAnchor = null;
-                                m_baubleCursor = null;
-                            }
-                            else
-                            {
-                                Highlighter[] highlighters = m_currentTrackSection.GetComponentsInChildren<Highlighter>();
-                                foreach (Highlighter h in highlighters)
-                                    h.Highlight(Highlighter.HighlightMaterial.InvalidRed, 1);
+                                    Highlighter[] highlighters = m_currentTrackSection.GetComponentsInChildren<Highlighter>();
+                                    foreach (Highlighter h in highlighters)
+                                        h.Highlight(Highlighter.HighlightMaterial.InvalidRed, 1);
 
-                                highlighters = collidedTrackSection.GetComponentsInChildren<Highlighter>();
-                                foreach (Highlighter h in highlighters)
-                                    h.Highlight(Highlighter.HighlightMaterial.InvalidRed, 1);
+                                    highlighters = collidedTrackSection.GetComponentsInChildren<Highlighter>();
+                                    foreach (Highlighter h in highlighters)
+                                        h.Highlight(Highlighter.HighlightMaterial.InvalidRed, 1);
+
+                                    m_shapeController.DeleteColliders();
+                                }
                             }
                         }
                     }
