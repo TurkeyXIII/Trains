@@ -23,7 +23,9 @@ public class BaubleController : MonoBehaviour {
     private LinkedList<TrackLink> m_tracks;
 
     public bool fixedRotation { set; private get; }
-    public float reciprocalCurvatureRadius;
+    private float m_reciprocalCurvatureRadius;
+    private float m_inputCurvature;
+    //public float publicCurvature;
 
     private GameObject m_bufferStop;
 
@@ -56,15 +58,25 @@ public class BaubleController : MonoBehaviour {
 
         m_mouseIsOver = false;
 
-        if (transform.position != m_lastPosition || reciprocalCurvatureRadius != m_lastCurvature)
+        if (transform.position != m_lastPosition || m_reciprocalCurvatureRadius != m_lastCurvature)
         {
             if (m_bufferStop != null) m_bufferStop.transform.position = transform.position;
 
             bool trackUpdateFailed = false;
-            foreach (TrackLink tl in m_tracks)
+            LinkedListNode<TrackLink> node = m_tracks.First;
+            while (node != null)
             {
-                trackUpdateFailed = !(tl.track.GetComponent<TrackSectionShapeController>().ShapeTrack());
+                TrackLink tl = node.Value;
+                TrackSectionShapeController tssc = tl.track.GetComponent<TrackSectionShapeController>();
+
+                tl.angle = RecalculateAngle(tl);
+                node.Value = tl;
+                tssc.GetOtherBauble(gameObject).GetComponent<BaubleController>().RecalculateAngle(tl.track);
+
+                trackUpdateFailed = !(tssc.ShapeTrack());
                 if (trackUpdateFailed) break;
+
+                node = node.Next;
             }
 
             // Reverting bauble position doesn't do anything as the bauble position is immediately moved back in LateUpdate()
@@ -85,7 +97,22 @@ public class BaubleController : MonoBehaviour {
             }
             */
             m_lastPosition = transform.position;
-            m_lastCurvature = reciprocalCurvatureRadius;
+            m_lastCurvature = m_reciprocalCurvatureRadius;
+        }
+
+        if (m_tracks.Count == 1)
+        {
+            float angle = m_tracks.First.Value.angle;
+            if (angle < -90 || angle > 90)
+            {
+                m_reciprocalCurvatureRadius = m_inputCurvature;
+                //publicCurvature = m_reciprocalCurvatureRadius;
+            }
+            else
+            {
+                m_reciprocalCurvatureRadius = -m_inputCurvature;
+                //publicCurvature = m_reciprocalCurvatureRadius;
+            }
         }
     }
 
@@ -99,6 +126,40 @@ public class BaubleController : MonoBehaviour {
         if (m_tracks.Count == 0) return null;
 
         return m_tracks.Last.Value.track;
+    }
+
+    // returns the reciprocal of the radius of curvature.
+    // positive reciprocal is a curvature to the right of the bauble
+    // negative is a curvature to the left
+    public float GetCurvature(GameObject track)
+    {
+        TrackLink tl = GetTrackLink(track);
+        if (tl.angle > 90 || tl.angle < -90)
+        {
+            //Debug.Log("Angle = " + tl.angle + "; Inverting curvature");
+            return m_reciprocalCurvatureRadius;
+        }
+        //Debug.Log("Angle = " + tl.angle + "; not inverting curvature");
+        return -m_reciprocalCurvatureRadius;
+    }
+
+    public void AdjustCurvature(float r)
+    {
+        m_inputCurvature +=r;
+        m_reciprocalCurvatureRadius = m_inputCurvature;
+        //publicCurvature = m_reciprocalCurvatureRadius;
+    }
+
+    public void ResetCurvature()
+    {
+        m_inputCurvature = 0;
+        m_reciprocalCurvatureRadius = 0;
+        //publicCurvature = 0;
+    }
+
+    public bool IsStraight()
+    {
+        return (m_reciprocalCurvatureRadius == 0);
     }
 
     // returns two arrays both as long as there are many tracks connected to this bauble
@@ -142,15 +203,29 @@ public class BaubleController : MonoBehaviour {
     {
         TrackLink tl = new TrackLink();
         tl.track = go;
+        tl.angle = RecalculateAngle(tl);
 
-        RecalculateDirections(ref tl);
-        
         m_tracks.AddLast(tl);
 
-        //Debug.Log(GetComponent<SaveLoad>().UID + " added link " + go.GetComponent<SaveLoad>().UID + "; count = " + m_tracks.Count);
+        /*
+        Debug.Log("Linking #" + GetComponent<SaveLoad>().UID + "; angle = " + tl.angle);
+        if (m_tracks.Count == 1 && (tl.angle > 90 || tl.angle < -90))
+        {
+            Debug.Log("Spinning");
+            m_reciprocalCurvatureRadius = -m_reciprocalCurvatureRadius;
+            curvaturePublic = m_reciprocalCurvatureRadius;
+        }
+        */
     }
-
-    public void RecalculateDirections(GameObject trackSection)
+    /*
+    public void ReverseCurvature()
+    {
+        Debug.Log("Spinning");
+        m_reciprocalCurvatureRadius = -m_reciprocalCurvatureRadius;
+        curvaturePublic = m_reciprocalCurvatureRadius;
+    }
+    */
+    public void RecalculateAngle(GameObject trackSection)
     {
         LinkedListNode<TrackLink> node = m_tracks.First;
         while (node != null)
@@ -158,7 +233,7 @@ public class BaubleController : MonoBehaviour {
             if (node.Value.track == trackSection)
             {
                 TrackLink tl = node.Value;
-                RecalculateDirections(ref tl);
+                tl.angle = RecalculateAngle(tl);
                 node.Value = tl;
                 return;
             }
@@ -166,13 +241,14 @@ public class BaubleController : MonoBehaviour {
         }
     }
 
-    private void RecalculateDirections(ref TrackLink trackLink)
+    private float RecalculateAngle(TrackLink trackLink)
     {
         //Debug.Log("Calculating directions...");
         GameObject otherBauble = trackLink.track.GetComponent<TrackSectionShapeController>().GetOtherBauble(gameObject);
         if (otherBauble == null)
         {
-            trackLink.angle = 0;
+            //Debug.Log("otherBauble == null");
+            return 0;
         }
         else
         {
@@ -197,7 +273,7 @@ public class BaubleController : MonoBehaviour {
 
             //Debug.Log("Track angle found to be " + angle);
 
-            trackLink.angle = angle;
+            return angle;
         }
     }
 
@@ -325,4 +401,6 @@ public class BaubleController : MonoBehaviour {
         return null;
     }
     */
+
+    
 }

@@ -82,7 +82,7 @@ public class TrackPlacementTool : Tool
                         float radiusChange = Input.GetAxis("Radius");
                         if (radiusChange != 0)
                         {
-                            m_baubleCursor.GetComponent<BaubleController>().reciprocalCurvatureRadius -= radiusScale * radiusChange * Time.deltaTime;
+                            m_baubleCursor.GetComponent<BaubleController>().AdjustCurvature(-radiusScale * radiusChange * Time.deltaTime);
                         }
                     }
 
