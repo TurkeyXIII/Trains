@@ -60,7 +60,7 @@ public class TrackSectionShapeController : MonoBehaviour
 
     public bool IsStraight()
     {
-        if (m_startTrackLink.reciprocalCurvatureRadius != 0 || m_endTrackLink.reciprocalCurvatureRadius != 0) return false;
+        if (!m_startTrackLink.IsStraight() || !m_endTrackLink.IsStraight()) return false;
 
         Vector3 forward = m_endPoint - transform.position;
         return TrainsMath.AreApproximatelyEqual(Vector3.Dot(forward, transform.right), forward.magnitude, 0.000001f);
@@ -105,11 +105,10 @@ public class TrackSectionShapeController : MonoBehaviour
         bc.AddLink(gameObject);
 
         transform.position = bc.transform.position;
-        //if (!bc.CanRotate()) transform.rotation = bc.GetRotation(gameObject);
 
         if (m_endTrackLink != null)
         {
-            m_endTrackLink.RecalculateDirections(gameObject);
+            m_endTrackLink.RecalculateAngle(gameObject);
             ShapeTrack();
         }
     }
@@ -150,7 +149,7 @@ public class TrackSectionShapeController : MonoBehaviour
 
         if (m_startTrackLink != null)
         {
-            m_startTrackLink.RecalculateDirections(gameObject);
+            m_startTrackLink.RecalculateAngle(gameObject);
             ShapeTrack();
         }
     }
@@ -367,7 +366,7 @@ public class TrackSectionShapeController : MonoBehaviour
         targetDirection = m_endRotation * Vector3.right;
 
         // there is no curvature in either end bauble
-        if (m_endTrackLink.reciprocalCurvatureRadius == 0 && m_startTrackLink.reciprocalCurvatureRadius == 0)
+        if (m_endTrackLink.IsStraight() && m_startTrackLink.IsStraight())
         {
             FresnelMath.FindTheta(out m_theta1, out m_theta2, startPosition, targetPosition, startDirection, -targetDirection);
             if (m_theta1 < 0) return false;
@@ -389,7 +388,7 @@ public class TrackSectionShapeController : MonoBehaviour
         if (!m_startTrackLink.CanRotate() && m_endTrackLink.CanRotate())
         {
             // fixed, straight -> free, radius
-            if (m_startTrackLink.reciprocalCurvatureRadius == 0)
+            if (m_startTrackLink.IsStraight())
             {
                 Debug.Log("Fixed, straight -> free, radius");
                 float a, theta, fractionOut;
@@ -397,16 +396,17 @@ public class TrackSectionShapeController : MonoBehaviour
                 float x = Vector3.Dot(targetPosition - startPosition, startDirection.normalized);
                 float y = ((targetPosition - startPosition) - x * startDirection).magnitude;
 
+                float curvature = m_endTrackLink.GetCurvature(gameObject);
                 float r;
 
                 if (Vector3.Dot(transform.forward, (targetPosition - startPosition)) > 0)
-                    r = 1/m_endTrackLink.reciprocalCurvatureRadius;
+                    r = 1 / curvature;
                 else
-                    r = -1/m_endTrackLink.reciprocalCurvatureRadius;
+                    r = -1 / curvature;
 
                 if (r < 0)
                 {
-                    m_endTrackLink.reciprocalCurvatureRadius = 0;
+                    m_endTrackLink.ResetCurvature();
                     return CalculateParameters();
                 }
 
@@ -430,14 +430,14 @@ public class TrackSectionShapeController : MonoBehaviour
 
                 m_lengthFraction2 = fractionOut;
                 m_virtualEndPoint = startPosition + startDirection.normalized * (C + cos * C + sin * S) / a + yDir * (S + sin * C - cos * S) / a;
-                
-                float angle = -(theta + theta * (1 - (1-fractionOut) * (1-fractionOut))) * Mathf.Sign(m_endTrackLink.reciprocalCurvatureRadius);
+
+                float angle = -(theta + theta * (1 - (1 - fractionOut) * (1 - fractionOut))) * Mathf.Sign(curvature);
                 m_endRotation = transform.rotation * Quaternion.AngleAxis(angle * Mathf.Rad2Deg, transform.up);
                 m_endTrackLink.transform.rotation = m_endRotation;
             }
 
             // fixed, radius -> free, straight
-            else if (m_endTrackLink.reciprocalCurvatureRadius == 0)
+            else if (m_endTrackLink.IsStraight())
             {
                 Debug.Log("fixed, radius -> free, straight");
                 float a, theta, fractionIn;
@@ -445,11 +445,12 @@ public class TrackSectionShapeController : MonoBehaviour
                 float x = Vector3.Dot(targetPosition - startPosition, startDirection.normalized);
                 float y = ((targetPosition - startPosition) - x * startDirection).magnitude;
 
+                float curvature = m_startTrackLink.GetCurvature(gameObject);
                 float r;
                 if (Vector3.Dot(transform.forward, (targetPosition - startPosition)) > 0)
-                    r = 1 / m_startTrackLink.reciprocalCurvatureRadius;
+                    r = -1 / curvature;
                 else
-                    r = -1 / m_startTrackLink.reciprocalCurvatureRadius;
+                    r = 1 / curvature;
 
                 if (r < 0)
                 {
@@ -470,7 +471,8 @@ public class TrackSectionShapeController : MonoBehaviour
                 float thetap = 1 / (4 * a * a * r * r);
 
                 m_lengthFraction1 = fractionIn;
-                float angle = (2 * theta - thetap) * -Mathf.Sign(m_startTrackLink.reciprocalCurvatureRadius);
+                float sign = Mathf.Sign(curvature);
+                float angle = (2 * theta - thetap) * sign;
                 m_endRotation = transform.rotation * Quaternion.AngleAxis(angle * Mathf.Rad2Deg, transform.up);
                 m_endTrackLink.transform.rotation = m_endRotation;
 
@@ -486,7 +488,7 @@ public class TrackSectionShapeController : MonoBehaviour
                 marker.transform.position = m_virtualStartPoint;
                 marker.transform.localScale /= 10;
                 */
-                m_virtualStartRotation = transform.rotation * Quaternion.AngleAxis(thetap * Mathf.Rad2Deg * Mathf.Sign(m_startTrackLink.reciprocalCurvatureRadius), transform.up);
+                m_virtualStartRotation = transform.rotation * Quaternion.AngleAxis(thetap * Mathf.Rad2Deg * -sign, transform.up);
             }
 
         }
@@ -495,7 +497,7 @@ public class TrackSectionShapeController : MonoBehaviour
         if (m_startTrackLink.CanRotate() && !m_endTrackLink.CanRotate())
         {
             // free, radius -> fixed, straight
-            if (m_endTrackLink.reciprocalCurvatureRadius == 0)
+            if (m_endTrackLink.IsStraight())
             {
                 Debug.Log("free, radius -> fixed, straight");
                 float a, theta, fractionOut;
@@ -503,16 +505,17 @@ public class TrackSectionShapeController : MonoBehaviour
                 float x = Vector3.Dot(startPosition - targetPosition, -targetDirection.normalized);
                 float y = ((startPosition - targetPosition) - x * -targetDirection).magnitude;
 
+                float curvature = m_startTrackLink.GetCurvature(gameObject);
                 float r;
 
                 if (Vector3.Dot(Vector3.Cross(transform.up, targetDirection), (startPosition - targetPosition)) > 0)
-                    r = 1 / m_startTrackLink.reciprocalCurvatureRadius;
+                    r = 1 / curvature;
                 else
-                    r = -1 / m_startTrackLink.reciprocalCurvatureRadius;
+                    r = -1 / curvature;
 
                 if (r < 0)
                 {
-                    m_startTrackLink.reciprocalCurvatureRadius = 0;
+                    m_startTrackLink.ResetCurvature();
                     return CalculateParameters();
                 }
 
@@ -537,7 +540,7 @@ public class TrackSectionShapeController : MonoBehaviour
                 m_lengthFraction1 = fractionOut;
                 m_virtualStartPoint = targetPosition - targetDirection.normalized * (C + cos * C + sin * S) / a + yDir * (S + sin * C - cos * S) / a;
 
-                float sign = -Mathf.Sign(m_startTrackLink.reciprocalCurvatureRadius);
+                float sign = -Mathf.Sign(curvature);
 
                 float angle = (theta + theta * (1 - (1 - fractionOut) * (1 - fractionOut)));
                 transform.rotation = m_endRotation * Quaternion.AngleAxis(angle * Mathf.Rad2Deg * sign, transform.up);
@@ -547,7 +550,7 @@ public class TrackSectionShapeController : MonoBehaviour
             }
 
             // free, straight -> fixed, radius
-            else if (m_startTrackLink.reciprocalCurvatureRadius == 0)
+            else if (m_startTrackLink.IsStraight())
             {
                 Debug.Log("free, straight -> fixed, radius");
 
@@ -556,11 +559,12 @@ public class TrackSectionShapeController : MonoBehaviour
                 float x = Vector3.Dot(startPosition - targetPosition, -targetDirection.normalized);
                 float y = ((startPosition - targetPosition) - x * -targetDirection).magnitude;
 
+                float curvature = m_endTrackLink.GetCurvature(gameObject);
                 float r;
                 if (Vector3.Dot(transform.forward, (startPosition - targetPosition)) > 0)
-                    r = 1 / m_endTrackLink.reciprocalCurvatureRadius;
+                    r = -1 / curvature;
                 else
-                    r = -1 / m_endTrackLink.reciprocalCurvatureRadius;
+                    r = 1 / curvature;
 
                 if (r < 0)
                 {
@@ -581,7 +585,7 @@ public class TrackSectionShapeController : MonoBehaviour
                 float thetap = 1 / (4 * a * a * r * r);
 
                 m_lengthFraction2 = fractionIn;
-                float angle = (2 * theta - thetap) * -Mathf.Sign(m_endTrackLink.reciprocalCurvatureRadius);
+                float angle = (2 * theta - thetap) * Mathf.Sign(curvature);
                 transform.rotation = m_endRotation * Quaternion.AngleAxis(angle * Mathf.Rad2Deg, transform.up);
                 m_startTrackLink.transform.rotation = transform.rotation;
                 m_virtualStartRotation = transform.rotation;
@@ -605,18 +609,19 @@ public class TrackSectionShapeController : MonoBehaviour
         {
             Debug.Log("both ends free");
             // free, straight -> free, radius
-            if (m_startTrackLink.reciprocalCurvatureRadius == 0)
+            if (m_startTrackLink.IsStraight())
             {
                 Debug.Log("start straight");
                 float theta, a;
 
                 float distance = (m_endPoint - transform.position).magnitude;
 
+                float curvature = m_endTrackLink.GetCurvature(gameObject);
                 float r;
-                if (m_endTrackLink.reciprocalCurvatureRadius > 0)
-                    r = 1 / m_endTrackLink.reciprocalCurvatureRadius;
+                if (curvature > 0)
+                    r = 1 / curvature;
                 else
-                    r = -1 / m_endTrackLink.reciprocalCurvatureRadius;
+                    r = -1 / curvature;
 
 
                 FresnelMath.FindAForSingleTransition(out a, out theta, r, distance);
@@ -636,28 +641,29 @@ public class TrackSectionShapeController : MonoBehaviour
 
                 Debug.Log("angle = " + (angle * Mathf.Rad2Deg) + " degrees");
 
-                transform.rotation *= Quaternion.AngleAxis(angle * Mathf.Rad2Deg * Mathf.Sign(m_endTrackLink.reciprocalCurvatureRadius), transform.up);
+                transform.rotation *= Quaternion.AngleAxis(angle * Mathf.Rad2Deg * Mathf.Sign(curvature), transform.up);
                 m_virtualStartRotation = transform.rotation;
                 m_startTrackLink.transform.rotation = transform.rotation;
                 Debug.Log("rotation after correction = " + transform.rotation.eulerAngles);
-                m_endRotation = transform.rotation * Quaternion.AngleAxis(theta * Mathf.Rad2Deg * -Mathf.Sign(m_endTrackLink.reciprocalCurvatureRadius), transform.up);
+                m_endRotation = transform.rotation * Quaternion.AngleAxis(theta * Mathf.Rad2Deg * -Mathf.Sign(curvature), transform.up);
                 m_endTrackLink.transform.rotation = m_endRotation;
                 float kappa = Mathf.PI - 2 * (theta - angle);
-                m_virtualEndPoint = m_endPoint + TrainsMath.RotateVector(transform.position - m_endPoint, transform.up, kappa * Mathf.Sign(m_endTrackLink.reciprocalCurvatureRadius));
+                m_virtualEndPoint = m_endPoint + TrainsMath.RotateVector(transform.position - m_endPoint, transform.up, kappa * Mathf.Sign(curvature));
 
             }
-            else if (m_endTrackLink.reciprocalCurvatureRadius == 0) // free, raduis -> free, straight
+            else if (m_endTrackLink.IsStraight()) // free, raduis -> free, straight
             {
                 Debug.Log("end straight");
                 float theta, a;
 
                 float distance = (m_endPoint - transform.position).magnitude;
 
+                float curvature = m_startTrackLink.GetCurvature(gameObject);
                 float r;
-                if (m_startTrackLink.reciprocalCurvatureRadius > 0)
-                    r = 1 / m_startTrackLink.reciprocalCurvatureRadius;
+                if (curvature > 0)
+                    r = 1 / curvature;
                 else
-                    r = -1 / m_startTrackLink.reciprocalCurvatureRadius;
+                    r = -1 / curvature;
 
                 FresnelMath.FindAForSingleTransition(out a, out theta, r, distance);
 
@@ -674,9 +680,9 @@ public class TrackSectionShapeController : MonoBehaviour
 
                 float angle = Mathf.Acos(FresnelMath.FresnelC(m_L1) / m_A1 / distance);
 
-                float sign = Mathf.Sign(m_startTrackLink.reciprocalCurvatureRadius);
+                float sign = Mathf.Sign(curvature);
 
-                Debug.Log("angle = " + (angle * Mathf.Rad2Deg) + " degrees; radius sign = " + sign);
+                //Debug.Log("angle = " + (angle * Mathf.Rad2Deg) + " degrees; radius sign = " + sign);
 
                 m_endRotation *= Quaternion.AngleAxis(angle * Mathf.Rad2Deg * sign, transform.up);
                 transform.rotation = m_endRotation * Quaternion.AngleAxis(-theta * Mathf.Rad2Deg * sign, transform.up);
@@ -693,11 +699,13 @@ public class TrackSectionShapeController : MonoBehaviour
                 float theta, a;
 
                 float distance = (m_endPoint - transform.position).magnitude;
-                float sign = Mathf.Sign(m_startTrackLink.reciprocalCurvatureRadius);
+                float cStart = m_startTrackLink.GetCurvature(gameObject);
+                float cEnd = m_endTrackLink.GetCurvature(gameObject);
+                float sign = Mathf.Sign(cStart);
 
-                if (sign == Mathf.Sign(m_endTrackLink.reciprocalCurvatureRadius))
+                if (sign == Mathf.Sign(cEnd))
                 {
-                    m_endTrackLink.reciprocalCurvatureRadius = 0;
+                    m_endTrackLink.ResetCurvature();
                     return CalculateParameters();
                 }
 
@@ -705,13 +713,13 @@ public class TrackSectionShapeController : MonoBehaviour
 
                 if (sign > 0)
                 {
-                    rStart = 1 / m_startTrackLink.reciprocalCurvatureRadius;
-                    rEnd = -1 / m_endTrackLink.reciprocalCurvatureRadius;
+                    rStart = 1 / cStart;
+                    rEnd = -1 / cEnd;
                 }
                 else
                 {
-                    rStart = -1 / m_startTrackLink.reciprocalCurvatureRadius;
-                    rEnd = 1 / m_endTrackLink.reciprocalCurvatureRadius;
+                    rStart = -1 / cStart;
+                    rEnd = 1 / cEnd;
                 }
 
                 if (rStart > rEnd)
@@ -756,7 +764,7 @@ public class TrackSectionShapeController : MonoBehaviour
                     m_virtualStartRotation = transform.rotation * Quaternion.AngleAxis(alpha * Mathf.Rad2Deg * -sign, transform.up);
                     m_virtualStartPoint = m_endPoint + m_virtualStartRotation * (Vector3.left * CL + Vector3.forward * SL * sign) / a;
 
-                    transform.rotation = m_virtualStartRotation * Quaternion.AngleAxis(Lp * Lp * Mathf.Rad2Deg * -sign, transform.up);
+                    transform.rotation = m_virtualStartRotation * Quaternion.AngleAxis(Lp * Lp * Mathf.Rad2Deg * sign, transform.up);
                     m_endRotation = m_virtualStartRotation * Quaternion.AngleAxis(-theta * Mathf.Rad2Deg * -sign, transform.up);
                     m_startTrackLink.transform.rotation = transform.rotation;
                     m_endTrackLink.transform.rotation = m_endRotation;
@@ -830,6 +838,7 @@ public class TrackSectionShapeController : MonoBehaviour
         transform.position = start;
         transform.rotation = m_startTrackLink.GetRotation(gameObject);
 
+        
         if (m_startTrackLink != null && m_endTrackLink != null)
         {
             if (m_startTrackLink.CanRotate() && m_endTrackLink.CanRotate())
@@ -837,7 +846,7 @@ public class TrackSectionShapeController : MonoBehaviour
                 transform.rotation = Quaternion.LookRotation(m_endPoint - transform.position) * Quaternion.Euler(0, -90, 0);
                 m_endRotation = transform.rotation;
 
-                Debug.Log("rotation after recalibration = " + transform.rotation.eulerAngles);
+                //Debug.Log("rotation after recalibration = " + transform.rotation.eulerAngles);
 
                 m_startTrackLink.transform.rotation = transform.rotation;
                 m_endTrackLink.transform.rotation = m_endRotation;
@@ -941,8 +950,8 @@ public class TrackSectionShapeController : MonoBehaviour
             box.center = Vector3.zero;
         }
 
-        if (m_endTrackLink != null) m_endTrackLink.RecalculateDirections(gameObject);
-        if (m_startTrackLink != null) m_startTrackLink.RecalculateDirections(gameObject);
+        if (m_endTrackLink != null) m_endTrackLink.RecalculateAngle(gameObject);
+        if (m_startTrackLink != null) m_startTrackLink.RecalculateAngle(gameObject);
     }
 
     // reverse anything that FinalizeShape() did. Doesn't undo SetBallast though.
