@@ -899,7 +899,7 @@ public class TrackSectionShapeController : MonoBehaviour
                         Quaternion actualEndRotation = m_endRotation;
                         m_endCanRotate = true;
 
-                        if (m_startTrackLink.reciprocalCurvatureRadius == 0 && m_endTrackLink.reciprocalCurvatureRadius == 0)
+                        if (m_startTrackLink.IsStraight() && m_endTrackLink.IsStraight())
                         {
                             Debug.Log("Rotating start- and end-points for errored track");
                             Quaternion startRotation = transform.rotation;
