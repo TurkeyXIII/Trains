@@ -55,10 +55,11 @@ MonoBehaviour:
   trackModel: {fileID: 100000, guid: 279aad76c75bc9b4d82117e87c4546cb, type: 2}
   colliderObjectReference: {fileID: 100000, guid: aa77fe279376a0143af03d18b6ebc92f,
     type: 2}
+  m_endPoint: {x: 0, y: 0, z: 0}
   ballastWidth: .100000001
   trackColliderHeight: .0299999993
   maxRailAngle: 8
-  minLength: .100000001
+  minLength: .150000006
 --- !u!1001 &100100000
 Prefab:
   m_ObjectHideFlags: 1

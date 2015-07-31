@@ -25,7 +25,7 @@ public class BaubleController : MonoBehaviour {
     public bool fixedRotation { set; private get; }
     private float m_reciprocalCurvatureRadius;
     private float m_inputCurvature;
-    //public float publicCurvature;
+    public float publicCurvature;
 
     private GameObject m_bufferStop;
 
@@ -106,12 +106,12 @@ public class BaubleController : MonoBehaviour {
             if (angle < -90 || angle > 90)
             {
                 m_reciprocalCurvatureRadius = m_inputCurvature;
-                //publicCurvature = m_reciprocalCurvatureRadius;
+                publicCurvature = m_reciprocalCurvatureRadius;
             }
             else
             {
                 m_reciprocalCurvatureRadius = -m_inputCurvature;
-                //publicCurvature = m_reciprocalCurvatureRadius;
+                publicCurvature = m_reciprocalCurvatureRadius;
             }
         }
     }
@@ -147,14 +147,14 @@ public class BaubleController : MonoBehaviour {
     {
         m_inputCurvature +=r;
         m_reciprocalCurvatureRadius = m_inputCurvature;
-        //publicCurvature = m_reciprocalCurvatureRadius;
+        publicCurvature = m_reciprocalCurvatureRadius;
     }
 
     public void ResetCurvature()
     {
         m_inputCurvature = 0;
         m_reciprocalCurvatureRadius = 0;
-        //publicCurvature = 0;
+        publicCurvature = 0;
     }
 
     public bool IsStraight()

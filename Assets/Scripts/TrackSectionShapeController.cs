@@ -23,7 +23,6 @@ public class TrackSectionShapeController : MonoBehaviour
 	private float m_currentLength;
     public Vector3 m_endPoint;
     private Quaternion m_endRotation;
-    private bool m_endCanRotate;
 
     private float m_verticalOffset;
     
@@ -350,28 +349,9 @@ public class TrackSectionShapeController : MonoBehaviour
     }
 
     // this function assigns values to L1, L2 etc assuming m_endPoint, m_endRotation etc are fixed. 
-    // Returns false if params can't be found
-    private ShapeResult CalculateParameters()
+    // Returns OK if params are found, an error otherwise
+    private ShapeResult CalculateParameters(bool endCanRotate, float startCurvature, float endCurvature, bool canModifyBaubles)
     {
-        m_virtualEndPoint = m_endPoint;
-        m_virtualStartPoint = transform.position;
-
-        m_virtualStartRotation = transform.rotation;
-
-        m_lengthFraction1 = 1;
-        m_lengthFraction2 = 1;
-
-        if (IsStraight())
-        {
-            m_L1 = 0;
-            m_L2 = 0;
-            m_A1 = 0;
-            m_A2 = 0;
-            m_theta1 = 0;
-            m_theta2 = 0;
-            return ShapeResult.OK;
-        }
-
         Vector3 startPosition, targetPosition, startDirection, targetDirection;
 
         startPosition = transform.position;
@@ -379,9 +359,35 @@ public class TrackSectionShapeController : MonoBehaviour
         startDirection = transform.rotation * Vector3.right;
         targetDirection = m_endRotation * Vector3.right;
 
-        // there is no curvature in either end bauble
-        if (m_endTrackLink.IsStraight() && m_startTrackLink.IsStraight())
+        if (m_startTrackLink.CanRotate() && endCanRotate)
         {
+            transform.rotation = Quaternion.LookRotation(m_endPoint - transform.position) * Quaternion.Euler(0, -90, 0);
+            m_endRotation = transform.rotation;
+
+            m_L1 = 0;
+            m_L2 = 0;
+            m_A1 = 0;
+            m_A2 = 0;
+            m_theta1 = 0;
+            m_theta2 = 0;
+        }
+        else
+        {
+            if (m_startTrackLink.CanRotate())
+            {
+                Quaternion startRotation = transform.rotation;
+                FindEndRotationForSimpleTransition(transform.position, m_endPoint, ref m_endRotation, ref startRotation);
+                transform.rotation = startRotation;
+            }
+            else if (endCanRotate)
+            {
+                Quaternion startRotation = transform.rotation;
+                FindEndRotationForSimpleTransition(transform.position, m_endPoint, ref startRotation, ref m_endRotation);
+                transform.rotation = startRotation;
+            }
+            startDirection = transform.rotation * Vector3.right;
+            targetDirection = m_endRotation * Vector3.right;
+
             FresnelMath.FindTheta(out m_theta1, out m_theta2, startPosition, targetPosition, startDirection, -targetDirection);
             if (m_theta1 < 0) return ShapeResult.ENDWRONGANGLE;
 
@@ -394,448 +400,463 @@ public class TrackSectionShapeController : MonoBehaviour
 
             m_L1 = Mathf.Sqrt(m_theta1);
             m_L2 = Mathf.Sqrt(m_theta2);
-
-            return ShapeResult.OK;
         }
 
-        
-        if (!m_startTrackLink.CanRotate() && m_endCanRotate)
+        m_virtualEndPoint = m_endPoint;
+        m_virtualStartPoint = transform.position;
+
+        m_virtualStartRotation = transform.rotation;
+
+        m_lengthFraction1 = 1;
+        m_lengthFraction2 = 1;
+
+        if (startCurvature != 0 || endCurvature != 0)
         {
-            // fixed, straight -> free, radius
-            if (m_startTrackLink.IsStraight())
+            if (!m_startTrackLink.CanRotate() && endCanRotate)
             {
-                Debug.Log("Fixed, straight -> free, radius");
-                float a, theta, fractionOut;
-
-                float x = Vector3.Dot(targetPosition - startPosition, startDirection.normalized);
-                float y = ((targetPosition - startPosition) - x * startDirection).magnitude;
-
-                float curvature = m_endTrackLink.GetCurvature(gameObject);
-                float r;
-
-                if (Vector3.Dot(transform.forward, (targetPosition - startPosition)) > 0)
-                    r = 1 / curvature;
-                else
-                    r = -1 / curvature;
-
-                if (r < 0)
+                // fixed, straight -> free, radius
+                if (startCurvature == 0)
                 {
-                    m_endTrackLink.ResetCurvature();
-                    return CalculateParameters();
+                    Debug.Log("Fixed, straight -> free, radius");
+                    float a, theta, fractionOut;
+
+                    float x = Vector3.Dot(targetPosition - startPosition, startDirection.normalized);
+                    float y = ((targetPosition - startPosition) - x * startDirection).magnitude;
+
+                    float curvature = endCurvature;
+                    float r;
+
+                    if (Vector3.Dot(transform.forward, (targetPosition - startPosition)) > 0)
+                        r = 1 / curvature;
+                    else
+                        r = -1 / curvature;
+
+                    if (r < 0)
+                    {
+                        if (canModifyBaubles)
+                        {
+                            m_endTrackLink.ResetCurvature();
+                            endCurvature = 0;
+                        }
+                        return CalculateParameters(endCanRotate, startCurvature, endCurvature, canModifyBaubles);
+                    }
+
+                    FresnelMath.FindAForPartialTransitionOut(out a, out theta, out fractionOut, r, x, y);
+
+                    if (a < 0) return ShapeResult.CANNOTBENDTORADIUS;
+
+                    m_A1 = a;
+                    m_A2 = a;
+                    m_theta1 = theta;
+                    m_theta2 = theta;
+
+                    m_L1 = Mathf.Sqrt(theta);
+                    m_L2 = m_L1;
+
+                    float S = FresnelMath.FresnelS(m_L1);
+                    float C = FresnelMath.FresnelC(m_L2);
+                    float sin = Mathf.Sin(2 * theta);
+                    float cos = Mathf.Cos(2 * theta);
+                    Vector3 yDir = ((targetPosition - startPosition) - x * startDirection).normalized;
+
+                    m_lengthFraction2 = fractionOut;
+                    m_virtualEndPoint = startPosition + startDirection.normalized * (C + cos * C + sin * S) / a + yDir * (S + sin * C - cos * S) / a;
+
+                    float angle = -(theta + theta * (1 - (1 - fractionOut) * (1 - fractionOut))) * Mathf.Sign(curvature);
+                    m_endRotation = transform.rotation * Quaternion.AngleAxis(angle * Mathf.Rad2Deg, transform.up);
                 }
 
-                FresnelMath.FindAForPartialTransitionOut(out a, out theta, out fractionOut, r, x, y);
+                // fixed, radius -> free, straight
+                else if (endCurvature == 0)
+                {
+                    Debug.Log("fixed, radius -> free, straight");
+                    float a, theta, fractionIn;
 
-                if (a < 0) return ShapeResult.CANNOTBENDTORADIUS;
+                    float x = Vector3.Dot(targetPosition - startPosition, startDirection.normalized);
+                    float y = ((targetPosition - startPosition) - x * startDirection).magnitude;
 
-                m_A1 = a;
-                m_A2 = a;
-                m_theta1 = theta;
-                m_theta2 = theta;
+                    float curvature = startCurvature;
+                    float r;
+                    if (Vector3.Dot(transform.forward, (targetPosition - startPosition)) > 0)
+                        r = -1 / curvature;
+                    else
+                        r = 1 / curvature;
 
-                m_L1 = Mathf.Sqrt(theta);
-                m_L2 = m_L1;
+                    if (r < 0)
+                    {
+                        return ShapeResult.CANNOTBENDFROMRADIUS;
+                    }
 
-                float S = FresnelMath.FresnelS(m_L1);
-                float C = FresnelMath.FresnelC(m_L2);
-                float sin = Mathf.Sin(2*theta);
-                float cos = Mathf.Cos(2*theta);
-                Vector3 yDir = ((targetPosition - startPosition) - x * startDirection).normalized;
+                    FresnelMath.FindAForPartialTransitionIn(out a, out theta, out fractionIn, r, x, y);
+                    if (a < 0) return ShapeResult.CANNOTBENDFROMRADIUS;
 
-                m_lengthFraction2 = fractionOut;
-                m_virtualEndPoint = startPosition + startDirection.normalized * (C + cos * C + sin * S) / a + yDir * (S + sin * C - cos * S) / a;
+                    m_A1 = a;
+                    m_A2 = a;
+                    m_theta1 = theta;
+                    m_theta2 = theta;
 
-                float angle = -(theta + theta * (1 - (1 - fractionOut) * (1 - fractionOut))) * Mathf.Sign(curvature);
-                m_endRotation = transform.rotation * Quaternion.AngleAxis(angle * Mathf.Rad2Deg, transform.up);
-                m_endTrackLink.transform.rotation = m_endRotation;
+                    m_L1 = Mathf.Sqrt(theta);
+                    m_L2 = m_L1;
+
+                    float thetap = 1 / (4 * a * a * r * r);
+
+                    m_lengthFraction1 = fractionIn;
+                    float sign = Mathf.Sign(curvature);
+                    float angle = (2 * theta - thetap) * sign;
+                    m_endRotation = transform.rotation * Quaternion.AngleAxis(angle * Mathf.Rad2Deg, transform.up);
+
+                    Vector3 xDir = -(m_endRotation * Vector3.right);
+                    Vector3 yDir = (startPosition - targetPosition) - Vector3.Dot((startPosition - targetPosition), xDir) * xDir;
+                    float S = FresnelMath.FresnelS(m_L1);
+                    float C = FresnelMath.FresnelC(m_L2);
+                    float sin = Mathf.Sin(2 * theta);
+                    float cos = Mathf.Cos(2 * theta);
+                    m_virtualStartPoint = m_endPoint + xDir.normalized * (C + cos * C + sin * S) / a + yDir.normalized * (S + sin * C - cos * S) / a;
+                    /*
+                    GameObject marker = (GameObject)GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    marker.transform.position = m_virtualStartPoint;
+                    marker.transform.localScale /= 10;
+                    */
+                    m_virtualStartRotation = transform.rotation * Quaternion.AngleAxis(thetap * Mathf.Rad2Deg * -sign, transform.up);
+                }
+
             }
 
-            // fixed, radius -> free, straight
-            else if (m_endTrackLink.IsStraight())
+            if (m_startTrackLink.CanRotate() && !endCanRotate)
             {
-                Debug.Log("fixed, radius -> free, straight");
-                float a, theta, fractionIn;
-
-                float x = Vector3.Dot(targetPosition - startPosition, startDirection.normalized);
-                float y = ((targetPosition - startPosition) - x * startDirection).magnitude;
-
-                float curvature = m_startTrackLink.GetCurvature(gameObject);
-                float r;
-                if (Vector3.Dot(transform.forward, (targetPosition - startPosition)) > 0)
-                    r = -1 / curvature;
-                else
-                    r = 1 / curvature;
-
-                if (r < 0)
+                // free, radius -> fixed, straight
+                if (endCurvature == 0)
                 {
-                    return ShapeResult.ERROR;
+                    Debug.Log("free, radius -> fixed, straight");
+                    float a, theta, fractionOut;
+
+                    float x = Vector3.Dot(startPosition - targetPosition, -targetDirection.normalized);
+                    float y = ((startPosition - targetPosition) - x * -targetDirection).magnitude;
+
+                    float curvature = startCurvature;
+                    float r;
+
+                    if (Vector3.Dot(Vector3.Cross(transform.up, targetDirection), (startPosition - targetPosition)) > 0)
+                        r = 1 / curvature;
+                    else
+                        r = -1 / curvature;
+
+                    if (r < 0)
+                    {
+                        if (canModifyBaubles)
+                            m_startTrackLink.ResetCurvature();
+
+                        return CalculateParameters(endCanRotate, 0, endCurvature, canModifyBaubles);
+                    }
+
+                    FresnelMath.FindAForPartialTransitionOut(out a, out theta, out fractionOut, r, x, y);
+
+                    if (a < 0) return ShapeResult.CANNOTBENDFROMRADIUS;
+
+                    m_A1 = a;
+                    m_A2 = a;
+                    m_theta1 = theta;
+                    m_theta2 = theta;
+
+                    m_L1 = Mathf.Sqrt(theta);
+                    m_L2 = m_L1;
+
+                    float S = FresnelMath.FresnelS(m_L1);
+                    float C = FresnelMath.FresnelC(m_L1);
+                    float sin = Mathf.Sin(2 * theta);
+                    float cos = Mathf.Cos(2 * theta);
+                    Vector3 yDir = ((startPosition - targetPosition) - x * -targetDirection).normalized;
+
+                    m_lengthFraction1 = fractionOut;
+                    m_virtualStartPoint = targetPosition - targetDirection.normalized * (C + cos * C + sin * S) / a + yDir * (S + sin * C - cos * S) / a;
+
+                    float sign = -Mathf.Sign(curvature);
+
+                    float angle = (theta + theta * (1 - (1 - fractionOut) * (1 - fractionOut)));
+                    transform.rotation = m_endRotation * Quaternion.AngleAxis(angle * Mathf.Rad2Deg * sign, transform.up);
+
+                    m_virtualStartRotation = m_endRotation * Quaternion.AngleAxis(2 * theta * Mathf.Rad2Deg * sign, transform.up);
                 }
 
-                FresnelMath.FindAForPartialTransitionIn(out a, out theta, out fractionIn, r, x, y);
-                if (a < 0) return ShapeResult.CANNOTBENDFROMRADIUS;
+                // free, straight -> fixed, radius
+                else if (startCurvature == 0)
+                {
+                    Debug.Log("free, straight -> fixed, radius");
 
-                m_A1 = a;
-                m_A2 = a;
-                m_theta1 = theta;
-                m_theta2 = theta;
+                    float a, theta, fractionIn;
 
-                m_L1 = Mathf.Sqrt(theta);
-                m_L2 = m_L1;
+                    float x = Vector3.Dot(startPosition - targetPosition, -targetDirection.normalized);
+                    float y = ((startPosition - targetPosition) - x * -targetDirection).magnitude;
 
-                float thetap = 1 / (4 * a * a * r * r);
+                    float curvature = endCurvature;
+                    float r;
+                    if (Vector3.Dot(transform.forward, (startPosition - targetPosition)) > 0)
+                        r = -1 / curvature;
+                    else
+                        r = 1 / curvature;
 
-                m_lengthFraction1 = fractionIn;
-                float sign = Mathf.Sign(curvature);
-                float angle = (2 * theta - thetap) * sign;
-                m_endRotation = transform.rotation * Quaternion.AngleAxis(angle * Mathf.Rad2Deg, transform.up);
-                m_endTrackLink.transform.rotation = m_endRotation;
+                    if (r < 0)
+                    {
+                        return ShapeResult.CANNOTBENDTORADIUS;
+                    }
 
-                Vector3 xDir = -(m_endRotation * Vector3.right);
-                Vector3 yDir = (startPosition - targetPosition) - Vector3.Dot((startPosition - targetPosition), xDir) * xDir;
-                float S = FresnelMath.FresnelS(m_L1);
-                float C = FresnelMath.FresnelC(m_L2);
-                float sin = Mathf.Sin(2 * theta);
-                float cos = Mathf.Cos(2 * theta);
-                m_virtualStartPoint = m_endPoint + xDir.normalized * (C + cos * C + sin * S) / a + yDir.normalized * (S + sin * C - cos * S) / a;
-                /*
-                GameObject marker = (GameObject)GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                marker.transform.position = m_virtualStartPoint;
-                marker.transform.localScale /= 10;
-                */
-                m_virtualStartRotation = transform.rotation * Quaternion.AngleAxis(thetap * Mathf.Rad2Deg * -sign, transform.up);
+                    FresnelMath.FindAForPartialTransitionIn(out a, out theta, out fractionIn, r, x, y);
+                    if (a < 0) return ShapeResult.CANNOTBENDTORADIUS;
+
+                    m_A1 = a;
+                    m_A2 = a;
+                    m_theta1 = theta;
+                    m_theta2 = theta;
+
+                    m_L1 = Mathf.Sqrt(theta);
+                    m_L2 = m_L1;
+
+                    float thetap = 1 / (4 * a * a * r * r);
+
+                    m_lengthFraction2 = fractionIn;
+                    float angle = (2 * theta - thetap) * Mathf.Sign(curvature);
+                    transform.rotation = m_endRotation * Quaternion.AngleAxis(angle * Mathf.Rad2Deg, transform.up);
+                    m_virtualStartRotation = transform.rotation;
+
+                    Vector3 xDir = transform.rotation * Vector3.right;
+                    Vector3 yDir = (targetPosition - startPosition) - Vector3.Dot((targetPosition - startPosition), xDir) * xDir;
+                    float S = FresnelMath.FresnelS(m_L1);
+                    float C = FresnelMath.FresnelC(m_L2);
+                    float sin = Mathf.Sin(2 * theta);
+                    float cos = Mathf.Cos(2 * theta);
+                    m_virtualEndPoint = transform.position + xDir.normalized * (C + cos * C + sin * S) / a + yDir.normalized * (S + sin * C - cos * S) / a;
+                    /*
+                    GameObject marker = (GameObject)GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    marker.transform.position = m_virtualEndPoint;
+                    marker.transform.localScale /= 10;
+                    */
+                }
             }
 
-        }
-
-        
-        if (m_startTrackLink.CanRotate() && !m_endCanRotate)
-        {
-            // free, radius -> fixed, straight
-            if (m_endTrackLink.IsStraight())
+            if (endCanRotate && m_startTrackLink.CanRotate())
             {
-                Debug.Log("free, radius -> fixed, straight");
-                float a, theta, fractionOut;
-
-                float x = Vector3.Dot(startPosition - targetPosition, -targetDirection.normalized);
-                float y = ((startPosition - targetPosition) - x * -targetDirection).magnitude;
-
-                float curvature = m_startTrackLink.GetCurvature(gameObject);
-                float r;
-
-                if (Vector3.Dot(Vector3.Cross(transform.up, targetDirection), (startPosition - targetPosition)) > 0)
-                    r = 1 / curvature;
-                else
-                    r = -1 / curvature;
-
-                if (r < 0)
+                Debug.Log("both ends free");
+                // free, straight -> free, radius
+                if (startCurvature == 0)
                 {
-                    m_startTrackLink.ResetCurvature();
-                    return CalculateParameters();
-                }
+                    Debug.Log("start straight");
+                    float theta, a;
 
-                FresnelMath.FindAForPartialTransitionOut(out a, out theta, out fractionOut, r, x, y);
+                    float distance = (m_endPoint - transform.position).magnitude;
 
-                if (a < 0) return ShapeResult.ENDWRONGANGLE;
-
-                m_A1 = a;
-                m_A2 = a;
-                m_theta1 = theta;
-                m_theta2 = theta;
-
-                m_L1 = Mathf.Sqrt(theta);
-                m_L2 = m_L1;
-
-                float S = FresnelMath.FresnelS(m_L1);
-                float C = FresnelMath.FresnelC(m_L1);
-                float sin = Mathf.Sin(2 * theta);
-                float cos = Mathf.Cos(2 * theta);
-                Vector3 yDir = ((startPosition - targetPosition) - x * -targetDirection).normalized;
-
-                m_lengthFraction1 = fractionOut;
-                m_virtualStartPoint = targetPosition - targetDirection.normalized * (C + cos * C + sin * S) / a + yDir * (S + sin * C - cos * S) / a;
-
-                float sign = -Mathf.Sign(curvature);
-
-                float angle = (theta + theta * (1 - (1 - fractionOut) * (1 - fractionOut)));
-                transform.rotation = m_endRotation * Quaternion.AngleAxis(angle * Mathf.Rad2Deg * sign, transform.up);
-                m_startTrackLink.transform.rotation = transform.rotation;
-
-                m_virtualStartRotation = m_endRotation * Quaternion.AngleAxis(2*theta * Mathf.Rad2Deg * sign, transform.up);
-            }
-
-            // free, straight -> fixed, radius
-            else if (m_startTrackLink.IsStraight())
-            {
-                Debug.Log("free, straight -> fixed, radius");
-
-                float a, theta, fractionIn;
-
-                float x = Vector3.Dot(startPosition - targetPosition, -targetDirection.normalized);
-                float y = ((startPosition - targetPosition) - x * -targetDirection).magnitude;
-
-                float curvature = m_endTrackLink.GetCurvature(gameObject);
-                float r;
-                if (Vector3.Dot(transform.forward, (startPosition - targetPosition)) > 0)
-                    r = -1 / curvature;
-                else
-                    r = 1 / curvature;
-
-                if (r < 0)
-                {
-                    return ShapeResult.ENDWRONGANGLE;
-                }
-
-                FresnelMath.FindAForPartialTransitionIn(out a, out theta, out fractionIn, r, x, y);
-                if (a < 0) return ShapeResult.ENDWRONGANGLE;
-
-                m_A1 = a;
-                m_A2 = a;
-                m_theta1 = theta;
-                m_theta2 = theta;
-
-                m_L1 = Mathf.Sqrt(theta);
-                m_L2 = m_L1;
-
-                float thetap = 1 / (4 * a * a * r * r);
-
-                m_lengthFraction2 = fractionIn;
-                float angle = (2 * theta - thetap) * Mathf.Sign(curvature);
-                transform.rotation = m_endRotation * Quaternion.AngleAxis(angle * Mathf.Rad2Deg, transform.up);
-                m_startTrackLink.transform.rotation = transform.rotation;
-                m_virtualStartRotation = transform.rotation;
-
-                Vector3 xDir = transform.rotation * Vector3.right;
-                Vector3 yDir = (targetPosition - startPosition) - Vector3.Dot((targetPosition - startPosition), xDir) * xDir;
-                float S = FresnelMath.FresnelS(m_L1);
-                float C = FresnelMath.FresnelC(m_L2);
-                float sin = Mathf.Sin(2 * theta);
-                float cos = Mathf.Cos(2 * theta);
-                m_virtualEndPoint = transform.position + xDir.normalized * (C + cos * C + sin * S) / a + yDir.normalized * (S + sin * C - cos * S) / a;
-                /*
-                GameObject marker = (GameObject)GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                marker.transform.position = m_virtualEndPoint;
-                marker.transform.localScale /= 10;
-                */
-            }
-        }
-
-        if (m_endCanRotate && m_startTrackLink.CanRotate())
-        {
-            Debug.Log("both ends free");
-            // free, straight -> free, radius
-            if (m_startTrackLink.IsStraight())
-            {
-                Debug.Log("start straight");
-                float theta, a;
-
-                float distance = (m_endPoint - transform.position).magnitude;
-
-                float curvature = m_endTrackLink.GetCurvature(gameObject);
-                float r;
-                if (curvature > 0)
-                    r = 1 / curvature;
-                else
-                    r = -1 / curvature;
+                    float curvature = endCurvature;
+                    float r;
+                    if (curvature > 0)
+                        r = 1 / curvature;
+                    else
+                        r = -1 / curvature;
 
 
-                FresnelMath.FindAForSingleTransition(out a, out theta, r, distance);
+                    FresnelMath.FindAForSingleTransition(out a, out theta, r, distance);
 
-                if (a < 0) return ShapeResult.RADIUSTOOSHARP;
+                    if (a < 0) return ShapeResult.RADIUSTOOSHARP;
 
-                m_A1 = a;
-                m_A2 = a;
-                m_L1 = Mathf.Sqrt(theta);
-                m_L2 = m_L1;
-                m_lengthFraction1 = 1;
-                m_lengthFraction2 = 0;
-                m_theta1 = theta;
-                m_theta2 = theta;
-
-                float angle = Mathf.Acos(FresnelMath.FresnelC(m_L1) / m_A1 / distance);
-
-                Debug.Log("angle = " + (angle * Mathf.Rad2Deg) + " degrees");
-
-                transform.rotation *= Quaternion.AngleAxis(angle * Mathf.Rad2Deg * Mathf.Sign(curvature), transform.up);
-                m_virtualStartRotation = transform.rotation;
-                m_startTrackLink.transform.rotation = transform.rotation;
-                Debug.Log("rotation after correction = " + transform.rotation.eulerAngles);
-                m_endRotation = transform.rotation * Quaternion.AngleAxis(theta * Mathf.Rad2Deg * -Mathf.Sign(curvature), transform.up);
-                m_endTrackLink.transform.rotation = m_endRotation;
-                float kappa = Mathf.PI - 2 * (theta - angle);
-                m_virtualEndPoint = m_endPoint + TrainsMath.RotateVector(transform.position - m_endPoint, transform.up, kappa * Mathf.Sign(curvature));
-
-            }
-            else if (m_endTrackLink.IsStraight()) // free, raduis -> free, straight
-            {
-                Debug.Log("end straight");
-                float theta, a;
-
-                float distance = (m_endPoint - transform.position).magnitude;
-
-                float curvature = m_startTrackLink.GetCurvature(gameObject);
-                float r;
-                if (curvature > 0)
-                    r = 1 / curvature;
-                else
-                    r = -1 / curvature;
-
-                FresnelMath.FindAForSingleTransition(out a, out theta, r, distance);
-
-                if (a < 0) return ShapeResult.RADIUSTOOSHARP;
-
-                m_A1 = a;
-                m_A2 = a;
-                m_L1 = Mathf.Sqrt(theta);
-                m_L2 = m_L1;
-                m_lengthFraction1 = 0;
-                m_lengthFraction2 = 1;
-                m_theta1 = theta;
-                m_theta2 = theta;
-
-                float angle = Mathf.Acos(FresnelMath.FresnelC(m_L1) / m_A1 / distance);
-
-                float sign = Mathf.Sign(curvature);
-
-                //Debug.Log("angle = " + (angle * Mathf.Rad2Deg) + " degrees; radius sign = " + sign);
-
-                m_endRotation *= Quaternion.AngleAxis(angle * Mathf.Rad2Deg * sign, transform.up);
-                transform.rotation = m_endRotation * Quaternion.AngleAxis(-theta * Mathf.Rad2Deg * sign, transform.up);
-                m_startTrackLink.transform.rotation = transform.rotation;
-                m_endTrackLink.transform.rotation = m_endRotation;
-                float kappa = Mathf.PI - 2 * (theta - angle);
-                m_virtualStartPoint = transform.position + TrainsMath.RotateVector(m_endPoint - transform.position, transform.up, kappa * sign);
-                m_virtualStartRotation = Quaternion.LookRotation(transform.position - m_virtualStartPoint, transform.up) * Quaternion.Euler(0, -90, 0) * Quaternion.AngleAxis(-angle * Mathf.Rad2Deg * sign, transform.up);
-            }
-            else // free, radius -> free, radius
-            {
-                Debug.Log("both ends curved");
-
-                float theta, a;
-
-                float distance = (m_endPoint - transform.position).magnitude;
-                float cStart = m_startTrackLink.GetCurvature(gameObject);
-                float cEnd = m_endTrackLink.GetCurvature(gameObject);
-                float sign = Mathf.Sign(cStart);
-
-                if (sign == Mathf.Sign(cEnd))
-                {
-                    m_endTrackLink.ResetCurvature();
-                    return CalculateParameters();
-                }
-
-                float rSmall, rLarge, rStart, rEnd;
-
-                if (sign > 0)
-                {
-                    rStart = 1 / cStart;
-                    rEnd = -1 / cEnd;
-                }
-                else
-                {
-                    rStart = -1 / cStart;
-                    rEnd = 1 / cEnd;
-                }
-
-                if (rStart > rEnd)
-                {
-                    rSmall = rEnd;
-                    rLarge = rStart;
-                }
-                else
-                {
-                    rSmall = rStart;
-                    rLarge = rEnd;
-                }
-
-                Debug.Log("rLarge = " + rLarge + ", rSmall = " + rSmall + ", dist = " + distance);
-
-                float fraction;
-                FresnelMath.FindAForSinglePartialTransition(out a, out theta, out fraction, distance, rSmall, rLarge);
-
-                Debug.Log("a = " + a + ", fraction = " + fraction);
-
-                if (a < 0) return ShapeResult.RADIUSMISMATCH;
-
-                m_theta1 = theta;
-                m_theta2 = theta;
-                m_L1 = Mathf.Sqrt(theta);
-                m_L2 = m_L1;
-                m_A1 = a;
-                m_A2 = a;
-
-                float Lp = 1 / (2 * a * rLarge);
-
-                if (rStart > rEnd)
-                {
-                    // transition in
-                    m_lengthFraction1 = fraction;
+                    m_A1 = a;
+                    m_A2 = a;
+                    m_L1 = Mathf.Sqrt(theta);
+                    m_L2 = m_L1;
+                    m_lengthFraction1 = 1;
                     m_lengthFraction2 = 0;
+                    m_theta1 = theta;
+                    m_theta2 = theta;
 
-                    float CL = FresnelMath.FresnelC(m_L1);
-                    float SL = FresnelMath.FresnelS(m_L1);
-                    float alpha = Mathf.Asin((SL - FresnelMath.FresnelS(Lp)) / (a * distance));
+                    float angle = Mathf.Acos(FresnelMath.FresnelC(m_L1) / m_A1 / distance);
 
-                    m_virtualStartRotation = transform.rotation * Quaternion.AngleAxis(alpha * Mathf.Rad2Deg * -sign, transform.up);
-                    m_virtualStartPoint = m_endPoint + m_virtualStartRotation * (Vector3.left * CL + Vector3.forward * SL * sign) / a;
+                    Debug.Log("angle = " + (angle * Mathf.Rad2Deg) + " degrees");
 
-                    transform.rotation = m_virtualStartRotation * Quaternion.AngleAxis(Lp * Lp * Mathf.Rad2Deg * sign, transform.up);
-                    m_endRotation = m_virtualStartRotation * Quaternion.AngleAxis(-theta * Mathf.Rad2Deg * -sign, transform.up);
-                    m_startTrackLink.transform.rotation = transform.rotation;
-                    m_endTrackLink.transform.rotation = m_endRotation;
-                    
-                    Quaternion virtualEndRotation = m_endRotation * Quaternion.AngleAxis(-theta * Mathf.Rad2Deg * -sign, transform.up);
-                    m_virtualEndPoint = m_endPoint + virtualEndRotation * (Vector3.right * CL + Vector3.forward * SL * sign) / a;
-                    
-                    /*
-                    GameObject startMarker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    startMarker.transform.position = m_virtualStartPoint;
-                    startMarker.transform.rotation = m_virtualStartRotation;
-                    startMarker.transform.localScale /= 10;
-                    
-                    GameObject endMarker = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    endMarker.transform.position = m_virtualEndPoint;
-                    endMarker.transform.rotation = virtualEndRotation;
-                    endMarker.transform.localScale /= 10;
-                    */
+                    transform.rotation *= Quaternion.AngleAxis(angle * Mathf.Rad2Deg * Mathf.Sign(curvature), transform.up);
+                    m_virtualStartRotation = transform.rotation;
+                    Debug.Log("rotation after correction = " + transform.rotation.eulerAngles);
+                    m_endRotation = transform.rotation * Quaternion.AngleAxis(theta * Mathf.Rad2Deg * -Mathf.Sign(curvature), transform.up);
+                    float kappa = Mathf.PI - 2 * (theta - angle);
+                    m_virtualEndPoint = m_endPoint + TrainsMath.RotateVector(transform.position - m_endPoint, transform.up, kappa * Mathf.Sign(curvature));
+
                 }
-                else
+                else if (endCurvature == 0) // free, raduis -> free, straight
                 {
-                    // transition out
+                    Debug.Log("end straight");
+                    float theta, a;
+
+                    float distance = (m_endPoint - transform.position).magnitude;
+
+                    float curvature = startCurvature;
+                    float r;
+                    if (curvature > 0)
+                        r = 1 / curvature;
+                    else
+                        r = -1 / curvature;
+
+                    FresnelMath.FindAForSingleTransition(out a, out theta, r, distance);
+
+                    if (a < 0) return ShapeResult.RADIUSTOOSHARP;
+
+                    m_A1 = a;
+                    m_A2 = a;
+                    m_L1 = Mathf.Sqrt(theta);
+                    m_L2 = m_L1;
                     m_lengthFraction1 = 0;
-                    m_lengthFraction2 = fraction;
+                    m_lengthFraction2 = 1;
+                    m_theta1 = theta;
+                    m_theta2 = theta;
 
-                    float CL = FresnelMath.FresnelC(m_L1);
-                    float SL = FresnelMath.FresnelS(m_L1);
-                    float alpha = Mathf.Asin((SL - FresnelMath.FresnelS(Lp)) / (a * distance));
-                    Quaternion virtualEndRotation = transform.rotation * Quaternion.AngleAxis(-alpha * Mathf.Rad2Deg * -sign, transform.up);
-                    m_virtualEndPoint = transform.position + virtualEndRotation * (Vector3.right * CL + Vector3.forward * SL * sign) / a;
+                    float angle = Mathf.Acos(FresnelMath.FresnelC(m_L1) / m_A1 / distance);
 
-                    m_endRotation = virtualEndRotation * Quaternion.AngleAxis(Lp * Lp * Mathf.Rad2Deg * -sign, transform.up);
-                    transform.rotation = virtualEndRotation * Quaternion.AngleAxis(theta * Mathf.Rad2Deg * -sign, transform.up);
+                    float sign = Mathf.Sign(curvature);
 
-                    m_endTrackLink.transform.rotation = m_endRotation;
-                    m_startTrackLink.transform.rotation = transform.rotation;
+                    //Debug.Log("angle = " + (angle * Mathf.Rad2Deg) + " degrees; radius sign = " + sign);
 
-                    m_virtualStartRotation = transform.rotation * Quaternion.AngleAxis(theta * Mathf.Rad2Deg * -sign, transform.up);
-                    m_virtualStartPoint = transform.position + m_virtualStartRotation * (Vector3.left * CL + Vector3.forward * SL * sign) / a;
+                    m_endRotation *= Quaternion.AngleAxis(angle * Mathf.Rad2Deg * sign, transform.up);
+                    transform.rotation = m_endRotation * Quaternion.AngleAxis(-theta * Mathf.Rad2Deg * sign, transform.up);
+                    float kappa = Mathf.PI - 2 * (theta - angle);
+                    m_virtualStartPoint = transform.position + TrainsMath.RotateVector(m_endPoint - transform.position, transform.up, kappa * sign);
+                    m_virtualStartRotation = Quaternion.LookRotation(transform.position - m_virtualStartPoint, transform.up) * Quaternion.Euler(0, -90, 0) * Quaternion.AngleAxis(-angle * Mathf.Rad2Deg * sign, transform.up);
+                }
+                else // free, radius -> free, radius
+                {
+                    Debug.Log("both ends curved");
 
-                    /*
-                    GameObject startMarker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    startMarker.transform.position = m_virtualStartPoint;
-                    startMarker.transform.rotation = m_virtualStartRotation;
-                    startMarker.transform.localScale /= 10;
+                    float theta, a;
+
+                    float distance = (m_endPoint - transform.position).magnitude;
+                    float cStart = startCurvature;
+                    float cEnd = endCurvature;
+                    float sign = Mathf.Sign(cStart);
+
+                    if (sign == Mathf.Sign(cEnd))
+                    {
+                        if (canModifyBaubles)
+                        {
+                            m_endTrackLink.ResetCurvature();
+                        }
+                        return CalculateParameters(endCanRotate, startCurvature, 0, canModifyBaubles);
+                    }
+
+                    float rSmall, rLarge, rStart, rEnd;
+
+                    if (sign > 0)
+                    {
+                        rStart = 1 / cStart;
+                        rEnd = -1 / cEnd;
+                    }
+                    else
+                    {
+                        rStart = -1 / cStart;
+                        rEnd = 1 / cEnd;
+                    }
+
+                    if (rStart > rEnd)
+                    {
+                        rSmall = rEnd;
+                        rLarge = rStart;
+                    }
+                    else
+                    {
+                        rSmall = rStart;
+                        rLarge = rEnd;
+                    }
+
+                    Debug.Log("rLarge = " + rLarge + ", rSmall = " + rSmall + ", dist = " + distance);
+
+                    float fraction;
+                    FresnelMath.FindAForSinglePartialTransition(out a, out theta, out fraction, distance, rSmall, rLarge);
+
+                    Debug.Log("a = " + a + ", fraction = " + fraction);
+
+                    if (a < 0) return ShapeResult.RADIUSMISMATCH;
+
+                    m_theta1 = theta;
+                    m_theta2 = theta;
+                    m_L1 = Mathf.Sqrt(theta);
+                    m_L2 = m_L1;
+                    m_A1 = a;
+                    m_A2 = a;
+
+                    float Lp = 1 / (2 * a * rLarge);
+
+                    if (rStart > rEnd)
+                    {
+                        // transition in
+                        m_lengthFraction1 = fraction;
+                        m_lengthFraction2 = 0;
+
+                        float CL = FresnelMath.FresnelC(m_L1);
+                        float SL = FresnelMath.FresnelS(m_L1);
+                        float alpha = Mathf.Asin((SL - FresnelMath.FresnelS(Lp)) / (a * distance));
+
+                        m_virtualStartRotation = transform.rotation * Quaternion.AngleAxis(alpha * Mathf.Rad2Deg * -sign, transform.up);
+                        m_virtualStartPoint = m_endPoint + m_virtualStartRotation * (Vector3.left * CL + Vector3.forward * SL * sign) / a;
+
+                        transform.rotation = m_virtualStartRotation * Quaternion.AngleAxis(Lp * Lp * Mathf.Rad2Deg * sign, transform.up);
+                        m_endRotation = m_virtualStartRotation * Quaternion.AngleAxis(-theta * Mathf.Rad2Deg * -sign, transform.up);
+
+                        Quaternion virtualEndRotation = m_endRotation * Quaternion.AngleAxis(-theta * Mathf.Rad2Deg * -sign, transform.up);
+                        m_virtualEndPoint = m_endPoint + virtualEndRotation * (Vector3.right * CL + Vector3.forward * SL * sign) / a;
+
+                        /*
+                        GameObject startMarker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                        startMarker.transform.position = m_virtualStartPoint;
+                        startMarker.transform.rotation = m_virtualStartRotation;
+                        startMarker.transform.localScale /= 10;
                     
-                    GameObject endMarker = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    endMarker.transform.position = m_virtualEndPoint;
-                    endMarker.transform.rotation = virtualEndRotation;
-                    endMarker.transform.localScale /= 10;
-                    */
+                        GameObject endMarker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        endMarker.transform.position = m_virtualEndPoint;
+                        endMarker.transform.rotation = virtualEndRotation;
+                        endMarker.transform.localScale /= 10;
+                        */
+                    }
+                    else
+                    {
+                        // transition out
+                        m_lengthFraction1 = 0;
+                        m_lengthFraction2 = fraction;
+
+                        float CL = FresnelMath.FresnelC(m_L1);
+                        float SL = FresnelMath.FresnelS(m_L1);
+                        float alpha = Mathf.Asin((SL - FresnelMath.FresnelS(Lp)) / (a * distance));
+                        Quaternion virtualEndRotation = transform.rotation * Quaternion.AngleAxis(-alpha * Mathf.Rad2Deg * -sign, transform.up);
+                        m_virtualEndPoint = transform.position + virtualEndRotation * (Vector3.right * CL + Vector3.forward * SL * sign) / a;
+
+                        m_endRotation = virtualEndRotation * Quaternion.AngleAxis(Lp * Lp * Mathf.Rad2Deg * -sign, transform.up);
+                        transform.rotation = virtualEndRotation * Quaternion.AngleAxis(theta * Mathf.Rad2Deg * -sign, transform.up);
+
+                        m_virtualStartRotation = transform.rotation * Quaternion.AngleAxis(theta * Mathf.Rad2Deg * -sign, transform.up);
+                        m_virtualStartPoint = transform.position + m_virtualStartRotation * (Vector3.left * CL + Vector3.forward * SL * sign) / a;
+
+                        /*
+                        GameObject startMarker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                        startMarker.transform.position = m_virtualStartPoint;
+                        startMarker.transform.rotation = m_virtualStartRotation;
+                        startMarker.transform.localScale /= 10;
+                    
+                        GameObject endMarker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        endMarker.transform.position = m_virtualEndPoint;
+                        endMarker.transform.rotation = virtualEndRotation;
+                        endMarker.transform.localScale /= 10;
+                        */
+                    }
+
                 }
 
             }
-
         }
-        
+
+        if (canModifyBaubles)
+        {
+            Debug.Log("Modifying Baubles");
+            if (m_endTrackLink.CanRotate())
+            {
+                m_endTrackLink.transform.rotation = m_endRotation;
+            }
+            if (m_startTrackLink.CanRotate())
+            {
+                m_startTrackLink.transform.rotation = transform.rotation;
+            }
+        }
 
         return ShapeResult.OK;
     }
@@ -845,85 +866,66 @@ public class TrackSectionShapeController : MonoBehaviour
         Vector3 end = m_endTrackLink.transform.position;
         Vector3 start = m_startTrackLink.transform.position;
 
-
         //Debug.Log("Point != EndPoint");
         m_endPoint = end;
         m_endRotation = m_endTrackLink.GetRotation(gameObject) * Quaternion.AngleAxis(180, m_endTrackLink.transform.up);
         transform.position = start;
         transform.rotation = m_startTrackLink.GetRotation(gameObject);
 
-        
-        if (m_startTrackLink != null && m_endTrackLink != null)
+
+        // save the real orientations etc. so they can be restored afterwards
+        float startCurvature = m_startTrackLink.GetCurvature(gameObject);
+        float endCurvature = m_endTrackLink.GetCurvature(gameObject);
+        bool endCanRotate = m_endTrackLink.CanRotate();
+
+        m_shapeResult = CalculateParameters(endCanRotate, startCurvature, endCurvature, true);
+        ShapeResult eventualShapeResult = m_shapeResult;
+
+        // changes made to the links during the first call of CalculateParameters() are valid.
+        startCurvature = m_startTrackLink.GetCurvature(gameObject);
+        endCurvature = m_endTrackLink.GetCurvature(gameObject);
+
+        int maxAttempts = 10;
+        int attempts = 0;
+        while (eventualShapeResult != ShapeResult.OK)
         {
-            m_endCanRotate = m_endTrackLink.CanRotate();
-            if (m_startTrackLink.CanRotate() && m_endTrackLink.CanRotate())
-            {
-                transform.rotation = Quaternion.LookRotation(m_endPoint - transform.position) * Quaternion.Euler(0, -90, 0);
-                m_endRotation = transform.rotation;
-
-                //Debug.Log("rotation after recalibration = " + transform.rotation.eulerAngles);
-
-                m_startTrackLink.transform.rotation = transform.rotation;
-                m_endTrackLink.transform.rotation = m_endRotation;
-            }
-            else
-            {
-                if (m_startTrackLink.CanRotate())
-                {
-                    Quaternion startRotation = transform.rotation;
-                    FindEndRotationForSimpleTransition(transform.position, m_endPoint, ref m_endRotation, ref startRotation);
-                    transform.rotation = startRotation;
-
-                    m_startTrackLink.transform.rotation = transform.rotation;
-                }
-                else if (m_endTrackLink.CanRotate())
-                {
-                    Quaternion startRotation = transform.rotation;
-                    FindEndRotationForSimpleTransition(transform.position, m_endPoint, ref startRotation, ref m_endRotation);
-                    transform.rotation = startRotation;
-
-                    m_endTrackLink.transform.rotation = m_endRotation;
-                }
-            }
-        }
-
-        m_shapeResult = CalculateParameters();
-        if (m_shapeResult != ShapeResult.OK)
-        {
-            Debug.Log("In if block: shapeResult = " + m_shapeResult);
-            ShapeResult shapeRedo = m_shapeResult;
-            switch (m_shapeResult)
+            
+            Debug.Log("Accommodating for error: " + eventualShapeResult);
+            switch (eventualShapeResult)
             {
                 case ShapeResult.ENDWRONGANGLE:
                     {
-                        Quaternion actualEndRotation = m_endRotation;
-                        m_endCanRotate = true;
+                        endCanRotate = true;
 
-                        if (m_startTrackLink.IsStraight() && m_endTrackLink.IsStraight())
-                        {
-                            Debug.Log("Rotating start- and end-points for errored track");
-                            Quaternion startRotation = transform.rotation;
-                            FindEndRotationForSimpleTransition(transform.position, m_endPoint, ref startRotation, ref m_endRotation);
-                            transform.rotation = startRotation;
-                        }
+                        Debug.Log("Rotating start- and end-points for errored track");
+                        Quaternion startRotation = transform.rotation;
+                        FindEndRotationForSimpleTransition(transform.position, m_endPoint, ref startRotation, ref m_endRotation);
+                        transform.rotation = startRotation;
 
-                        shapeRedo = CalculateParameters();
-                        Debug.Log("Recalculating parameters after error; returned " + shapeRedo);
-
-                        m_endRotation = actualEndRotation;
-                        m_endTrackLink.transform.rotation = m_endRotation;
-                        m_endCanRotate = m_endTrackLink.CanRotate();
+                        break;
+                    }
+                case ShapeResult.CANNOTBENDTORADIUS:
+                    {
+                        endCurvature = 0;
+                        break;
+                    }
+                case ShapeResult.CANNOTBENDFROMRADIUS:
+                    {
+                        startCurvature = 0;
                         break;
                     }
             }
 
-            if (shapeRedo != ShapeResult.OK)
+            eventualShapeResult = CalculateParameters(endCanRotate, startCurvature, endCurvature, false);
+
+            // temporary break for errors we haven't dealt with yet
+            attempts++;
+            if (eventualShapeResult > ShapeResult.CANNOTBENDFROMRADIUS || attempts > maxAttempts)
             {
                 SetTrackHighlightFromShapeResult();
-                return false;
+                return false; 
             }
         }
-       
 
         //RestoreTrackSections();
         SetLength();
