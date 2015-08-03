@@ -60,15 +60,8 @@ public class TrackPlacementTool : Tool
                 }
                 if (hoveringTrackSectionController != null)
                 {
-                    if (hoveringTrackSectionController.IsStraight())
-                    {
-                        hoveringTrackSectionController.FindTrackCentre(hitLocation, out actionLocation, out actionRotation);
-                        Control.GetControl().SnapCursorLight(actionLocation);
-                    }
-                    else
-                    {
-                        hoveringTrackSectionController = null;
-                    }
+                    hoveringTrackSectionController.FindTrackCentre(hitLocation, out actionLocation, out actionRotation);
+                    Control.GetControl().SnapCursorLight(actionLocation);
                 }
             }
         }

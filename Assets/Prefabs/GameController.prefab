@@ -45,6 +45,7 @@ MonoBehaviour:
   prefabBauble: {fileID: 100000, guid: 841d3fe9ac05b2b4da0bb4504c1c5266, type: 2}
   prefabLocomotive: {fileID: 100000, guid: a89b03a5334b851458ce15ba97d1501b, type: 2}
   prefabCursorLight: {fileID: 190878, guid: a48fd9d7a6d617d42b8baad137deeaed, type: 2}
+  cursorLightHeight: .150000006
 --- !u!114 &11400004
 MonoBehaviour:
   m_ObjectHideFlags: 1

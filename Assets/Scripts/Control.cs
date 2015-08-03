@@ -24,6 +24,8 @@ public class Control : MonoBehaviour {
     public GameObject prefabLocomotive;
     public GameObject prefabCursorLight;
 
+    public float cursorLightHeight;
+
     void Awake()
     {
         if (control == null)
@@ -171,7 +173,7 @@ public class Control : MonoBehaviour {
     {
         if (m_cursorLight != null)
         {
-            m_cursorLight.transform.position = position + 0.1f * Vector3.up;
+            m_cursorLight.transform.position = position + cursorLightHeight * Vector3.up;
         }
     }
 
@@ -179,6 +181,6 @@ public class Control : MonoBehaviour {
     {
         Vector3 mousePosition;
         if (CameraController.GetMouseHitTerrainLocation(out mousePosition))
-            m_cursorLight.transform.position = mousePosition + 0.1f * Vector3.up;
+            m_cursorLight.transform.position = mousePosition + cursorLightHeight * Vector3.up;
     }
 }

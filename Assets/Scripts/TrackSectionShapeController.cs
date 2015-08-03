@@ -195,6 +195,7 @@ public class TrackSectionShapeController : MonoBehaviour
         return m_endTrackLink.gameObject;
     }
 
+    // only accurate for straight track until fixed/raduis curve calculations are complete
     public void Split(BaubleController centreBauble)
     {
         Debug.Log("Splitting track");
@@ -359,11 +360,29 @@ public class TrackSectionShapeController : MonoBehaviour
         startDirection = transform.rotation * Vector3.right;
         targetDirection = m_endRotation * Vector3.right;
 
+
         if (m_startTrackLink.CanRotate() && endCanRotate)
         {
             transform.rotation = Quaternion.LookRotation(m_endPoint - transform.position) * Quaternion.Euler(0, -90, 0);
             m_endRotation = transform.rotation;
+        }
+        else if (m_startTrackLink.CanRotate())
+        {
+            Quaternion startRotation = transform.rotation;
+            FindEndRotationForSimpleTransition(transform.position, m_endPoint, ref m_endRotation, ref startRotation);
+            transform.rotation = startRotation;
+        }
+        else if (endCanRotate)
+        {
+            Quaternion startRotation = transform.rotation;
+            FindEndRotationForSimpleTransition(transform.position, m_endPoint, ref startRotation, ref m_endRotation);
+            transform.rotation = startRotation;
+        }
+        startDirection = transform.rotation * Vector3.right;
+        targetDirection = m_endRotation * Vector3.right;
 
+        if (TrainsMath.AreApproximatelyEqual(startDirection, targetDirection))
+        {
             m_L1 = 0;
             m_L2 = 0;
             m_A1 = 0;
@@ -373,21 +392,6 @@ public class TrackSectionShapeController : MonoBehaviour
         }
         else
         {
-            if (m_startTrackLink.CanRotate())
-            {
-                Quaternion startRotation = transform.rotation;
-                FindEndRotationForSimpleTransition(transform.position, m_endPoint, ref m_endRotation, ref startRotation);
-                transform.rotation = startRotation;
-            }
-            else if (endCanRotate)
-            {
-                Quaternion startRotation = transform.rotation;
-                FindEndRotationForSimpleTransition(transform.position, m_endPoint, ref startRotation, ref m_endRotation);
-                transform.rotation = startRotation;
-            }
-            startDirection = transform.rotation * Vector3.right;
-            targetDirection = m_endRotation * Vector3.right;
-
             FresnelMath.FindTheta(out m_theta1, out m_theta2, startPosition, targetPosition, startDirection, -targetDirection);
             if (m_theta1 < 0) return ShapeResult.ENDWRONGANGLE;
 

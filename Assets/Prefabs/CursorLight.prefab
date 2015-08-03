@@ -39,7 +39,7 @@ Light:
   m_Type: 2
   m_Color: {r: 0, g: .917241335, b: 1, a: 1}
   m_Intensity: 8
-  m_Range: .200000003
+  m_Range: .300000012
   m_SpotAngle: 1
   m_CookieSize: 10
   m_Shadows:
