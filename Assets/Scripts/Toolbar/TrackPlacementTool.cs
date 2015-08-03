@@ -279,7 +279,7 @@ public class TrackPlacementTool : Tool
                             }
                             else if (hoveringTrackSectionController != null)
                             {
-                                //hack to make it work until redesign
+                                //hack to make attaching to straight track work
                                 m_baubleCursor.GetComponent<BaubleController>().fixedRotation = true;
 
                                 if (!m_baubleCursor.activeSelf)
@@ -309,21 +309,41 @@ public class TrackPlacementTool : Tool
                                         m_shapeController.LinkEnd(m_baubleCursor);
                                         m_baubleCursor.SetActive(true);
                                     }
-                                    m_baubleCursor.GetComponent<BaubleController>().fixedRotation = false;
 
-                                    m_baubleCursor.transform.position = location;
+
+                                    BaubleController cursorController = m_baubleCursor.GetComponent<BaubleController>();
+                                    BaubleController anchorController = m_baubleAnchor.GetComponent<BaubleController>();
+
+                                    if (Input.GetButton("HoldCurvature") && !anchorController.CanRotate())
+                                    {
+                                        if (anchorController.IsStraight()) // current track section needs to remain straight
+                                        {
+                                            cursorController.fixedRotation = true;
+                                            cursorController.ResetCurvature();
+                                            m_baubleCursor.transform.rotation = m_baubleAnchor.transform.rotation;
+                                            Vector3 trackDirection = (m_baubleAnchor.transform.rotation * Vector3.right).normalized;
+                                            float lengthOfTrackSection = Vector3.Dot((location - m_baubleAnchor.transform.position), trackDirection);
+                                            m_baubleCursor.transform.position = m_baubleAnchor.transform.position + (trackDirection * lengthOfTrackSection);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        m_baubleCursor.GetComponent<BaubleController>().fixedRotation = false;
+
+                                        m_baubleCursor.transform.position = location;
+                                    }
                                 }
                                 else
                                 {
                                     OnDeselect();
-                                }
+                                } // end if mouse hits terrain
 
-                            }
+                            } // end if hovering over bauble or track section
 
-                        }
-                    }
+                        } // end if currentTrackSection
+                    } // end if mousebutton actions
                     break;
-                }
+                } // end case Effect.Track
             case Effect.BufferStop:
                 {
                     if (Input.GetMouseButtonDown(0) && hoveringBaubleController != null && hoveringBaubleController.GetLinkCount() == 1)
