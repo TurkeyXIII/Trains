@@ -212,6 +212,47 @@ public class TrackSectionShapeController : MonoBehaviour
         FinalizeShape();
     }
 
+    public GameObject Clone()
+    {
+        return (GameObject)Instantiate(gameObject);
+    }
+
+    public void CropStart(BaubleController bauble)
+    {
+
+    }
+
+    public void CropEnd(BaubleController bauble)
+    {
+        float newLength = GetTravelDistance(bauble.transform.position);
+        
+        // find fraction or single transition
+        if (newLength < m_L1 / m_A1)
+        {
+            m_lengthFraction2 = 0;
+            // transition in part of the curve
+            // we already know a; just need to adjust L1
+            float fraction = newLength / (m_L1 / m_A1);
+            m_L1 *= fraction;
+
+            // TODO: accommodate for m_lengthFraction1 != 0
+            // TODO: adjust m_L2, m_A2 and m_virtualEndPoint
+        }
+        else
+        {
+            // transition out
+            float lengthTransitionOut = newLength - (m_L1 / m_A1);
+            m_lengthFraction2 = lengthTransitionOut / (m_L2 / m_A2);
+        }
+
+        SetLength();
+        CalculateRail();
+
+        LinkEnd(bauble.gameObject, false);
+
+        if (!IsStraight()) Curve();
+    }
+
     private void RestoreTrackSections()
     {
         //Debug.Log("RestoreTrackSections has been called");
