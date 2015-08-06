@@ -970,7 +970,7 @@ public class TrackSectionShapeController : MonoBehaviour
             m_rail[0] = transform.position;
             m_rail[1] = m_endPoint;
         }
-        else
+        else //TODO: RailVectorCreator should handle rail vectors for circular track also
         {
             // this set of rails is in a straight line to the right, starting at Vector3.zero. It needs to be passed into the vertex bender before it will be bent.
             m_waypoints = RailVectorCreator.CreateRailVectors(m_L1, m_L2, m_A1, m_A2, m_theta1, m_theta2, m_lengthFraction1, m_lengthFraction2, transform.position, m_virtualEndPoint, maxRailAngle);

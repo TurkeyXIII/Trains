@@ -73,8 +73,6 @@ public class VertexBender : MonoBehaviour, IMeshOwner
 
 public class VertexBenderLogic
 {
-    
-
     public IMeshOwner meshOwner { set; private get; }
 
     public float maxCornerAngleRadians { set; private get; }
@@ -123,7 +121,6 @@ public class VertexBenderLogic
         {
             scale = targetPostion.magnitude / (2 * yL);
         }
-
     }
 
     public static float GetLengthOfCompoundCurve(Vector3 startPosition, Vector3 targetPosition, Vector3 startDirection, Vector3 targetDirection)
@@ -148,7 +145,123 @@ public class VertexBenderLogic
         return L1/A1 + L2/A2;
     }
 
-    //this has the precondition that the start direction (movableEndPosition - fixedPosition) is positive x.
+    // bend function for circular curves
+    public void Bend(Vector3 centrePosition, ref Vector3[] creasePositions)
+    {
+        Vector3[] verts;
+        Vector2[] uvs;
+        int[] tris;
+
+        meshOwner.GetMeshInfo(out verts, out uvs, out tris);
+
+        // vector perpendicular to origin/radius
+        // should be (1, 0, 0) as long as centrePosition is along y or z axis
+        Vector3 startDirection = Vector3.right;
+        float radius = centrePosition.magnitude;
+
+        if (uvs == null) uvs = new Vector2[verts.Length];
+
+        Vector3 rotationAxis = Vector3.Cross(startDirection, centrePosition).normalized;
+        startDirection = Vector3.Cross(centrePosition, rotationAxis).normalized;
+
+        Vector3[] newVerts = new Vector3[verts.Length * 100];
+        Vector3[] normals = new Vector3[verts.Length * 100];
+        Vector2[] newUVs = new Vector2[verts.Length * 100];
+        int[] newTris = new int[tris.Length * 270];
+        float[] arcLengths = new float[verts.Length * 100];
+        int nNewTris = tris.Length;
+        int nNewVerts = verts.Length;
+
+        // set up normals
+        for (int t = 0; t < tris.Length; t += 3)
+        {
+            Vector3 normal = Vector3.Cross(verts[tris[t + 2]] - verts[tris[t + 1]], verts[tris[t]] - verts[tris[t + 1]]);
+            for (int u = 0; u < 3; u++)
+            {
+                normals[tris[t + u]] += normal;
+            }
+        }
+
+        // find arc lengths for all starting verts
+        for (int i = 0; i < verts.Length; i++)
+        {
+            arcLengths[i] = Vector3.Dot(verts[i], startDirection);
+            newVerts[i] = verts[i];
+            newUVs[i] = uvs[i];
+        }
+        for (int i = 0; i < tris.Length; i++)
+        {
+            newTris[i] = tris[i];
+        }
+
+        // each crease is in terms of normalised length. This list does not need to be ordered; in fact it is better to have the middle one first, then the n/4th and 3n/4th, and so-on
+        float[] creases = new float[creasePositions.Length];
+        bool[] done = new bool[creasePositions.Length];
+        float[] creaseArcLengths = new float[creasePositions.Length]; // this is the same as creases, but in order so creaseArcLengths[i] corresponds to creasePositions[i]
+
+        for (int i = 0; i < done.Length; i++)
+        {
+            done[i] = false;
+        }
+        int n = 0;
+
+        // set up crease arc lengths (and move creases themselves while we're at it)
+        for (int i = 0; i < creasePositions.Length; i++)
+        {
+            creaseArcLengths[i] = Vector3.Dot(creasePositions[i], startDirection);
+            Vector3 translatedVert = creasePositions[i] - (startDirection * creaseArcLengths[i]);
+            creasePositions[i] = TrainsMath.RotateVector((translatedVert - centrePosition), rotationAxis, (creaseArcLengths[i] / radius)) + centrePosition;
+        }
+
+        recursiveReorderCreases(ref creases, ref done, creaseArcLengths, ref n, creaseArcLengths.Length/2, creaseArcLengths.Length / 2);
+
+        CreateTrisFromCreases(newVerts, normals, newUVs, newTris, arcLengths, ref nNewTris, ref nNewVerts, creases);
+
+        tris = new int[nNewTris];
+        for (int i = 0; i < nNewTris; i++)
+        {
+            tris[i] = newTris[i];
+        }
+
+        uvs = new Vector2[nNewVerts];
+        for (int i = 0; i < nNewVerts; i++)
+        {
+            uvs[i] = newUVs[i];
+        }
+
+        verts = new Vector3[nNewVerts];
+        for (int i = 0; i < verts.Length; i++)
+        {
+            Vector3 translatedVert = newVerts[i] - (startDirection * arcLengths[i]);
+            verts[i] = TrainsMath.RotateVector((translatedVert - centrePosition), rotationAxis, (arcLengths[i] / radius)) + centrePosition;
+        }
+
+        meshOwner.SetMeshInfo(verts, uvs, tris);
+    }
+
+    // reordering function for creases in a circular curve
+    // creaseArcLengths is the initial array, creases is the reordered version.
+    // i indexes creaseArcLengths and done; n indexes creases.
+    private void recursiveReorderCreases(ref float[] creases, ref bool[] done, float[] creaseArcLengths, ref int n, int i, int lastDifference)
+    {
+        if (creaseArcLengths.Length <= i) return;
+        if (done[i]) return;
+
+        creases[n] = creaseArcLengths[i];
+        n++;
+        done[i] = true;
+
+        int difference = lastDifference / 2;
+        if (difference == 0) difference = 1;
+
+        int newI = i - difference;
+        if (newI >= 0) recursiveReorderCreases(ref creases, ref done, creaseArcLengths, ref n, newI, difference);
+        newI = i + difference;
+        recursiveReorderCreases(ref creases, ref done, creaseArcLengths, ref n, newI, difference);
+    }
+
+    // bend function for transition in -> transition out type curves
+    // this has the precondition that the start direction (movableEndPosition - fixedPosition) is positive x.
     public void Bend(float L1, float L2, float A1, float A2, float theta1, float theta2,
                     Vector3 fixedPosition, 
                     Vector3 movableEndPosition, 
@@ -208,6 +321,7 @@ public class VertexBenderLogic
             }
         }
 
+        // set up Ls for all starting verts
         float L1Real = L1 / A1;
         for (int i = 0; i < verts.Length; i++)
         {
@@ -229,12 +343,13 @@ public class VertexBenderLogic
             //         Debug.Log("Vert " + i + ": " + newVert);
         }
 
+        // 
         for (int t = 0; t < tris.Length; t++)
         {
             newTris[t] = tris[t];
         }
 
-        #region creases
+#region creases
         // Set up creases: creases should be applied as evenly as possible
 
         // each crease is in terms of normalised length. This list does not need to be ordered; in fact it is better to have the middle one first, then the n/4th and 3n/4th, and so-on
@@ -250,110 +365,8 @@ public class VertexBenderLogic
 
         recursiveCreases(ref creases, ref done, creasePositions.Length/2, ref n, creasePositions, L1, A1, A2, creasePositions.Length/2, ref creaseLs);
 
-        
-        //do this for each crease
-        bool[] greaterThanCrease = new bool[3];
-        foreach (float crease in creases)
-        {
 
-            int trisLength = nNewTris; //store this because nNewTris is likely to change but we only want to look at the tris that exist before this crease
-
-            for (int t = 0; t < trisLength; t += 3)
-            {
-                bool anyGreaterThanCrease = false;
-                bool anyLessThanCrease = false;
-                for (int u = 0; u < 3; u++)
-                {
-                    greaterThanCrease[u] = Ls[newTris[t + u]] > crease;
-                    if (greaterThanCrease[u]) anyGreaterThanCrease = true;
-                    else anyLessThanCrease = true;
-                }
-
-                if (anyGreaterThanCrease && anyLessThanCrease) //this triangle crosses the crease; 
-                {
-                    //         Debug.Log("Triangle creasing: " + newVerts[tris[t]] + ", " + newVerts[tris[t + 1]] + ", " + newVerts[tris[t + 2]]);
-
-                    int indexIsolatedVert = 0, indexPairedVert1 = 0, indexPairedVert2 = 0;
-                    for (int u = 0; u < 3; u++)
-                    {
-                        indexIsolatedVert = u;
-                        indexPairedVert1 = (u + 1) % 3;
-                        indexPairedVert2 = (u + 2) % 3;
-
-                        if ((greaterThanCrease[indexPairedVert1] && greaterThanCrease[indexPairedVert2]) || (!greaterThanCrease[indexPairedVert1] && !greaterThanCrease[indexPairedVert2]))
-                            break;
-                    }
-
-                    //            Debug.Log("isolatedIndex: " + indexIsolatedVert + " paired1index: " + indexPairedVert1 + " paired2index: " + indexPairedVert2);
-
-                    //we acquire two new verts by moving the paired verts towards the isolated one such that L == crease;
-                    Vector3 normal1, normal2;
-
-                    float a = (crease - Ls[newTris[t + indexPairedVert1]]) / (Ls[newTris[t + indexIsolatedVert]] - Ls[newTris[t + indexPairedVert1]]);
-                    Vector3 newVert1 = newVerts[newTris[t + indexPairedVert1]] + a * (newVerts[newTris[t + indexIsolatedVert]] - newVerts[newTris[t + indexPairedVert1]]);
-                    Vector2 newUV1 = newUVs[newTris[t + indexPairedVert1]] + a * (newUVs[newTris[t + indexIsolatedVert]] - newUVs[newTris[t + indexPairedVert1]]);
-                    normal1 = ((1 - a) * normals[newTris[t + indexPairedVert1]] + a * (normals[newTris[indexIsolatedVert]])).normalized;
-
-                    a = (crease - Ls[newTris[t + indexPairedVert2]]) / (Ls[newTris[t + indexIsolatedVert]] - Ls[newTris[t + indexPairedVert2]]);
-                    Vector3 newVert2 = newVerts[newTris[t + indexPairedVert2]] + a * (newVerts[newTris[t + indexIsolatedVert]] - newVerts[newTris[t + indexPairedVert2]]);
-                    Vector2 newUV2 = newUVs[newTris[t + indexPairedVert2]] + a * (newUVs[newTris[t + indexIsolatedVert]] - newUVs[newTris[t + indexPairedVert2]]);
-                    normal2 = ((1 - a) * normals[newTris[t + indexPairedVert2]] + a * (normals[newTris[indexIsolatedVert]])).normalized;
-
-                    //insert the two new verts
-                    int indexNewVert1;
-                    int indexNewVert2;
-
-                    indexNewVert1 = FindVertInArray(newVert1, normal1, newVerts, normals, nNewVerts);
-                    if (indexNewVert1 == -1)
-                    {
-                        newVerts[nNewVerts] = newVert1;
-                        newUVs[nNewVerts] = newUV1;
-                        Ls[nNewVerts] = crease; // by definition
-                        normals[nNewVerts] = normal1;
-                        indexNewVert1 = nNewVerts;
-                        nNewVerts++;
-
-                        //             Debug.Log("Requiring new vert at " + newVert1);
-                    }
-                    //             else
-                    //               Debug.Log("Using existing vert at " + newVert1);
-
-                    indexNewVert2 = FindVertInArray(newVert2, normal2, newVerts, normals, nNewVerts);
-                    if (indexNewVert2 == -1)
-                    {
-                        newVerts[nNewVerts] = newVert2;
-                        newUVs[nNewVerts] = newUV2;
-                        Ls[nNewVerts] = crease;
-                        normals[nNewVerts] = normal2;
-                        indexNewVert2 = nNewVerts;
-                        nNewVerts++;
-
-                        //                Debug.Log("Requiring new vert at " + newVert2);
-                    }
-                    //             else
-                    //                  Debug.Log("Using existing vert at " + newVert2);
-
-
-                    //create two new triangles to fill the gap
-                    newTris[nNewTris] = indexNewVert2;
-                    newTris[nNewTris + 1] = indexNewVert1;
-                    newTris[nNewTris + 2] = newTris[t + indexPairedVert2];
-                    newTris[nNewTris + 3] = indexNewVert1;
-                    newTris[nNewTris + 4] = newTris[t + indexPairedVert1];
-                    newTris[nNewTris + 5] = newTris[t + indexPairedVert2];
-
-                    //reassign the old triangle to use the new verts
-                    newTris[t + indexPairedVert1] = indexNewVert1;
-                    newTris[t + indexPairedVert2] = indexNewVert2;
-
-                    //                Debug.Log("Adding 2 new triangles at " + nNewTris + ", " + (nNewTris+1) + ", " + (nNewTris+2) + ", " + (nNewTris+3) + ", " + (nNewTris+4) + ", " + (nNewTris+5) + ".");
-                    //                Debug.Log(newVerts[indexNewVert2] + ", " + newVerts[indexNewVert1] + ", " + newVerts[t+indexPairedVert1] + ", " + newVerts[indexNewVert2] + ", " + newVerts[t+indexPairedVert1] + ", " + newVerts[t+indexPairedVert2]);
-
-                    nNewTris += 6;
-                }
-
-            }
-        }
+        CreateTrisFromCreases(newVerts, normals, newUVs, newTris, Ls, ref nNewTris, ref nNewVerts, creases);
 #endregion
 
         tris = new int[nNewTris];
@@ -424,6 +437,117 @@ public class VertexBenderLogic
         }
     }
 
+    private static void CreateTrisFromCreases(Vector3[] newVerts, Vector3[] normals, Vector2[] newUVs, int[] newTris, float[] vertPositions, ref int nNewTris, ref int nNewVerts, float[] creases)
+    {
+        //do this for each crease
+        bool[] greaterThanCrease = new bool[3];
+        foreach (float crease in creases)
+        {
+            int trisLength = nNewTris; //store this because nNewTris is likely to change but we only want to look at the tris that exist before this crease
+
+            for (int t = 0; t < trisLength; t += 3)
+            {
+                bool anyGreaterThanCrease = false;
+                bool anyLessThanCrease = false;
+                for (int u = 0; u < 3; u++)
+                {
+                    /*
+                    Debug.Log("t = " + t + "; u = " + u);
+                    Debug.Log("newTris.Length = " + newTris.Length + "; vertPositions.Length = " + vertPositions.Length);
+                    Debug.Log("newTris[" + (t + u) + "] = " + newTris[t+u]);
+                    */
+                    greaterThanCrease[u] = vertPositions[newTris[t + u]] > crease;
+                    if (greaterThanCrease[u]) anyGreaterThanCrease = true;
+                    else anyLessThanCrease = true;
+                }
+
+                if (anyGreaterThanCrease && anyLessThanCrease) //this triangle crosses the crease; 
+                {
+                    //         Debug.Log("Triangle creasing: " + newVerts[tris[t]] + ", " + newVerts[tris[t + 1]] + ", " + newVerts[tris[t + 2]]);
+
+                    int indexIsolatedVert = 0, indexPairedVert1 = 0, indexPairedVert2 = 0;
+                    for (int u = 0; u < 3; u++)
+                    {
+                        indexIsolatedVert = u;
+                        indexPairedVert1 = (u + 1) % 3;
+                        indexPairedVert2 = (u + 2) % 3;
+
+                        if ((greaterThanCrease[indexPairedVert1] && greaterThanCrease[indexPairedVert2]) || (!greaterThanCrease[indexPairedVert1] && !greaterThanCrease[indexPairedVert2]))
+                            break;
+                    }
+
+                    //            Debug.Log("isolatedIndex: " + indexIsolatedVert + " paired1index: " + indexPairedVert1 + " paired2index: " + indexPairedVert2);
+
+                    //we acquire two new verts by moving the paired verts towards the isolated one such that L == crease;
+                    Vector3 normal1, normal2;
+
+                    float a = (crease - vertPositions[newTris[t + indexPairedVert1]]) / (vertPositions[newTris[t + indexIsolatedVert]] - vertPositions[newTris[t + indexPairedVert1]]);
+                    Vector3 newVert1 = newVerts[newTris[t + indexPairedVert1]] + a * (newVerts[newTris[t + indexIsolatedVert]] - newVerts[newTris[t + indexPairedVert1]]);
+                    Vector2 newUV1 = newUVs[newTris[t + indexPairedVert1]] + a * (newUVs[newTris[t + indexIsolatedVert]] - newUVs[newTris[t + indexPairedVert1]]);
+                    normal1 = ((1 - a) * normals[newTris[t + indexPairedVert1]] + a * (normals[newTris[indexIsolatedVert]])).normalized;
+
+                    a = (crease - vertPositions[newTris[t + indexPairedVert2]]) / (vertPositions[newTris[t + indexIsolatedVert]] - vertPositions[newTris[t + indexPairedVert2]]);
+                    Vector3 newVert2 = newVerts[newTris[t + indexPairedVert2]] + a * (newVerts[newTris[t + indexIsolatedVert]] - newVerts[newTris[t + indexPairedVert2]]);
+                    Vector2 newUV2 = newUVs[newTris[t + indexPairedVert2]] + a * (newUVs[newTris[t + indexIsolatedVert]] - newUVs[newTris[t + indexPairedVert2]]);
+                    normal2 = ((1 - a) * normals[newTris[t + indexPairedVert2]] + a * (normals[newTris[indexIsolatedVert]])).normalized;
+
+                    //insert the two new verts
+                    int indexNewVert1;
+                    int indexNewVert2;
+
+                    indexNewVert1 = FindVertInArray(newVert1, normal1, newVerts, normals, nNewVerts);
+                    if (indexNewVert1 == -1)
+                    {
+                        newVerts[nNewVerts] = newVert1;
+                        newUVs[nNewVerts] = newUV1;
+                        vertPositions[nNewVerts] = crease; // by definition
+                        normals[nNewVerts] = normal1;
+                        indexNewVert1 = nNewVerts;
+                        nNewVerts++;
+
+                        //             Debug.Log("Requiring new vert at " + newVert1);
+                    }
+                    //             else
+                    //               Debug.Log("Using existing vert at " + newVert1);
+
+                    indexNewVert2 = FindVertInArray(newVert2, normal2, newVerts, normals, nNewVerts);
+                    if (indexNewVert2 == -1)
+                    {
+                        newVerts[nNewVerts] = newVert2;
+                        newUVs[nNewVerts] = newUV2;
+                        vertPositions[nNewVerts] = crease;
+                        normals[nNewVerts] = normal2;
+                        indexNewVert2 = nNewVerts;
+                        nNewVerts++;
+
+                        //                Debug.Log("Requiring new vert at " + newVert2);
+                    }
+                    //             else
+                    //                  Debug.Log("Using existing vert at " + newVert2);
+
+
+                    //create two new triangles to fill the gap
+                    newTris[nNewTris] = indexNewVert2;
+                    newTris[nNewTris + 1] = indexNewVert1;
+                    newTris[nNewTris + 2] = newTris[t + indexPairedVert2];
+                    newTris[nNewTris + 3] = indexNewVert1;
+                    newTris[nNewTris + 4] = newTris[t + indexPairedVert1];
+                    newTris[nNewTris + 5] = newTris[t + indexPairedVert2];
+
+                    //reassign the old triangle to use the new verts
+                    newTris[t + indexPairedVert1] = indexNewVert1;
+                    newTris[t + indexPairedVert2] = indexNewVert2;
+
+                    //                Debug.Log("Adding 2 new triangles at " + nNewTris + ", " + (nNewTris+1) + ", " + (nNewTris+2) + ", " + (nNewTris+3) + ", " + (nNewTris+4) + ", " + (nNewTris+5) + ".");
+                    //                Debug.Log(newVerts[indexNewVert2] + ", " + newVerts[indexNewVert1] + ", " + newVerts[t+indexPairedVert1] + ", " + newVerts[indexNewVert2] + ", " + newVerts[t+indexPairedVert1] + ", " + newVerts[t+indexPairedVert2]);
+
+                    nNewTris += 6;
+                }
+
+            }
+        }
+    }
+
     internal static void UnitVectorsFromRotation(float phi, Vector3 unitXdash, Vector3 unitYdash, out Vector3 unitXdoubledash, out Vector3 unitYdoubledash)
     {
         Vector3 dummyAxis;
@@ -439,6 +563,7 @@ public class VertexBenderLogic
         unitYdoubledash = TrainsMath.RotateVector(unitYdash, rotationAxis, phi);
     }
 
+    // reordering function for euler spiral curves
     private void recursiveCreases(ref float[] creases, ref bool[] done, int i, ref int n, Vector3[] creasePositions, float L1, float A1, float A2, int lastDifference, ref float[] creaseLs)
     {
         if (creaseLs.Length <= i) return;

@@ -638,6 +638,247 @@ namespace UnitTest
         }
     }
 
+    internal class VertexBenderCircularTests
+    {
+        [Test]
+        public void TestQuarterCircleRadius1()
+        {
+            VertexBenderLogic logic = new VertexBenderLogic();
+            MeshOwnerStub meshOwner = CreateLineMeshOwner(Mathf.PI/2);
+            logic.meshOwner = meshOwner;
+
+            Vector3[] creases = new Vector3[0];
+
+            Vector3 centre = new Vector3(0, 0, 1);
+
+            logic.Bend(centre, ref creases);
+
+            Assert.That(meshOwner.vertices[0].x, Is.EqualTo(0).Within(0.001f));
+            
+            Assert.That(meshOwner.vertices[1].x, Is.EqualTo(0.7071).Within(0.01f));
+            Assert.That(meshOwner.vertices[1].z, Is.EqualTo(1 - 0.7071).Within(0.01f));
+
+            Assert.That(meshOwner.vertices[2].x, Is.EqualTo(1).Within(0.001f));
+            Assert.That(meshOwner.vertices[2].z, Is.EqualTo(1).Within(0.001f));
+        }
+
+        [Test]
+        public void TestHalfCircleRadius5()
+        {
+            VertexBenderLogic logic = new VertexBenderLogic();
+            MeshOwnerStub meshOwner = CreateLineMeshOwner(Mathf.PI * 5);
+            logic.meshOwner = meshOwner;
+
+            Vector3[] creases = new Vector3[0];
+
+            Vector3 centre = new Vector3(0, 0, 5);
+
+            logic.Bend(centre, ref creases);
+
+            Assert.That(meshOwner.vertices[0].x, Is.EqualTo(0).Within(0.001f));
+
+            Assert.That(meshOwner.vertices[1].x, Is.EqualTo(5).Within(0.001f));
+            Assert.That(meshOwner.vertices[1].z, Is.EqualTo(5).Within(0.001f));
+
+            Assert.That(meshOwner.vertices[2].x, Is.EqualTo(0).Within(0.001f));
+            Assert.That(meshOwner.vertices[2].z, Is.EqualTo(10).Within(0.001f));
+        }
+
+        [Test]
+        public void TestQuarterCircleRadius1Outside()
+        {
+            VertexBenderLogic logic = new VertexBenderLogic();
+            MeshOwnerStub meshOwner = CreateLineMeshOwner(Mathf.PI / 2);
+            logic.meshOwner = meshOwner;
+
+            for (int i = 0; i < meshOwner.vertices.Length; i++)
+            {
+                meshOwner.vertices[i] += new Vector3(0, 0, -0.5f);
+            }
+
+            Vector3[] creases = new Vector3[0];
+
+            Vector3 centre = new Vector3(0, 0, 1);
+
+            logic.Bend(centre, ref creases);
+
+            Assert.That(meshOwner.vertices[0].x, Is.EqualTo(0).Within(0.001f));
+            Assert.That(meshOwner.vertices[0].z, Is.EqualTo(-0.5f).Within(0.001f));
+
+            Assert.That(meshOwner.vertices[1].x, Is.EqualTo(0.7071 * 1.5).Within(0.01f));
+            Assert.That(meshOwner.vertices[1].z, Is.EqualTo(1 - (0.7071 * 1.5)).Within(0.01f));
+
+            Assert.That(meshOwner.vertices[2].x, Is.EqualTo(1.5).Within(0.001f));
+            Assert.That(meshOwner.vertices[2].z, Is.EqualTo(1).Within(0.001f));
+        }
+
+        [Test]
+        public void TestQuarterCircleRadius1Inside()
+        {
+            VertexBenderLogic logic = new VertexBenderLogic();
+            MeshOwnerStub meshOwner = CreateLineMeshOwner(Mathf.PI / 2);
+            logic.meshOwner = meshOwner;
+
+            for (int i = 0; i < meshOwner.vertices.Length; i++)
+            {
+                meshOwner.vertices[i] += new Vector3(0, 0, 0.5f);
+            }
+
+            Vector3[] creases = new Vector3[0];
+
+            Vector3 centre = new Vector3(0, 0, 1);
+
+            logic.Bend(centre, ref creases);
+
+            Assert.That(meshOwner.vertices[0].x, Is.EqualTo(0).Within(0.001f));
+            Assert.That(meshOwner.vertices[0].z, Is.EqualTo(0.5f).Within(0.001f));
+
+            Assert.That(meshOwner.vertices[1].x, Is.EqualTo(0.7071 * 0.5).Within(0.01f));
+            Assert.That(meshOwner.vertices[1].z, Is.EqualTo(1 - (0.7071 * 0.5)).Within(0.01f));
+
+            Assert.That(meshOwner.vertices[2].x, Is.EqualTo(0.5).Within(0.001f));
+            Assert.That(meshOwner.vertices[2].z, Is.EqualTo(1).Within(0.001f));
+        }
+
+        [Test]
+        public void TestCreasePositionsChange()
+        {
+            VertexBenderLogic logic = new VertexBenderLogic();
+            MeshOwnerStub meshOwner = CreateLineMeshOwner(Mathf.PI / 3);
+            logic.meshOwner = meshOwner;
+
+            Vector3[] creases = new Vector3[2];
+            creases[0] = new Vector3(Mathf.PI / 4, 0, 0);
+            creases[1] = new Vector3(Mathf.PI / 2, 0, 0);
+
+            Vector3 centre = new Vector3(0, 0, 1);
+
+            logic.Bend(centre, ref creases);
+
+            Assert.That(creases[0].x, Is.EqualTo(0.7071).Within(0.01f));
+            Assert.That(creases[0].z, Is.EqualTo(1 - 0.7071).Within(0.01f));
+
+            Assert.That(creases[1].x, Is.EqualTo(1).Within(0.001f));
+            Assert.That(creases[1].z, Is.EqualTo(1).Within(0.001f));
+        }
+
+        [Test]
+        public void TestNewTrianglesVertsExist()
+        {
+            VertexBenderLogic logic = new VertexBenderLogic();
+            MeshOwnerStub meshOwner = CreateTriangleMeshOwner(Mathf.PI / 2);
+            logic.meshOwner = meshOwner;
+
+            Vector3[] creases = new Vector3[1];
+            creases[0] = new Vector3(Mathf.PI/4, 0, 0);
+
+            Vector3 centre = new Vector3(0, 0, 1);
+
+            logic.Bend(centre, ref creases);
+
+            Assert.AreEqual(5, meshOwner.vertices.Length);
+        }
+
+        [Test]
+        public void TestNewTrianglesTrianglesExist()
+        {
+            VertexBenderLogic logic = new VertexBenderLogic();
+            MeshOwnerStub meshOwner = CreateTriangleMeshOwner(Mathf.PI / 2);
+            logic.meshOwner = meshOwner;
+
+            Vector3[] creases = new Vector3[1];
+            creases[0] = new Vector3(Mathf.PI/4, 0, 0);
+
+            Vector3 centre = new Vector3(0, 0, 1);
+
+            logic.Bend(centre, ref creases);
+
+            Assert.AreEqual(9, meshOwner.tris.Length);
+        }
+
+        [Test]
+        public void TestNewTrianglesPositionsQuaterCircleRadius1()
+        {
+            VertexBenderLogic logic = new VertexBenderLogic();
+            MeshOwnerStub meshOwner = CreateTriangleMeshOwner(Mathf.PI / 2);
+            logic.meshOwner = meshOwner;
+
+            Vector3[] creases = new Vector3[1];
+            creases[0] = new Vector3(Mathf.PI / 4, 0, 0);
+
+            Vector3 centre = new Vector3(0, 0, 1);
+
+            logic.Bend(centre, ref creases);
+
+            Assert.That(meshOwner.vertices[3].x, Is.EqualTo(0.7071).Within(0.01f));
+            float magnitudeY = (meshOwner.vertices[3].y < 0) ? -meshOwner.vertices[3].y : meshOwner.vertices[3].y;
+            Assert.That(magnitudeY, Is.EqualTo(0.5).Within(0.01f));
+
+            Assert.That(meshOwner.vertices[4].x, Is.EqualTo(0.7071).Within(0.01f));
+            Assert.That(meshOwner.vertices[4].z, Is.EqualTo(1-0.7071).Within(0.01f));
+        }
+
+        [Test]
+        public void TestNewTrianglesUV()
+        {
+            VertexBenderLogic logic = new VertexBenderLogic();
+            MeshOwnerStub meshOwner = CreateTriangleMeshOwner(Mathf.PI / 2);
+            logic.meshOwner = meshOwner;
+
+            Vector3[] creases = new Vector3[1];
+            creases[0] = new Vector3(Mathf.PI / 4, 0, 0);
+
+            meshOwner.uvs = new Vector2[3];
+            meshOwner.uvs[0] = new Vector2(0, 1);
+            meshOwner.uvs[1] = new Vector2(0, -1);
+            meshOwner.uvs[2] = new Vector2(1, 0);
+
+            Vector3 centre = new Vector3(0, 0, 1);
+            
+            logic.Bend(centre, ref creases);
+
+            Assert.AreEqual(5, meshOwner.uvs.Length);
+
+            Assert.That(meshOwner.uvs[3].x, Is.EqualTo(0.5).Within(0.001f));
+            Assert.That(meshOwner.uvs[4].x, Is.EqualTo(0.5).Within(0.001f));
+
+            bool is3negative = meshOwner.vertices[3].y < 0;
+            Assert.That(meshOwner.uvs[3].y, Is.EqualTo(is3negative ? -0.5f : 0.5f).Within(0.001f));
+            Assert.That(meshOwner.uvs[4].y, Is.EqualTo(is3negative ? 0.5f : -0.5f).Within(0.001f));
+        }
+
+        private MeshOwnerStub CreateTriangleMeshOwner(float scale)
+        {
+            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            meshOwner.vertices = new Vector3[3];
+            meshOwner.vertices[0] = new Vector3(0, 1, 0);
+            meshOwner.vertices[1] = new Vector3(0, -1, 0);
+            meshOwner.vertices[2] = new Vector3(scale, 0, 0);
+
+            meshOwner.tris = new int[3];
+            for (int i = 0; i < meshOwner.tris.Length; i++)
+                meshOwner.tris[i] = i;
+
+            return meshOwner;
+        }
+
+        private MeshOwnerStub CreateLineMeshOwner(float scale)
+        {
+            MeshOwnerStub meshOwner = new MeshOwnerStub();
+            meshOwner.vertices = new Vector3[3];
+            meshOwner.vertices[0] = Vector3.zero;
+            meshOwner.vertices[1] = new Vector3(scale / 2, 0, 0);
+            meshOwner.vertices[2] = new Vector3(scale, 0, 0);
+
+            meshOwner.tris = new int[3];
+            for (int i = 0; i < meshOwner.tris.Length; i++)
+                meshOwner.tris[i] = i;
+
+            return meshOwner;
+        }
+
+    }
+
     internal class MeshOwnerStub : IMeshOwner
     {
         public Vector3[] vertices;
