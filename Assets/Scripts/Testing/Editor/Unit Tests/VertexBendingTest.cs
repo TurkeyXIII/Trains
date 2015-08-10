@@ -741,6 +741,26 @@ namespace UnitTest
         }
 
         [Test]
+        public void TestQuaterCircleRadius1Offset()
+        {
+            VertexBenderLogic logic = new VertexBenderLogic();
+            MeshOwnerStub meshOwner = CreateLineMeshOwner(Mathf.PI / 2);
+            logic.meshOwner = meshOwner;
+
+            Vector3[] creases = new Vector3[0];
+
+            Vector3 centre = new Vector3(-Mathf.PI/2, 0, 1);
+
+            logic.Bend(centre, ref creases);
+
+            Assert.That(meshOwner.vertices[0].x, Is.EqualTo(1 - Mathf.PI/2).Within(0.001f));
+            Assert.That(meshOwner.vertices[0].z, Is.EqualTo(1).Within(0.001f));
+
+            Assert.That(meshOwner.vertices[2].x, Is.EqualTo(-Mathf.PI/2).Within(0.001f));
+            Assert.That(meshOwner.vertices[2].z, Is.EqualTo(2).Within(0.001f));
+        }
+
+        [Test]
         public void TestCreasePositionsChange()
         {
             VertexBenderLogic logic = new VertexBenderLogic();

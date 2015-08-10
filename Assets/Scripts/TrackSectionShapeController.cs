@@ -49,6 +49,7 @@ public class TrackSectionShapeController : MonoBehaviour
     private Vector3 m_virtualEndPoint, m_virtualStartPoint;
     private Quaternion m_virtualStartRotation;
 
+
     void Awake()
     {
         Initialize();
@@ -274,11 +275,17 @@ public class TrackSectionShapeController : MonoBehaviour
     {
         float length;
 
-        if (m_L1 != 0)
-            length = (m_L1 * m_lengthFraction1) / m_A1 + (m_L2 * m_lengthFraction2) / m_A2;
-            //length = m_L1 / m_A1 + m_L2 / m_A2;
-        else
+        if (m_L1 == 0) // straight track
             length = (m_endPoint - transform.position).magnitude;
+            
+        else if (m_lengthFraction1 == 0 && m_lengthFraction2 == 0) // circular track
+        {
+            length = m_L1;
+            Debug.Log("Setting length to " + length);
+        }
+             
+        else // transitioning track
+            length = (m_L1 * m_lengthFraction1) / m_A1 + (m_L2 * m_lengthFraction2) / m_A2;
 
         return SetLength(length);
     }
@@ -288,12 +295,16 @@ public class TrackSectionShapeController : MonoBehaviour
         float virtualLength = m_L1/m_A1 + m_L2/m_A2;
 
         Vector3 actualPosition = transform.position;
-        Debug.Log("rotation from within Curve(): " + transform.rotation.eulerAngles);
         Quaternion actualRotation = transform.rotation;
         transform.position = m_virtualStartPoint;
         transform.rotation = m_virtualStartRotation;
 
-        Debug.Log("Curve starting from " + transform.position);
+        Vector3 curveCentre = Vector3.zero;
+        if (m_lengthFraction1 == 0 && m_lengthFraction2 == 0)
+        {
+            curveCentre = transform.position + (-transform.forward / m_startTrackLink.GetCurvature(gameObject));
+        }
+        Debug.Log("curveCentre = " + curveCentre);
 
         foreach (GameObject trackModel in m_currentModels)
         {
@@ -308,13 +319,21 @@ public class TrackSectionShapeController : MonoBehaviour
                 relativeRailWaypoints[i] = new Vector3(m_waypoints[i] / trackModel.transform.lossyScale.x, 0, 0) + relativeFixedPosition;
             }
 
-            trackModel.GetComponent<VertexBender>().Bend(m_L1, m_L2, m_A1 * trackModel.transform.lossyScale.x, m_A2 * trackModel.transform.lossyScale.x, m_theta1, m_theta2,
-                                                        relativeFixedPosition, 
-                                                        relativeMovablePosition, 
-                                                        relativeTargetPosition, 
-                                                        relativeTargetDirection, 
-                                                        ref relativeRailWaypoints);
-
+            if (m_lengthFraction1 == 0 && m_lengthFraction2 == 0)
+            {
+                Vector3 relativeCurveCentre = trackModel.transform.InverseTransformPoint(curveCentre + m_verticalOffset * Vector3.up);
+                Debug.Log("RelativeCurveCentre = " + relativeCurveCentre);
+                trackModel.GetComponent<VertexBender>().Bend(relativeCurveCentre, ref relativeRailWaypoints);
+            }
+            else
+            {
+                trackModel.GetComponent<VertexBender>().Bend(m_L1, m_L2, m_A1 * trackModel.transform.lossyScale.x, m_A2 * trackModel.transform.lossyScale.x, m_theta1, m_theta2,
+                                                            relativeFixedPosition,
+                                                            relativeMovablePosition,
+                                                            relativeTargetPosition,
+                                                            relativeTargetDirection,
+                                                            ref relativeRailWaypoints);
+            }
             if (m_rail == null)
             {
                 m_rail = new Vector3[m_waypoints.Length];
@@ -325,7 +344,7 @@ public class TrackSectionShapeController : MonoBehaviour
             }
         }
 
-        
+
         Vector3[] positions = new Vector3[m_currentModels.Count];
         Quaternion[] rotations = new Quaternion[m_currentModels.Count];
         int count = 0;
@@ -335,10 +354,10 @@ public class TrackSectionShapeController : MonoBehaviour
             rotations[count] = section.transform.rotation;
             count++;
         }
-        
+
         transform.position = actualPosition;
         transform.rotation = actualRotation;
-        
+
         count = 0;
         foreach (GameObject section in m_currentModels)
         {
@@ -346,7 +365,7 @@ public class TrackSectionShapeController : MonoBehaviour
             section.transform.rotation = rotations[count];
             count++;
         }
-        
+
     }
 
     // this function assigns values to L1, L2 etc assuming m_endPoint, m_endRotation etc are fixed. 
@@ -360,6 +379,8 @@ public class TrackSectionShapeController : MonoBehaviour
         startDirection = transform.rotation * Vector3.right;
         targetDirection = m_endRotation * Vector3.right;
 
+        m_lengthFraction1 = 1;
+        m_lengthFraction2 = 1;
 
         if (m_startTrackLink.CanRotate() && endCanRotate)
         {
@@ -411,8 +432,35 @@ public class TrackSectionShapeController : MonoBehaviour
 
         m_virtualStartRotation = transform.rotation;
 
-        m_lengthFraction1 = 1;
-        m_lengthFraction2 = 1;
+        // detect a circular curve
+        if (startCurvature != 0 && startCurvature == -endCurvature)
+        {
+            Vector3 endCircleCentre = m_endTrackLink.GetCurveCentre();
+            Vector3 startCircleCentre = m_startTrackLink.GetCurveCentre();
+
+            if (TrainsMath.AreApproximatelyEqual(endCircleCentre, startCircleCentre))
+            {
+                Debug.Log("Track is circular");
+                // track is circular
+                // use lengthFractions == 0
+                m_lengthFraction1 = 0;
+                m_lengthFraction2 = 0;
+                m_A1 = 0;
+                m_A2 = 0;
+
+                // these aren't accurate as an approximation of the Euler sprials,
+                // use theta1/theta2 to indicate angle traversed instead
+                // and L1/L2 for absolute arc length
+                m_theta1 = Vector3.Angle(startDirection, targetDirection) * Mathf.Deg2Rad;
+                m_theta2 = m_theta1;
+                m_L1 = m_theta1 * (1 / endCurvature);
+                if (m_L1 < 0) m_L1 = -m_L1;
+                m_L2 = m_L1;
+
+                return ShapeResult.OK;
+            }
+        }
+
 
         if (startCurvature != 0 || endCurvature != 0)
         {
@@ -1334,39 +1382,53 @@ public static class RailVectorCreator
     {
         float[] waypoints;
 
-        float length = L1/A1 + L2/A2;
-        float maxAngle = maxAngleDeg * Mathf.Deg2Rad;
-
-        float usedTheta1 = theta1 * (1 - (1-fraction1) * (1-fraction1));
-        float usedTheta2 = theta2 * (1 - (1-fraction2) * (1-fraction2));
-
-        float usedPhi = usedTheta1 + usedTheta2;
-        float phi = theta1 + theta2;
-        float startingTheta = theta1 - usedTheta1;
-
-        int nVectors = Mathf.FloorToInt(usedPhi / maxAngle) + 2;
-
-        waypoints = new float[nVectors];
-
-        float anglePerSection = usedPhi / (nVectors - 1);
-
-        for (int i = 0; i < waypoints.Length; i++)
+        // circular
+        if (fraction1 == 0 && fraction2 == 0)
         {
-            float angleForVector = i * anglePerSection + startingTheta;
-
-            if (angleForVector < theta1)
+            float maxAngle = maxAngleDeg * Mathf.Deg2Rad;
+            int nVectors = Mathf.FloorToInt(theta1 / maxAngle) + 2;
+            waypoints = new float[nVectors];
+            Debug.Log("Creating " + nVectors + " rail vectors");
+            for (int i = 0; i < nVectors; i++)
             {
-                waypoints[i] = Mathf.Sqrt(angleForVector) / A1;
+                waypoints[i] = (float)i * L1 / (float)(nVectors - 1);
             }
-            else
-            {
-                if (angleForVector > phi) angleForVector = phi;
-                waypoints[i] = length - Mathf.Sqrt(phi - angleForVector) / A2;
-            }
-
-            //Debug.Log("rail " + i + ": " + waypoints[i]);
         }
+        else // transitions
+        {
+            float length = L1 / A1 + L2 / A2;
+            float maxAngle = maxAngleDeg * Mathf.Deg2Rad;
 
+            float usedTheta1 = theta1 * (1 - (1 - fraction1) * (1 - fraction1));
+            float usedTheta2 = theta2 * (1 - (1 - fraction2) * (1 - fraction2));
+
+            float usedPhi = usedTheta1 + usedTheta2;
+            float phi = theta1 + theta2;
+            float startingTheta = theta1 - usedTheta1;
+
+            int nVectors = Mathf.FloorToInt(usedPhi / maxAngle) + 2;
+
+            waypoints = new float[nVectors];
+
+            float anglePerSection = usedPhi / (nVectors - 1);
+
+            for (int i = 0; i < waypoints.Length; i++)
+            {
+                float angleForVector = i * anglePerSection + startingTheta;
+
+                if (angleForVector < theta1)
+                {
+                    waypoints[i] = Mathf.Sqrt(angleForVector) / A1;
+                }
+                else
+                {
+                    if (angleForVector > phi) angleForVector = phi;
+                    waypoints[i] = length - Mathf.Sqrt(phi - angleForVector) / A2;
+                }
+
+                //Debug.Log("rail " + i + ": " + waypoints[i]);
+            }
+        }
         return waypoints;
     }
 

@@ -325,9 +325,33 @@ public class TrackPlacementTool : Tool
                                             float lengthOfTrackSection = Vector3.Dot((location - m_baubleAnchor.transform.position), trackDirection);
                                             m_baubleCursor.transform.position = m_baubleAnchor.transform.position + (trackDirection * lengthOfTrackSection);
                                         }
+                                        else // find a spot for the cursor bauble for a circular curve
+                                        {
+                                            cursorController.fixedRotation = true;
+                                            cursorController.ResetCurvature();
+                                            cursorController.AdjustCurvature(-anchorController.GetCurvature(m_currentTrackSection));
+
+                                            Vector3 curveCentre = anchorController.GetCurveCentre();
+                                            /*
+                                            GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                                            marker.transform.position = curveCentre;
+                                            marker.transform.localScale /= 10;
+                                            */
+                                            float distanceFromCentre = (anchorController.transform.position - curveCentre).magnitude;
+                                            m_baubleCursor.transform.position = curveCentre + (location - curveCentre).normalized * distanceFromCentre;
+
+                                            m_baubleCursor.transform.rotation = Quaternion.LookRotation(location - curveCentre);
+                                            
+                                            if (Vector3.Dot((m_baubleCursor.transform.position - m_baubleAnchor.transform.position), m_baubleCursor.transform.right) < 0)
+                                                m_baubleCursor.transform.rotation = Quaternion.LookRotation(curveCentre - location);
+                                            
+                                            
+                                        }
                                     }
                                     else
                                     {
+                                        if (Input.GetButton("HoldCurvature")) cursorController.ResetCurvature();
+
                                         m_baubleCursor.GetComponent<BaubleController>().fixedRotation = false;
 
                                         m_baubleCursor.transform.position = location;

@@ -157,6 +157,13 @@ public class BaubleController : MonoBehaviour {
         publicCurvature = 0;
     }
 
+    public Vector3 GetCurveCentre()
+    {
+        if (m_reciprocalCurvatureRadius == 0) return transform.position;
+
+        return transform.position + transform.forward / m_reciprocalCurvatureRadius;
+    }
+
     public bool IsStraight()
     {
         return (m_reciprocalCurvatureRadius == 0);

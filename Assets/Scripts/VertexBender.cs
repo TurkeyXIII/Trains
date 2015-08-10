@@ -30,6 +30,11 @@ public class VertexBender : MonoBehaviour, IMeshOwner
         c_bender.Bend(fixedPosition, movableEndPosition, targetPostion);
     }
 
+    public void Bend(Vector3 centrePosition, ref Vector3[] creasePositions)
+    {
+        c_bender.Bend(centrePosition, ref creasePositions);
+    }
+
     public void Bend(float L1, float L2, float A1, float A2, float theta1, float theta2,
                     Vector3 fixedPosition, 
                     Vector3 movableEndPosition, 
@@ -146,6 +151,7 @@ public class VertexBenderLogic
     }
 
     // bend function for circular curves
+    // the start direction is always positive x
     public void Bend(Vector3 centrePosition, ref Vector3[] creasePositions)
     {
         Vector3[] verts;
@@ -153,16 +159,14 @@ public class VertexBenderLogic
         int[] tris;
 
         meshOwner.GetMeshInfo(out verts, out uvs, out tris);
-
-        // vector perpendicular to origin/radius
-        // should be (1, 0, 0) as long as centrePosition is along y or z axis
-        Vector3 startDirection = Vector3.right;
-        float radius = centrePosition.magnitude;
-
         if (uvs == null) uvs = new Vector2[verts.Length];
 
+        Vector3 startDirection = Vector3.right;
+        float offset = -Vector3.Dot(centrePosition, startDirection);
+        float radius = (centrePosition + offset * startDirection).magnitude;
+        Debug.Log("radius = " + radius);
+
         Vector3 rotationAxis = Vector3.Cross(startDirection, centrePosition).normalized;
-        startDirection = Vector3.Cross(centrePosition, rotationAxis).normalized;
 
         Vector3[] newVerts = new Vector3[verts.Length * 100];
         Vector3[] normals = new Vector3[verts.Length * 100];
@@ -171,6 +175,11 @@ public class VertexBenderLogic
         float[] arcLengths = new float[verts.Length * 100];
         int nNewTris = tris.Length;
         int nNewVerts = verts.Length;
+
+        for (int i = 0; i < creasePositions.Length; i++)
+        {
+            creasePositions[i] += offset * startDirection;
+        }
 
         // set up normals
         for (int t = 0; t < tris.Length; t += 3)
@@ -183,9 +192,11 @@ public class VertexBenderLogic
         }
 
         // find arc lengths for all starting verts
+        Debug.Log("offset = " + offset);
         for (int i = 0; i < verts.Length; i++)
         {
-            arcLengths[i] = Vector3.Dot(verts[i], startDirection);
+            arcLengths[i] = Vector3.Dot(verts[i], startDirection) + offset;
+            //Debug.Log("arclength " + arcLengths[i]);
             newVerts[i] = verts[i];
             newUVs[i] = uvs[i];
         }
@@ -209,8 +220,6 @@ public class VertexBenderLogic
         for (int i = 0; i < creasePositions.Length; i++)
         {
             creaseArcLengths[i] = Vector3.Dot(creasePositions[i], startDirection);
-            Vector3 translatedVert = creasePositions[i] - (startDirection * creaseArcLengths[i]);
-            creasePositions[i] = TrainsMath.RotateVector((translatedVert - centrePosition), rotationAxis, (creaseArcLengths[i] / radius)) + centrePosition;
         }
 
         recursiveReorderCreases(ref creases, ref done, creaseArcLengths, ref n, creaseArcLengths.Length/2, creaseArcLengths.Length / 2);
@@ -233,10 +242,18 @@ public class VertexBenderLogic
         for (int i = 0; i < verts.Length; i++)
         {
             Vector3 translatedVert = newVerts[i] - (startDirection * arcLengths[i]);
+            //Debug.Log("translated Vert: " + translatedVert);
             verts[i] = TrainsMath.RotateVector((translatedVert - centrePosition), rotationAxis, (arcLengths[i] / radius)) + centrePosition;
         }
 
         meshOwner.SetMeshInfo(verts, uvs, tris);
+
+        for (int i = 0; i < creasePositions.Length; i++)
+        {
+            creasePositions[i] -= offset * startDirection;
+            Vector3 translatedCrease = creasePositions[i] - (startDirection * creaseArcLengths[i]);
+            creasePositions[i] = TrainsMath.RotateVector((translatedCrease - centrePosition), rotationAxis, (creaseArcLengths[i] / radius)) + centrePosition;
+        }
     }
 
     // reordering function for creases in a circular curve

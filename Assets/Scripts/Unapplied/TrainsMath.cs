@@ -5,32 +5,26 @@ public static class TrainsMath {
 
     private const float c_fudgeFactor = 0.000001f;
 
-    public static bool AreApproximatelyEqual(float a, float b)
+    public static bool AreApproximatelyEqual(float a, float b, float margin = -1)
     {
-        return AreApproximatelyEqual(a, b, c_fudgeFactor * 10);
-    }
+        if (margin < 0) margin = c_fudgeFactor;
 
-    public static bool AreApproximatelyEqual(float a, float b, float margin)
-    {
         float diff = a - b;
         if (diff < margin && diff > -margin) return true;
 
         return false;
     }
 
-    public static bool AreApproximatelyEqual(Vector3 a, Vector3 b, float margin)
+    public static bool AreApproximatelyEqual(Vector3 a, Vector3 b, float margin = -1)
     {
+        if (margin < 0) margin = c_fudgeFactor;
+
         if (AreApproximatelyEqual(a.x, b.x, margin) &&
             AreApproximatelyEqual(a.y, b.y, margin) &&
             AreApproximatelyEqual(a.z, b.z, margin))
             return true;
 
         return false;
-    }
-
-    public static bool AreApproximatelyEqual(Vector3 a, Vector3 b)
-    {
-        return AreApproximatelyEqual(a, b, c_fudgeFactor);
     }
 
     public static Vector3 RotateVector(Vector3 vector, Vector3 axis, float angleRadians)
@@ -268,7 +262,7 @@ public static class FresnelMath
 
 //        Debug.Log("aUpper: " + aUpper + ", aLower: " + aLower);
 
-        int maxIterations = 15;
+        int maxIterations = 25;
 
         float fUpper = FunctionOfAForPartialTransition(aUpper, R, xp, yp);
         float fLower = FunctionOfAForPartialTransition(aLower, R, xp, yp);
@@ -301,7 +295,7 @@ public static class FresnelMath
 
             float fFalse = FunctionOfAForPartialTransition(aFalse, R, xp, yp);
 
-            if (TrainsMath.AreApproximatelyEqual(0, fFalse))
+            if (TrainsMath.AreApproximatelyEqual(0, fFalse, 0.00001f))
             {
                 a = aFalse;
                 float yq = FresnelS(1 / (2 * a * R)) / a;
